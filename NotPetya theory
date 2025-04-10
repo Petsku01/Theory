@@ -1,0 +1,55 @@
+// Pseudocode: NotPetya-like Malware Behavior
+// Old-proofs, best current info about notpetya is: https://github.com/RoanH/NotPetya
+
+function main() {
+    if (hasAdminPrivileges()) {
+        // Step 1: Spread across network
+        targets = gatherNetworkTargets(); // ARP, DHCP, TCP endpoints
+        for each target in targets {
+            if (smbVulnerable(target)) {
+                exploitSMB(target, "EternalBlue"); // CVE-2017-0144
+                copySelfToTarget(target, "C:\\Windows\\perfc.dat");
+                executeRemote(target, "rundll32.exe perfc.dat,#1");
+            }
+            credentials = extractCredentials(); // Mimikatz-like from LSASS
+            if (credentials) {
+                spreadViaPSEXEC(target, credentials);
+                spreadViaWMIC(target, credentials);
+            }
+        }
+
+        // Step 2: Encrypt system
+        overwriteMBR(maliciousBootloader);
+        encryptMFT(128-bit-AES);
+        
+        // Step 3: Force reboot
+        scheduleTask("shutdown.exe /r /f", delayMinutes(30));
+        triggerHardError(); // Undocumented NTRaiseHardError API
+        
+        // Step 4: Display fake ransom note
+        displayRansomNote("Send $300 BTC to 1Mz7153HMuxXTuR2R1t78mGSdzaAtNbBWX");
+    } else {
+        exit(); // Needs admin rights to proceed
+    }
+}
+
+function gatherNetworkTargets() {
+    // Simulate collecting IPs from ARP table, DHCP, etc.
+    return ["192.168.1.10", "192.168.1.11", ...];
+}
+
+function smbVulnerable(target) {
+    // Check if SMBv1 is open (ports 445, 139)
+    return isPortOpen(target, 445) && !patchedMS17-010();
+}
+
+function extractCredentials() {
+    // Simulate Mimikatz-style credential dumping
+    return {"user": "admin", "pass": "stolenpass"};
+}
+
+function displayRansomNote(message) {
+    // Fake ransom screen (no real decryption possible)
+    print(message);
+    print("Random ID: " + generateRandomID());
+}
