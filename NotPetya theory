@@ -1,5 +1,6 @@
 // Pseudocode: NotPetya-like Malware Behavior
 // Old-proofs, best current info about notpetya is: https://github.com/RoanH/NotPetya
+// Also: https://github.com/fabrimagic72/malware-samples
 
 function main() {
     if (hasAdminPrivileges()) {
