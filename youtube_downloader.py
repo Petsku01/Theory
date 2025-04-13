@@ -1,4 +1,5 @@
 # Theory, never used an never will be.
+# Done in 2021, updated 2025
 # For personal use only (e.g., your own videos or Creative Commons content)
 # YouTube's Terms of Service prohibit unauthorized downloading: https://www.youtube.com/tos
 # Run with: python youtube_downloader_gui_extended.py
