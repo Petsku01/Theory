@@ -1,0 +1,1248 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "A2AProtocol",
+  "description": "JSON Schema for the Agent-to-Agent (A2A) Protocol, defining agent interactions, tasks, and communication.",
+  "$defs": {
+    "AgentAuthentication": {
+      "type": "object",
+      "title": "AgentAuthentication",
+      "description": "Authentication details for an agent.",
+      "properties": {
+        "schemes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["basic", "bearer", "oauth2", "apiKey"]
+          },
+          "minItems": 1,
+          "description": "Supported authentication schemes."
+        },
+        "credentials": {
+          "type": ["string", "null"],
+          "description": "Optional credentials for authentication.",
+          "default": null
+        }
+      },
+      "required": ["schemes"]
+    },
+    "AgentCapabilities": {
+      "type": "object",
+      "title": "AgentCapabilities",
+      "description": "Features supported by the agent.",
+      "properties": {
+        "streaming": {
+          "type": "boolean",
+          "default": false,
+          "description": "Indicates if streaming is supported."
+        },
+        "pushNotifications": {
+          "type": "boolean",
+          "default": false,
+          "description": "Indicates if push notifications are supported."
+        },
+        "stateTransitionHistory": {
+          "type": "boolean",
+          "default": false,
+          "description": "Indicates if state transition history is maintained."
+        }
+      }
+    },
+    "AgentCard": {
+      "type": "object",
+      "title": "AgentCard",
+      "description": "Metadata describing an agent.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Unique name of the agent."
+        },
+        "description": {
+          "type": ["string", "null"],
+          "default": null,
+          "description": "Optional description of the agent."
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL to access the agent."
+        },
+        "provider": {
+          "type": ["object", "null"],
+          "$ref": "#/$defs/AgentProvider",
+          "default": null,
+          "description": "Optional provider information."
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "Agent version in semantic format (e.g., 1.0.0)."
+        },
+        "documentationUrl": {
+          "type": ["string", "null"],
+          "format": "uri",
+          "default": null,
+          "description": "Optional URL to agent documentation."
+        },
+        "capabilities": {
+          "$ref": "#/$defs/AgentCapabilities",
+          "description": "Agent's supported capabilities."
+        },
+        "authentication": {
+          "type": ["object", "null"],
+          "$ref": "#/$defs/AgentAuthentication",
+          "default": null,
+          "description": "Optional authentication requirements."
+        },
+        "defaultInputModes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["text", "file", "data"]
+          },
+          "default": ["text"],
+          "description": "Default input modes supported."
+        },
+        "defaultOutputModes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["text", "file", "data"]
+          },
+          "default": ["text"],
+          "description": "Default output modes supported."
+        },
+        "skills": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AgentSkill"
+          },
+          "minItems": 1,
+          "description": "List of agent skills."
+        }
+      },
+      "required": ["name", "url", "version", "capabilities", "skills"]
+    },
+    "AgentProvider": {
+      "type": "object",
+      "title": "AgentProvider",
+      "description": "Details about the provider of an agent.",
+      "properties": {
+        "organization": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Name of the providing organization."
+        },
+        "url": {
+          "type": ["string", "null"],
+          "format": "uri",
+          "default": null,
+          "description": "Optional URL of the provider."
+        }
+      },
+      "required": ["organization"]
+    },
+    "AgentSkill": {
+      "type": "object",
+      "title": "AgentSkill",
+      "description": "A specific capability or function of an agent.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Unique identifier for the skill."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable name of the skill."
+        },
+        "description": {
+          "type": ["string", "null"],
+          "default": null,
+          "description": "Optional description of the skill."
+        },
+        "tags": {
+          "type": ["array", "null"],
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "default": null,
+          "description": "Optional tags for categorizing the skill."
+        },
+        "examples": {
+          "type": ["array", "null"],
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "default": null,
+          "description": "Optional example inputs/outputs for the skill."
+        },
+        "inputModes": {
+          "type": ["array", "null"],
+          "items": {
+            "type": "string",
+            "enum": ["text", "file", "data"]
+          },
+          "default": null,
+          "description": "Supported input modes for the skill."
+        },
+        "outputModes": {
+          "type": ["array", "null"],
+          "items": {
+            "type": "string",
+            "enum": ["text", "file", "data"]
+          },
+          "default": null,
+          "description": "Supported output modes for the skill."
+        }
+      },
+      "required": ["id", "name"]
+    },
+    "Artifact": {
+      "type": "object",
+      "title": "Artifact",
+      "description": "An artifact generated or used by a task.",
+      "properties": {
+        "name": {
+          "type": ["string", "null"],
+          "default": null,
+          "description": "Optional name of the artifact."
+        },
+        "description": {
+          "type": ["string", "null"],
+          "default": null,
+          "description": "Optional description of the artifact."
+        },
+        "parts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Part"
+          },
+          "minItems": 1,
+          "description": "Components of the artifact."
+        },
+        "index": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "description": "Order or position of the artifact."
+        },
+        "append": {
+          "type": ["boolean", "null"],
+          "default": null,
+          "description": "Whether to append to existing artifact."
+        },
+        "lastChunk": {
+          "type": ["boolean", "null"],
+          "default": null,
+          "description": "Indicates if this is the final chunk."
+        },
+        "metadata": {
+          "type": ["object", "null"],
+          "additionalProperties": true,
+          "default": null,
+          "description": "Optional metadata for the artifact."
+        }
+      },
+      "required": ["parts"]
+    },
+    "AuthenticationInfo": {
+      "type": "object",
+      "title": "AuthenticationInfo",
+      "description": "Authentication configuration for push notifications or tasks.",
+      "properties": {
+        "schemes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["basic", "bearer", "oauth2", "apiKey"]
+          },
+          "minItems": 1,
+          "description": "Supported authentication schemes."
+        },
+        "credentials": {
+          "type": ["string", "null"],
+          "default": null,
+          "description": "Optional credentials for authentication."
+        }
+      },
+      "required": ["schemes"]
+    },
+    "FileContent": {
+      "type": "object",
+      "title": "FileContent",
+      "description": "Represents file content, either as base64-encoded bytes or a URI.",
+      "properties": {
+        "name": {
+          "type": ["string", "null"],
+          "default": null,
+          "description": "Optional name of the file."
+        },
+        "mimeType": {
+          "type": ["string", "null"],
+          "default": null,
+          "description": "Optional MIME type of the file."
+        },
+        "bytes": {
+          "type": ["string", "null"],
+          "default": null,
+          "description": "Base64-encoded file content."
+        },
+        "uri": {
+          "type": ["string", "null"],
+          "format": "uri",
+          "default": null,
+          "description": "URI pointing to the file."
+        }
+      },
+      "oneOf": [
+        {"required": ["bytes"], "properties": {"uri": {"const": null}}},
+        {"required": ["uri"], "properties": {"bytes": {"const": null}}}
+      ],
+      "description": "Either 'bytes' or 'uri' must be provided, but not both."
+    },
+    "Part": {
+      "title": "Part",
+      "description": "A component of a message or artifact, which can be text, file, or data.",
+      "oneOf": [
+        {"$ref": "#/$defs/TextPart"},
+        {"$ref": "#/$defs/FilePart"},
+        {"$ref": "#/$defs/DataPart"}
+      ]
+    },
+    "TextPart": {
+      "type": "object",
+      "title": "TextPart",
+      "description": "A text component of a message or artifact.",
+      "properties": {
+        "type": {
+          "const": "text",
+          "description": "Identifies the part as text."
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The text content."
+        },
+        "metadata": {
+          "type": ["object", "null"],
+          "additionalProperties": true,
+          "default": null,
+          "description": "Optional metadata for the text part."
+        }
+      },
+      "required": ["type", "text"]
+    },
+    "FilePart": {
+      "type": "object",
+      "title": "FilePart",
+      "description": "A file component of a message or artifact.",
+      "properties": {
+        "type": {
+          "const": "file",
+          "description": "Identifies the part as a file."
+        },
+        "file": {
+          "$ref": "#/$defs/FileContent",
+          "description": "The file content."
+        },
+        "metadata": {
+          "type": ["object", "null"],
+          "additionalProperties": true,
+          "default": null,
+          "description": "Optional metadata for the file part."
+        }
+      },
+      "required": ["type", "file"]
+    },
+    "DataPart": {
+      "type": "object",
+      "title": "DataPart",
+      "description": "A structured data component of a message or artifact.",
+      "properties": {
+        "type": {
+          "const": "data",
+          "description": "Identifies the part as data."
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "The structured data."
+        },
+        "metadata": {
+          "type": ["object", "null"],
+          "additionalProperties": true,
+          "default": null,
+          "description": "Optional metadata for the data part."
+        }
+      },
+      "required": ["type", "data"]
+    },
+    "Message": {
+      "type": "object",
+      "title": "Message",
+      "description": "A communication message between agents or users.",
+      "properties": {
+        "role": {
+          "type": "string",
+          "enum": ["user", "agent"],
+          "description": "The sender's role."
+        },
+        "parts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Part"
+          },
+          "minItems": 1,
+          "description": "Components of the message."
+        },
+        "metadata": {
+          "type": ["object", "null"],
+          "additionalProperties": true,
+          "default": null,
+          "description": "Optional metadata for the message."
+        }
+      },
+      "required": ["role", "parts"]
+    },
+    "TaskState": {
+      "type": "string",
+      "title": "TaskState",
+      "description": "The current state of a task.",
+      "enum": ["submitted", "working", "input-required", "completed", "canceled", "failed", "unknown"]
+    },
+    "TaskStatus": {
+      "type": "object",
+      "title": "TaskStatus",
+      "description": "Status information for a task.",
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/TaskState",
+          "description": "The task's current state."
+        },
+        "message": {
+          "type": ["object", "null"],
+          "$ref": "#/$defs/Message",
+          "default": null,
+          "description": "Optional message associated with the status."
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the status was last updated."
+        }
+      },
+      "required": ["state", "timestamp"]
+    },
+    "Task": {
+      "type": "object",
+      "title": "Task",
+      "description": "Represents a task assigned to an agent.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Unique identifier for the task."
+        },
+        "sessionId": {
+          "type": ["string", "null"],
+          "default": null,
+          "description": "Optional session identifier."
+        },
+        "status": {
+          "$ref": "#/$defs/TaskStatus",
+          "description": "Current status of the task."
+        },
+        "artifacts": {
+          "type": ["array", "null"],
+          "items": {
+            "$ref": "#/$defs/Artifact"
+          },
+          "default": null,
+          "description": "Optional artifacts associated with the task."
+        },
+        "metadata": {
+          "type": ["object", "null"],
+          "additionalProperties": true,
+          "default": null,
+          "description": "Optional metadata for the task."
+        }
+      },
+      "required": ["id", "status"]
+    },
+    "JSONRPCError": {
+      "type": "object",
+      "title": "JSONRPCError",
+      "description": "Standard JSON-RPC error structure.",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "description": "Error code."
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Error message."
+        },
+        "data": {
+          "type": ["object", "null"],
+          "additionalProperties": true,
+          "default": null,
+          "description": "Optional additional error data."
+        }
+      },
+      "required": ["code", "message"]
+    },
+    "JSONRPCRequest": {
+      "type": "object",
+      "title": "JSONRPCRequest",
+      "description": "A JSON-RPC 2.0 request.",
+      "properties": {
+        "jsonrpc": {
+          "const": "2.0",
+          "description": "JSON-RPC version."
+        },
+        "id": {
+          "type": ["integer", "string", "null"],
+          "description": "Request identifier."
+        },
+        "method": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Method to invoke."
+        },
+        "params": {
+          "type": ["object", "null"],
+          "additionalProperties": true,
+          "default": null,
+          "description": "Method parameters."
+        }
+      },
+      "required": ["jsonrpc", "method"]
+    },
+    "JSONRPCResponse": {
+      "type": "object",
+      "title": "JSONRPCResponse",
+      "description": "A JSON-RPC 2.0 response.",
+      "properties": {
+        "jsonrpc": {
+          "const": "2.0",
+          "description": "JSON-RPC version."
+        },
+        "id": {
+          "type": ["integer", "string", "null"],
+          "description": "Response identifier."
+        },
+        "result": {
+          "type": ["object", "null"],
+          "additionalProperties": true,
+          "default": null,
+          "description": "Result of the request."
+        },
+        "error": {
+          "type": ["object", "null"],
+          "$ref": "#/$defs/JSONRPCError",
+          "default": null,
+          "description": "Error, if any."
+        }
+      },
+      "required": ["jsonrpc"],
+      "oneOf": [
+        {"required": ["result"], "properties": {"error": {"const": null}}},
+        {"required": ["error"], "properties": {"result": {"const": null}}}
+      ]
+    },
+    "SendTaskRequest": {
+      "type": "object",
+      "title": "SendTaskRequest",
+      "description": "Request to send a task to an agent.",
+      "properties": {
+        "jsonrpc": {
+          "const": "2.0"
+        },
+        "id": {
+          "type": ["integer", "string", "null"]
+        },
+        "method": {
+          "const": "tasks/send"
+        },
+        "params": {
+          "$ref": "#/$defs/TaskSendParams"
+        }
+      },
+      "required": ["jsonrpc", "method", "params"]
+    },
+    "TaskSendParams": {
+      "type": "object",
+      "title": "TaskSendParams",
+      "description": "Parameters for sending a task.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Unique task identifier."
+        },
+        "sessionId": {
+          "type": ["string", "null"],
+          "default": null,
+          "description": "Optional session identifier."
+        },
+        "message": {
+          "$ref": "#/$defs/Message",
+          "description": "Message to send with the task."
+        },
+        "pushNotification": {
+          "type": ["object", "null"],
+          "$ref": "#/$defs/PushNotificationConfig",
+          "default": null,
+          "description": "Optional push notification configuration."
+        },
+        "historyLength": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "default": null,
+          "description": "Optional length of task history to include."
+        },
+        "metadata": {
+          "type": ["object", "null"],
+          "additionalProperties": true,
+          "default": null,
+          "description": "Optional metadata for the task."
+        }
+      },
+      "required": ["id", "message"]
+    },
+    "PushNotificationConfig": {
+      "type": "object",
+      "title": "PushNotificationConfig",
+      "description": "Configuration for push notifications.",
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL for push notifications."
+        },
+        "token": {
+          "type": ["string", "null"],
+          "default": null,
+          "description": "Optional authentication token."
+        },
+        "authentication": {
+          "type": ["object", "null"],
+          "$ref": "#/$defs/AuthenticationInfo",
+          "default": null,
+          "description": "Optional authentication details."
+        }
+      },
+      "required": ["url"]
+    },
+    "SendTaskResponse": {
+      "type": "object",
+      "title": "SendTaskResponse",
+      "description": "Response to a task send request.",
+      "properties": {
+        "jsonrpc": {
+          "const": "2.0"
+        },
+        "id": {
+          "type": ["integer", "string", "null"]
+        },
+        "result": {
+          "type": ["object", "null"],
+          "$ref": "#/$defs/Task",
+          "default": null
+        },
+        "error": {
+          "type": ["object", "null"],
+          "$ref": "#/$defs/JSONRPCError",
+          "default": null
+        }
+      },
+      "required": ["jsonrpc"],
+      "oneOf": [
+        {"required": ["result"], "properties": {"error": {"const": null}}},
+        {"required": ["error"], "properties": {"result": {"const": null}}}
+      ]
+    },
+    "GetTaskRequest": {
+      "type": "object",
+      "title": "GetTaskRequest",
+      "description": "Request to retrieve task details.",
+      "properties": {
+        "jsonrpc": {
+          "const": "2.0"
+        },
+        "id": {
+          "type": ["integer", "string", "null"]
+        },
+        "method": {
+          "const": "tasks/get"
+        },
+        "params": {
+          "$ref": "#/$defs/TaskQueryParams"
+        }
+      },
+      "required": ["jsonrpc", "method", "params"]
+    },
+    "TaskQueryParams": {
+      "type": "object",
+      "title": "TaskQueryParams",
+      "description": "Parameters for querying a task.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Task identifier."
+        },
+        "historyLength": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "default": null,
+          "description": "Optional length of task history to retrieve."
+        },
+        "metadata": {
+          "type": ["object", "null"],
+          "additionalProperties": true,
+          "default": null,
+          "description": "Optional metadata for the query."
+        }
+      },
+      "required": ["id"]
+    },
+    "GetTaskResponse": {
+      "type": "object",
+      "title": "GetTaskResponse",
+      "description": "Response to a task retrieval request.",
+      "properties": {
+        "jsonrpc": {
+          "const": "2.0"
+        },
+        "id": {
+          "type": ["integer", "string", "null"]
+        },
+        "result": {
+          "type": ["object", "null"],
+          "$ref": "#/$defs/Task",
+          "default": null
+        },
+        "error": {
+          "type": ["object", "null"],
+          "$ref": "#/$defs/JSONRPCError",
+          "default": null
+        }
+      },
+      "required": ["jsonrpc"],
+      "oneOf": [
+        {"required": ["result"], "properties": {"error": {"const": null}}},
+        {"required": ["error"], "properties": {"result": {"const": null}}}
+      ]
+    },
+    "CancelTaskRequest": {
+      "type": "object",
+      "title": "CancelTaskRequest",
+      "description": "Request to cancel a task.",
+      "properties": {
+        "jsonrpc": {
+          "const": "2.0"
+        },
+        "id": {
+          "type": ["integer", "string", "null"]
+        },
+        "method": {
+          "const": "tasks/cancel"
+        },
+        "params": {
+          "$ref": "#/$defs/TaskIdParams"
+        }
+      },
+      "required": ["jsonrpc", "method", "params"]
+    },
+    "TaskIdParams": {
+      "type": "object",
+      "title": "TaskIdParams",
+      "description": "Parameters for identifying a task.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Task identifier."
+        },
+        "metadata": {
+          "type": ["object", "null"],
+          "additionalProperties": true,
+          "default": null,
+          "description": "Optional metadata for the request."
+        }
+      },
+      "required": ["id"]
+    },
+    "CancelTaskResponse": {
+      "type": "object",
+      "title": "CancelTaskResponse",
+      "description": "Response to a task cancellation request.",
+      "properties": {
+        "jsonrpc": {
+          "const": "2.0"
+        },
+        "id": {
+          "type": ["integer", "string", "null"]
+        },
+        "result": {
+          "type": ["object", "null"],
+          "$ref": "#/$defs/Task",
+          "default": null
+        },
+        "error": {
+          "type": ["object", "null"],
+          "$ref": "#/$defs/JSONRPCError",
+          "default": null
+        }
+      },
+      "required": ["jsonrpc"],
+      "oneOf": [
+        {"required": ["result"], "properties": {"error": {"const": null}}},
+        {"required": ["error"], "properties": {"result": {"const": null}}}
+      ]
+    },
+    "TaskStatusUpdateEvent": {
+      "type": "object",
+      "title": "TaskStatusUpdateEvent",
+      "description": "Event indicating a task status change.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Task identifier."
+        },
+        "status": {
+          "$ref": "#/$defs/TaskStatus",
+          "description": "Updated task status."
+        },
+        "final": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether this is the final status update."
+        },
+        "metadata": {
+          "type": ["object", "null"],
+          "additionalProperties": true,
+          "default": null,
+          "description": "Optional metadata for the event."
+        }
+      },
+      "required": ["id", "status"]
+    },
+    "TaskArtifactUpdateEvent": {
+      "type": "object",
+      "title": "TaskArtifactUpdateEvent",
+      "description": "Event indicating an artifact update for a task.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Task identifier."
+        },
+        "artifact": {
+          "$ref": "#/$defs/Artifact",
+          "description": "Updated artifact."
+        },
+        "metadata": {
+          "type": ["object", "null"],
+          "additionalProperties": true,
+          "default": null,
+          "description": "Optional metadata for the event."
+        }
+      },
+      "required": ["id", "artifact"]
+    },
+    "SendTaskStreamingRequest": {
+      "type": "object",
+      "title": "SendTaskStreamingRequest",
+      "description": "Request to send a task with streaming updates.",
+      "properties": {
+        "jsonrpc": {
+          "const": "2.0"
+        },
+        "id": {
+          "type": ["integer", "string", "null"]
+        },
+        "method": {
+          "const": "tasks/sendSubscribe"
+        },
+        "params": {
+          "$ref": "#/$defs/TaskSendParams"
+        }
+      },
+      "required": ["jsonrpc", "method", "params"]
+    },
+    "SendTaskStreamingResponse": {
+      "type": "object",
+      "title": "SendTaskStreamingResponse",
+      "description": "Response for a streaming task, including status or artifact updates.",
+      "properties": {
+        "jsonrpc": {
+          "const": "2.0"
+        },
+        "id": {
+          "type": ["integer", "string", "null"]
+        },
+        "result": {
+          "type": ["object", "null"],
+          "oneOf": [
+            {"$ref": "#/$defs/TaskStatusUpdateEvent"},
+            {"$ref": "#/$defs/TaskArtifactUpdateEvent"}
+          ],
+          "default": null
+        },
+        "error": {
+          "type": ["object", "null"],
+          "$ref": "#/$defs/JSONRPCError",
+          "default": null
+        }
+      },
+      "required": ["jsonrpc"],
+      "oneOf": [
+        {"required": ["result"], "properties": {"error": {"const": null}}},
+        {"required": ["error"], "properties": {"result": {"const": null}}}
+      ]
+    },
+    "TaskPushNotificationConfig": {
+      "type": "object",
+      "title": "TaskPushNotificationConfig",
+      "description": "Configuration for task-specific push notifications.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Task identifier."
+        },
+        "pushNotificationConfig": {
+          "$ref": "#/$defs/PushNotificationConfig",
+          "description": "Push notification settings."
+        }
+      },
+      "required": ["id", "pushNotificationConfig"]
+    },
+    "SetTaskPushNotificationRequest": {
+      "type": "object",
+      "title": "SetTaskPushNotificationRequest",
+      "description": "Request to set push notification configuration for a task.",
+      "properties": {
+        "jsonrpc": {
+          "const": "2.0"
+        },
+        "id": {
+          "type": ["integer", "string", "null"]
+        },
+        "method": {
+          "const": "tasks/pushNotification/set"
+        },
+        "params": {
+          "$ref": "#/$defs/TaskPushNotificationConfig"
+        }
+      },
+      "required": ["jsonrpc", "method", "params"]
+    },
+    "SetTaskPushNotificationResponse": {
+      "type": "object",
+      "title": "SetTaskPushNotificationResponse",
+      "description": "Response to setting push notification configuration.",
+      "properties": {
+        "jsonrpc": {
+          "const": "2.0"
+        },
+        "id": {
+          "type": ["integer", "string", "null"]
+        },
+        "result": {
+          "type": ["object", "null"],
+          "$ref": "#/$defs/TaskPushNotificationConfig",
+          "default": null
+        },
+        "error": {
+          "type": ["object", "null"],
+          "$ref": "#/$defs/JSONRPCError",
+          "default": null
+        }
+      },
+      "required": ["jsonrpc"],
+      "oneOf": [
+        {"required": ["result"], "properties": {"error": {"const": null}}},
+        {"required": ["error"], "properties": {"result": {"const": null}}}
+      ]
+    },
+    "GetTaskPushNotificationRequest": {
+      "type": "object",
+      "title": "GetTaskPushNotificationRequest",
+      "description": "Request to retrieve push notification configuration for a task.",
+      "properties": {
+        "jsonrpc": {
+          "const": "2.0"
+        },
+        "id": {
+          "type": ["integer", "string", "null"]
+        },
+        "method": {
+          "const": "tasks/pushNotification/get"
+        },
+        "params": {
+          "$ref": "#/$defs/TaskIdParams"
+        }
+      },
+      "required": ["jsonrpc", "method", "params"]
+    },
+    "GetTaskPushNotificationResponse": {
+      "type": "object",
+      "title": "GetTaskPushNotificationResponse",
+      "description": "Response with push notification configuration.",
+      "properties": {
+        "jsonrpc": {
+          "const": "2.0"
+        },
+        "id": {
+          "type": ["integer", "string", "null"]
+        },
+        "result": {
+          "type": ["object", "null"],
+          "$ref": "#/$defs/TaskPushNotificationConfig",
+          "default": null
+        },
+        "error": {
+          "type": ["object", "null"],
+          "$ref": "#/$defs/JSONRPCError",
+          "default": null
+        }
+      },
+      "required": ["jsonrpc"],
+      "oneOf": [
+        {"required": ["result"], "properties": {"error": {"const": null}}},
+        {"required": ["error"], "properties": {"result": {"const": null}}}
+      ]
+    },
+    "TaskResubscriptionRequest": {
+      "type": "object",
+      "title": "TaskResubscriptionRequest",
+      "description": "Request to resubscribe to task updates.",
+      "properties": {
+        "jsonrpc": {
+          "const": "2.0"
+        },
+        "id": {
+          "type": ["integer", "string", "null"]
+        },
+        "method": {
+          "const": "tasks/resubscribe"
+        },
+        "params": {
+          "$ref": "#/$defs/TaskQueryParams"
+        }
+      },
+      "required": ["jsonrpc", "method", "params"]
+    },
+    "JSONParseError": {
+      "type": "object",
+      "title": "JSONParseError",
+      "description": "Error for invalid JSON payload.",
+      "properties": {
+        "code": {
+          "const": -32700,
+          "description": "Error code."
+        },
+        "message": {
+          "const": "Invalid JSON payload",
+          "description": "Error message."
+        },
+        "data": {
+          "type": ["object", "null"],
+          "default": null,
+          "description": "Optional error details."
+        }
+      },
+      "required": ["code", "message"]
+    },
+    "InvalidRequestError": {
+      "type": "object",
+      "title": "InvalidRequestError",
+      "description": "Error for invalid request payload.",
+      "properties": {
+        "code": {
+          "const": -32600,
+          "description": "Error code."
+        },
+        "message": {
+          "const": "Request payload validation error",
+          "description": "Error message."
+        },
+        "data": {
+          "type": ["object", "null"],
+          "default": null,
+          "description": "Optional error details."
+        }
+      },
+      "required": ["code", "message"]
+    },
+    "MethodNotFoundError": {
+      "type": "object",
+      "title": "MethodNotFoundError",
+      "description": "Error for unrecognized method.",
+      "properties": {
+        "code": {
+          "const": -32601,
+          "description": "Error code."
+        },
+        "message": {
+          "const": "Method not found",
+          "description": "Error message."
+        },
+        "data": {
+          "type": ["object", "null"],
+          "default": null,
+          "description": "Optional error details."
+        }
+      },
+      "required": ["code", "message"]
+    },
+    "InvalidParamsError": {
+      "type": "object",
+      "title": "InvalidParamsError",
+      "description": "Error for invalid parameters.",
+      "properties": {
+        "code": {
+          "const": -32602,
+          "description": "Error code."
+        },
+        "message": {
+          "const": "Invalid parameters",
+          "description": "Error message."
+        },
+        "data": {
+          "type": ["object", "null"],
+          "default": null,
+          "description": "Optional error details."
+        }
+      },
+      "required": ["code", "message"]
+    },
+    "InternalError": {
+      "type": "object",
+      "title": "InternalError",
+      "description": "Error for internal server issues.",
+      "properties": {
+        "code": {
+          "const": -32603,
+          "description": "Error code."
+        },
+        "message": {
+          "const": "Internal error",
+          "description": "Error message."
+        },
+        "data": {
+          "type": ["object", "null"],
+          "default": null,
+          "description": "Optional error details."
+        }
+      },
+      "required": ["code", "message"]
+    },
+    "TaskNotFoundError": {
+      "type": "object",
+      "title": "TaskNotFoundError",
+      "description": "Error when a task is not found.",
+      "properties": {
+        "code": {
+          "const": -32001,
+          "description": "Error code."
+        },
+        "message": {
+          "const": "Task not found",
+          "description": "Error message."
+        },
+        "data": {
+          "type": ["object", "null"],
+          "default": null,
+          "description": "Optional error details."
+        }
+      },
+      "required": ["code", "message"]
+    },
+    "TaskNotCancelableError": {
+      "type": "object",
+      "title": "TaskNotCancelableError",
+      "description": "Error when a task cannot be canceled.",
+      "properties": {
+        "code": {
+          "const": -32002,
+          "description": "Error code."
+        },
+        "message": {
+          "const": "Task cannot be canceled",
+          "description": "Error message."
+        },
+        "data": {
+          "type": ["object", "null"],
+          "default": null,
+          "description": "Optional error details."
+        }
+      },
+      "required": ["code", "message"]
+    },
+    "PushNotificationNotSupportedError": {
+      "type": "object",
+      "title": "PushNotificationNotSupportedError",
+      "description": "Error when push notifications are not supported.",
+      "properties": {
+        "code": {
+          "const": -32003,
+          "description": "Error code."
+        },
+        "message": {
+          "const": "Push Notification is not supported",
+          "description": "Error message."
+        },
+        "data": {
+          "type": ["object", "null"],
+          "default": null,
+          "description": "Optional error details."
+        }
+      },
+      "required": ["code", "message"]
+    },
+    "UnsupportedOperationError": {
+      "type": "object",
+      "title": "UnsupportedOperationError",
+      "description": "Error when an operation is not supported.",
+      "properties": {
+        "code": {
+          "const": -32004,
+          "description": "Error code."
+        },
+        "message": {
+          "const": "This operation is not supported",
+          "description": "Error message."
+        },
+        "data": {
+          "type": ["object", "null"],
+          "default": null,
+          "description": "Optional error details."
+        }
+      },
+      "required": ["code", "message"]
+    },
+    "A2ARequest": {
+      "title": "A2ARequest",
+      "description": "Supported A2A protocol requests.",
+      "oneOf": [
+        {"$ref": "#/$defs/SendTaskRequest"},
+        {"$ref": "#/$defs/SendTaskStreamingRequest"},
+        {"$ref": "#/$defs/GetTaskRequest"},
+        {"$ref": "#/$defs/CancelTaskRequest"},
+        {"$ref": "#/$defs/SetTaskPushNotificationRequest"},
+        {"$ref": "#/$defs/GetTaskPushNotificationRequest"},
+        {"$ref": "#/$defs/TaskResubscriptionRequest"}
+      ]
+    }
+  }
+}
