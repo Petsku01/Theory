@@ -2,6 +2,15 @@
 # Only proving that it can be done
 # For TCP/UDP socket server
 
+# Integration
+# Real Server:Replace simulate_server with your server loop (e.g., socket or game engine). Get ping via round-trip time (RTT):python
+
+#start_time = time.time()send_packet(client, "ping")reply = receive_packet(client)  
+# Assume "pong"ping_ms = (time.time() - start_time) * 1000Get packets/sec by counting messages:python packets= count_messages(client, interval=1)  # Messages in 1 sec
+
+
+
+
 import time
 from collections import deque
 import socket
