@@ -3,7 +3,7 @@ import java.util.Scanner;
 
 /**
  * Kolikonheitto-peli, jossa käyttäjä arvaa kruunan tai klaavan.
- * 
+ * Korjattu versio
  */
 public class KolikonHeittoPeli {
     public static void main(String[] args) {
