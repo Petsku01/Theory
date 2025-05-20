@@ -1,0 +1,17 @@
+[DEFAULT]
+SourceDirs = /home/user/data,/var/www  # For Linux
+# SourceDirs = C:\Users\user\Documents,D:\Data  # For Windows
+BackupDir = /backups  # For Linux
+# BackupDir = D:\Backups  # For Windows
+BackupType = incremental
+MaxBackups = 5
+ExcludePatterns = *.log,*.tmp,*.bak
+ScheduleTime = 02:00
+EmailEnabled = False
+SMTPServer = smtp.gmail.com
+SMTPPort = 587
+SMTPUser = your.email@gmail.com
+SMTPPassword = your_password
+EmailTo = admin@domain.com
+UseProgressBar = True
+EmailTimezone = UTC
