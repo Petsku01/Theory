@@ -32,7 +32,7 @@ class BackupTool:
     def __init__(self, config_file='backup_config.ini', progress_callback=None, progress_interval=100):
         self.progress_callback = progress_callback  # Note: Called from multiple threads, relies on Tkinter's thread safety
         self.progress_interval = progress_interval  # Files processed before callback
-        self.setup_logging()
+        
         self.lock_file = 'backup_tool.lock'
         self.lock_acquired = False
         self.acquire_lock()
