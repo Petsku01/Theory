@@ -165,13 +165,13 @@ class BackupTool:
             raise ValueError("No valid source directories specified")
         self.source_dirs = valid_source_dirs
         
-        # Validate email configuration
+        # Validates the email configuration
         if self.email_enabled:
             if not all([self.smtp_server, self.smtp_user, self.smtp_password, self.email_to]):
                 self.logger.warning("Incomplete email configuration; disabling email notifications")
                 self.email_enabled = False
         
-        # Validate schedule time
+        # Validates schedule times
         try:
             datetime.datetime.strptime(self.schedule_time, '%H:%M')
         except ValueError:
