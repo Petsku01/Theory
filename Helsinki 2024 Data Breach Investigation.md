@@ -67,12 +67,15 @@ Kuntaliitto: Found recommendations broad, suggesting detailed action lists and m
 Why It Matters
 
 This breach is a stark lesson for local governments. The student credentials entry point (page 4) highlights how a minor weakness can lead to massive data loss, exposing the need for robust access controls. Missed alerts due to no monitoring underscore the importance of real-time detection. The communication challenges, especially for those with protected identities (page 10), show the complexity of GDPR compliance. The breach also ties to EU regulations like the NIS2 Directive and Cyber Resilience Act, which set cybersecurity standards for devices and software (pages 83–84).
+
 Resources
 
 Full Report: P2024-01_Helsinki_tutkintaselostus.pdf
-Ombudsman’s Update: Tietosuojavaltuutettu’s ongoing investigation
+(https://tietosuoja.fi/-/onnettomuustutkintakeskus-julkaisi-suosituksia-helsingin-kaupunkiin-kohdistuneen-tietomurron-seurauksena-tietosuojavaltuutetun-toimisto-jatkaa-asian-tutkintaa)
 
 
-Final Thoughts
-Reading this report, I was struck by how a sihongle student’s credentials could unravel such a massive breach—a tiny flaw with huge consequences. The lack of monitoring and outdated tech were glaring issues, and the communication hurdles show how tough it is to notify tusands under GDPR. The recommendations are practical, but funding and coordination will be critical, especially for smaller municipalities. If you’re into cybersecurity or public sector IT, dive into the PDF’s source list (page 85) to see the scale of this response—26 organizations were involved!
+
+My Final Thoughts
+
+Reading this report, I was struck by how a sihongle student’s credentials could unravel such a massive breach—a tiny flaw with huge consequences. The lack of monitoring and outdated tech were glaring issues, and the communication hurdles show how tough it is to notify tusands under GDPR. The recommendations are practical, but funding and coordination will be critical, especially for smaller municipalities.
 -PK
