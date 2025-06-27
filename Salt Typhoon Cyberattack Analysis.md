@@ -8,7 +8,9 @@ File Reference
 Sources: Based on reports from:
 
 Cisco Talos Blog, Salt Typhoon section (February 20, 2025; verify specific article) https://blog.talosintelligence.com/salt-typhoon-analysis/
+
 CISA Enhanced Visibility and Hardening Guidance (December 3, 2024) https://www.cisa.gov/resources-tools/resources/enhanced-visibility-and-hardening-guidance-communications-infrastructure
+
 Recorded Future’s Insikt Group Report, Feb 13, 2025; verify specific report https://go.recordedfuture.com/hubfs/reports/cta-cn-2025-0213.pdf
 
 
