@@ -80,4 +80,5 @@ https://turvallisuustutkinta.fi/material/sites/otkes/otkes/hlsztol3t/P2024-01_He
 My Final Thoughts
 
 Reading this report, I was struck by how a sihongle student’s credentials could unravel such a massive breach—a tiny flaw with huge consequences. The lack of monitoring and outdated tech were glaring issues, and the communication hurdles show how tough it is to notify tusands under GDPR. The recommendations are practical, but funding and coordination will be critical, especially for smaller municipalities.
+
 -PK
