@@ -71,6 +71,8 @@ This breach is a stark lesson for local governments. The student credentials ent
 Resources
 
 Full Report: P2024-01_Helsinki_tutkintaselostus.pdf
+https://turvallisuustutkinta.fi/material/sites/otkes/otkes/hlsztol3t/P2024-01_Helsinki_tutkintaselostus.pdf
+
 (https://tietosuoja.fi/-/onnettomuustutkintakeskus-julkaisi-suosituksia-helsingin-kaupunkiin-kohdistuneen-tietomurron-seurauksena-tietosuojavaltuutetun-toimisto-jatkaa-asian-tutkintaa)
 
 
