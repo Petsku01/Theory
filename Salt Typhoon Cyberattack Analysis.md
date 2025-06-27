@@ -82,4 +82,5 @@ Treasury Sanctions: Salt Typhoon Sanctions Announcement (January 17, 2025)
 
 Final Thoughts
 I was floored by Salt Typhoon’s masterclass in espionage—turning wiretap systems against the U.S. is next-level. A seven-year-old flaw and weak credentials show how basic oversights can cripple critical systems. The ongoing struggle to kick out attackers highlights the challenge of fighting state-backed hackers. For cybersecurity or policy folks, dive into CISA’s guidance and Cisco’s technical breakdown—it’s a blueprint for shoring up defenses. This breach is a loud warning: patch, monitor, and encrypt, or pay the price.
-—PK (FEB 25)
+
+—PK (AP)
