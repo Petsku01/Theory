@@ -1,6 +1,7 @@
 Helsinki 2024 Data Breach Investigation Analysis
 
 Overview
+
 My report summarizes the P2024-01_Helsinki_tutkintaselostus.pdf, a detailed report by Finland’s Safety Investigation Authority (Onnettomuustutkintakeskus) on a major data breach in the City of Helsinki’s Education and Training Sector (KASKO) in April 2024. I’ve dug into the document to break down what happened, why, and how to prevent similar incidents. This is a must-read for anyone interested in cybersecurity, municipal IT, or data protection, offering a clear case study on systemic vulnerabilities and response strategies.
 File Reference
 
