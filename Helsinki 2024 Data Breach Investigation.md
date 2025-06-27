@@ -65,6 +65,7 @@ Helsinki: Described the attack as professional, justified public notifications d
 Kuntaliitto: Found recommendations broad, suggesting detailed action lists and more municipal support for existing regulations.
 
 Why It Matters
+
 This breach is a stark lesson for local governments. The student credentials entry point (page 4) highlights how a minor weakness can lead to massive data loss, exposing the need for robust access controls. Missed alerts due to no monitoring underscore the importance of real-time detection. The communication challenges, especially for those with protected identities (page 10), show the complexity of GDPR compliance. The breach also ties to EU regulations like the NIS2 Directive and Cyber Resilience Act, which set cybersecurity standards for devices and software (pages 83–84).
 Resources
 
