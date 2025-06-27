@@ -11,12 +11,14 @@ Publication Date: June 17, 2025
 
 
 What’s in the Report?
+
 The report details a sophisticated cyberattack that stole ~2 terabytes of sensitive data, including personal details of ~150,000 students, their guardians, and all 38,000 city employees. The breach exploited outdated systems and weak monitoring in KASKO’s network. Here’s the breakdown:
 The Breach
 
 Timeline: February–April 2024, with the main attack from April 25–30, 2024.
 
 How It Happened:
+
 Attackers probed a VPN router (Cisco ASA 5515) with 300,000+ connection attempts (Feb–Apr), unnoticed due to poor monitoring (page 4).
 On April 25 at 13:17, they used a high school student’s credentials, sourced from the dark web, to access the internal network, exposing weak access control policies for non-admin accounts (pages 4, 75).
 They scanned 9,945 IP addresses across 34 ports, triggering ignored firewall alerts (page 5).
