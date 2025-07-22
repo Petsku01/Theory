@@ -134,3 +134,6 @@ Microsoft has released emergency patches for SharePoint Server 2019 and Subscrip
 
 ## Conclusion
 The CVE-2025-53770 and CVE-2025-53771 vulnerabilities represent a significant threat to on-premises SharePoint Server deployments, with active exploitation impacting organizations worldwide. Administrators must act swiftly to apply available patches, enable security features like AMSI, and investigate for signs of compromise. By following the mitigation steps outlined above and staying vigilant for updates, organizations can protect their SharePoint environments from these critical vulnerabilities.
+
+
+-pk
