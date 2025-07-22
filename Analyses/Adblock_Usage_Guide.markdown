@@ -58,7 +58,7 @@ Mobile adblocking isn’t perfect. iOS browsers like Safari don’t support as m
 
 ## Extent of Tracking by Search Engines, Websites, and Advertisers
 
-It’s honestly a bit scary how much tracking happens online. Every click, search, or page visit feels like it’s being watched, and adblockers are one way to fight back.
+It’s insane how much tracking happens online. Every click, search, or page visit feels like it’s being watched, and adblockers are the way to fight back.
 
 ### Search Engines
 Google is the king of tracking, with its trackers (like DoubleClick) on 90% of websites, collecting data on searches, browsing history, and even your location. Even privacy-focused engines like DuckDuckGo can sometimes leak data through third-party integrations, though they’re way better than Google. With 44% of Americans distrusting Google’s data practices, it’s no wonder people are turning to adblockers.
@@ -80,7 +80,6 @@ Adblockers are more than just a way to skip annoying ads; they’re essential fo
 - **Users**: Try uBlock Origin or Brave Browser for robust ad and tracker blocking. Update filter lists regularly and whitelist sites you want to support.
 - **Publishers**: Use non-invasive ads or subscriptions to reduce reliance on tracking. Aggressive anti-adblock tactics just push users away.
 - **Advertisers**: Focus on privacy-respecting ads, like contextual ones, to build trust.
-- **Policymakers**: Consider laws to protect adblocker usage, as 33% of Americans support this to prioritize privacy.
 
 ## References
 - [The Effect of Ad Blocking on User Engagement with the Web](https://dl.acm.org/doi/10.1145/3178876.3186162)
