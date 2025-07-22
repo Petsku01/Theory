@@ -1,0 +1,78 @@
+// Pseudocode: WannaCry Ransomware Behavior
+// References:
+// - https://www.microsoft.com/security/blog/2017/05/12/wannacry-ransomware-attack-what-you-need-to-know/
+// - https://securelist.com/wannacry-ransomware-used-in-widespread-attacks-all-over-the-world/78445/
+
+function main() {
+    // Check for admin privileges
+    if (!hasAdminPrivileges()) {
+        attemptPrivilegeEscalation(); // e.g., UAC bypass
+        if (!hasAdminPrivileges()) {
+            performLimitedDamage(); // Encrypt local files only
+            exit();
+        }
+    }
+
+    // Step 1: Establish persistence
+    createPersistence("C:\\Windows\\mssecsvc.exe"); // Drop executable
+    addRegistryKey("HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run");
+
+    // Step 2: Spread across network (worm-like behavior)
+    targets = gatherNetworkTargets(); // ARP, SMB scanning
+    for each target in targets {
+        if (smbVulnerable(target)) {
+            exploitSMB(target, "EternalBlue", "CVE-2017-0144"); // Exploit MS17-010
+            copySelfToTarget(target, "C:\\Windows\\mssecsvc.exe");
+            executeRemote(target, "mssecsvc.exe");
+        }
+    }
+
+    // Step 3: Encrypt files
+    fileList = enumerateFiles([".doc", ".jpg", ".pdf", ...]); // Target common extensions
+    for each file in fileList {
+        encryptFile(file, "AES-128"); // Encrypt with AES, key encrypted with RSA
+    }
+    dropDecryptionKey("key.dat"); // Store encrypted key (RSA-2048)
+
+    // Step 4: Drop ransom note
+    dropRansomNote("C:\\@WanaDecryptor@.exe", "README.txt");
+    displayRansomNote("Pay $300-$600 BTC to [randomized address]. Files encrypted with RSA-2048.");
+
+    // Step 5: Check kill switch
+    if (checkKillSwitch("http://www.iuqerfsodp9ifjaposdfjhgosurijfaewrwergwea.com")) {
+        exit(); // Stop if kill switch domain is registered
+    }
+
+    // Step 6: Force reboot (optional, to disrupt system)
+    scheduleTask("shutdown.exe /r /f", delayMinutes(60));
+}
+
+function gatherNetworkTargets() {
+    // Simulate network scanning for SMB-enabled hosts
+    targets = [];
+    targets += scanSMBHosts(445); // Scan for open SMB ports
+    return targets; // e.g., ["192.168.1.10", "192.168.1.11", ...]
+}
+
+function smbVulnerable(target) {
+    // Check for SMBv1 and MS17-010 vulnerability
+    return isPortOpen(target, 445) && !patchedMS17-010();
+}
+
+function encryptFile(file, algorithm) {
+    // Simulate file encryption
+    key = generateAESKey();
+    encrypt(file, key, algorithm);
+    encryptKeyWithRSA(key); // RSA-2048 public key encryption
+}
+
+function dropRansomNote(executable, noteFile) {
+    // Drop decryptor executable and ransom note
+    writeFile(executable, "WanaDecryptor binary");
+    writeFile(noteFile, "Instructions to pay ransom and decrypt files");
+}
+
+function checkKillSwitch(url) {
+    // Check if kill switch domain is registered
+    return isDomainRegistered(url);
+}
