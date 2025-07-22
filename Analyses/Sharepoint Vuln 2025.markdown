@@ -121,7 +121,7 @@ Microsoft has released emergency patches for SharePoint Server 2019 and Subscrip
   - Deploy and actively monitor Microsoft Defender for Endpoint or equivalent solutions.
   - Rotate cryptographic keys regularly to prevent misuse of stolen credentials.
 - **Incident Response**:
-  - If a breach is suspected, report to CISA at Report@cisa.gov or (888) 282-0870.
+  - If a breach is suspected, report to CISA at Report@cisa.gov or (888) 282-0870.(US)
   - Isolate affected systems and engage incident response teams for forensic analysis.
 - **Adopt Zero-Trust Principles**: Implement a zero-trust security model to minimize risks, ensuring no user or service is inherently trusted, especially for internet-exposed systems.
 - **Stay Informed**: Regularly check the [Microsoft Security Response Center](https://msrc.microsoft.com/blog/2025/07/customer-guidance-for-sharepoint-vulnerability-cve-2025-53770/) and [CISA alerts](https://www.cisa.gov/news-events/alerts/2025/07/20/microsoft-releases-guidance-exploitation-sharepoint-vulnerability-cve-2025-53770) for updates.
