@@ -10,6 +10,8 @@ try:
     import pythoncom
 except ImportError:
     win32qos = None
+    win32com = None
+    pythoncom = None
 
 class LagSwitchGUI:
     def __init__(self, root):
