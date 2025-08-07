@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Threat Hunter Knowledge Game</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+        
+        .game-stats {
+            display: flex;
+            justify-content: space-around;
+            background: #2c3e50;
+            color: white;
+            padding: 15px;
+        }
+        
+        .stat {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .game-mode-selection {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .mode-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            margin: 10px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .mode-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        
+        .question-container {
+            display: none;
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 30px;
+            margin: 20px 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .question-container.active {
+            display: block;
+            animation: slideIn 0.5s ease;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(50px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        
+        .question {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+        
+        .answers {
+            display: grid;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .answer-btn {
+            background: white;
+            border: 2px solid #e0e0e0;
+            padding: 15px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+            font-size: 14px;
+            position: relative;
+        }
+        
+        .answer-btn:hover {
+            border-color: #ff6b35;
+            transform: translateX(5px);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+        
+        .answer-btn.correct {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            border-color: #4CAF50;
+            animation: correctPulse 0.5s ease;
+        }
+        
+        .answer-btn.incorrect {
+            background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+            color: white;
+            border-color: #f44336;
+            animation: incorrectShake 0.5s ease;
+        }
+        
+        .answer-btn.disabled {
+            pointer-events: none;
+            opacity: 0.7;
+        }
+        
+        @keyframes correctPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        @keyframes incorrectShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        
+        .explanation {
+            margin-top: 20px;
+            padding: 20px;
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border-radius: 8px;
+            border-left: 4px solid #2196F3;
+            display: none;
+        }
+        
+        .explanation.show {
+            display: block;
+            animation: fadeInUp 0.5s ease;
+        }
+        
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .next-btn {
+            background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            flex: 1;
+        }
+        
+        .next-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 53, 0.3);
+        }
+        
+        .next-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .pass-btn {
+            background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            flex: 1;
+        }
+        
+        .pass-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(108, 117, 125, 0.3);
+        }
+        
+        .pass-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .game-over {
+            text-align: center;
+            display: none;
+            padding: 40px;
+        }
+        
+        .game-over.show {
+            display: block;
+            animation: bounceIn 0.8s ease;
+        }
+        
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.05); }
+            70% { transform: scale(0.9); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .score-display {
+            font-size: 3em;
+            font-weight: bold;
+            background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin: 20px 0;
+        }
+        
+        .performance-feedback {
+            font-size: 1.2em;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        
+        .excellent { background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; }
+        .good { background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); color: white; }
+        .needs-work { background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); color: white; }
+        .poor { background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%); color: white; }
+        
+        .restart-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .restart-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff6b35, #f7931e);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        .question-card {
+            background: #f8f9fa;
+            border-left: 4px solid #ff6b35;
+            margin: 15px 0;
+            padding: 20px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Threat Hunter Knowledge Game</h1>
+            <p>Test your cybersecurity knowledge and master threat hunting concepts!</p>
+        </div>
+        
+        <div class="game-stats">
+            <div class="stat">
+                <div class="stat-value" id="current-question">0</div>
+                <div>Question</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="correct-answers">0</div>
+                <div>Correct</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="passed-questions">0</div>
+                <div>Passed</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="streak">0</div>
+                <div>Streak</div>
+            </div>
+        </div>
+        
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill"></div>
+        </div>
+        
+        <div class="content">
+            <div id="mode-selection" class="game-mode-selection">
+                <h2>Choose Your Challenge</h2>
+                <button class="mode-btn" onclick="startGame('basics')">Fundamentals (15 questions)</button>
+                <button class="mode-btn" onclick="startGame('intermediate')">Technical Deep Dive (20 questions)</button>
+                <button class="mode-btn" onclick="startGame('scenarios')">Real-World Scenarios (18 questions)</button>
+                <button class="mode-btn" onclick="startGame('mixed')">Full Challenge (25 questions)</button>
+            </div>
+            
+            <div id="question-container" class="question-container">
+                <div class="question" id="question-text"></div>
+                <div class="answers" id="answers"></div>
+                <div class="explanation" id="explanation"></div>
+                <div style="display: flex; gap: 15px; margin-top: 20px;">
+                    <button class="next-btn" id="next-btn" onclick="nextQuestion()" disabled>Next Question</button>
+                    <button class="pass-btn" id="pass-btn" onclick="passQuestion()">Pass</button>
+                </div>
+            </div>
+            
+            <div id="game-over" class="game-over">
+                <div class="score-display" id="final-score"></div>
+                <div class="performance-feedback" id="feedback"></div>
+                <p id="detailed-feedback"></p>
+                <button class="restart-btn" onclick="location.reload()">Play Again</button>
+                <button class="restart-btn" onclick="showResults()">Review Mistakes</button>
+            </div>
+            
+            <div id="results-review" style="display: none;">
+                <h2>Review Your Mistakes</h2>
+                <div id="mistakes-list"></div>
+                <button class="restart-btn" onclick="location.reload()">Start Over</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const questionBanks = {
+            basics: [
+                {
+                    question: "What is the primary difference between threat hunting and incident response?",
+                    answers: [
+                        "Threat hunting is reactive, incident response is proactive",
+                        "Threat hunting is proactive, incident response is reactive",
+                        "They are essentially the same thing",
+                        "Threat hunting only deals with malware"
+                    ],
+                    correct: 1,
+                    explanation: "Threat hunting is proactive - actively searching for unknown threats. Incident response is reactive - responding to known security incidents or alerts."
+                },
+                {
+                    question: "What does CIA stand for in cybersecurity?",
+                    answers: [
+                        "Central Intelligence Agency",
+                        "Confidentiality, Integrity, Availability",
+                        "Computer Internet Access",
+                        "Cyber Intelligence Analysis"
+                    ],
+                    correct: 1,
+                    explanation: "CIA represents the three pillars of information security: Confidentiality (keeping data private), Integrity (ensuring data accuracy), and Availability (ensuring data is accessible when needed)."
+                },
+                {
+                    question: "Which port is commonly associated with HTTP traffic?",
+                    answers: ["443", "80", "22", "21"],
+                    correct: 1,
+                    explanation: "Port 80 is the standard port for HTTP traffic. Port 443 is for HTTPS, 22 for SSH, and 21 for FTP."
+                },
+                {
+                    question: "What is a false positive in cybersecurity?",
+                    answers: [
+                        "A real threat that wasn't detected",
+                        "An alert triggered by benign activity",
+                        "A successful cyberattack",
+                        "A vulnerability that can't be patched"
+                    ],
+                    correct: 1,
+                    explanation: "A false positive is when security tools generate an alert for activity that appears suspicious but is actually benign or legitimate."
+                },
+                {
+                    question: "What does SIEM stand for?",
+                    answers: [
+                        "Security Information and Event Management",
+                        "System Internet Event Monitoring",
+                        "Secure Internal Email Management",
+                        "Security Intelligence Enforcement Module"
+                    ],
+                    correct: 0,
+                    explanation: "SIEM stands for Security Information and Event Management - systems that provide real-time analysis of security alerts and log data."
+                },
+                {
+                    question: "Which of these is NOT a common attack vector?",
+                    answers: ["Phishing", "SQL Injection", "Buffer Overflow", "Data Encryption"],
+                    correct: 3,
+                    explanation: "Data encryption is a security control used to protect data, not an attack vector. The others are all common ways attackers compromise systems."
+                },
+                {
+                    question: "What is the purpose of network segmentation?",
+                    answers: [
+                        "To make networks faster",
+                        "To reduce costs",
+                        "To limit the spread of attacks",
+                        "To eliminate firewalls"
+                    ],
+                    correct: 2,
+                    explanation: "Network segmentation divides networks into smaller segments to limit the lateral movement of attackers and contain potential breaches."
+                },
+                {
+                    question: "What is an IOC in cybersecurity?",
+                    answers: [
+                        "Internet Operations Center",
+                        "Indicator of Compromise",
+                        "Internal Operations Committee",
+                        "Incident Operations Control"
+                    ],
+                    correct: 1,
+                    explanation: "IOC stands for Indicator of Compromise - forensic evidence that suggests a system has been breached or compromised."
+                },
+                {
+                    question: "Which log source is most valuable for detecting lateral movement?",
+                    answers: [
+                        "Web server logs",
+                        "Authentication logs",
+                        "DNS logs",
+                        "Email logs"
+                    ],
+                    correct: 1,
+                    explanation: "Authentication logs show login attempts and can reveal unusual patterns that indicate lateral movement, such as the same account logging in from multiple systems."
+                },
+                {
+                    question: "What is the MITRE ATT&CK framework used for?",
+                    answers: [
+                        "Network configuration",
+                        "Password management",
+                        "Categorizing adversary tactics and techniques",
+                        "Firewall rule creation"
+                    ],
+                    correct: 2,
+                    explanation: "The MITRE ATT&CK framework categorizes and describes adversary tactics, techniques, and procedures (TTPs) based on real-world observations."
+                },
+                {
+                    question: "What is the principle of least privilege?",
+                    answers: [
+                        "Users should have maximum access for convenience",
+                        "Users should only have the minimum access needed for their job",
+                        "Only administrators should have any access",
+                        "All users should have the same level of access"
+                    ],
+                    correct: 1,
+                    explanation: "The principle of least privilege means users should only be given the minimum level of access required to perform their job functions, reducing security risk."
+                },
+                {
+                    question: "What does APT stand for in cybersecurity?",
+                    answers: [
+                        "Advanced Persistent Threat",
+                        "Automated Protection Tool",
+                        "Application Protection Technology",
+                        "Advanced Password Technology"
+                    ],
+                    correct: 0,
+                    explanation: "APT stands for Advanced Persistent Threat - sophisticated, long-term cyberattacks typically carried out by nation-states or organized criminal groups."
+                },
+                {
+                    question: "Which of these is a common indicator of malware infection?",
+                    answers: [
+                        "Increased network performance",
+                        "Unusual outbound network traffic",
+                        "Faster boot times",
+                        "Improved system responsiveness"
+                    ],
+                    correct: 1,
+                    explanation: "Unusual outbound network traffic can indicate malware communicating with command and control servers or exfiltrating data."
+                },
+                {
+                    question: "What is the purpose of a honeypot?",
+                    answers: [
+                        "To store sensitive data securely",
+                        "To attract and detect attackers",
+                        "To encrypt network traffic",
+                        "To backup system configurations"
+                    ],
+                    correct: 1,
+                    explanation: "A honeypot is a decoy system designed to attract attackers and gather intelligence about their methods and tools."
+                },
+                {
+                    question: "What is multi-factor authentication (MFA)?",
+                    answers: [
+                        "Using multiple passwords",
+                        "Authentication using two or more different factors",
+                        "Having multiple user accounts",
+                        "Using only biometric authentication"
+                    ],
+                    correct: 1,
+                    explanation: "MFA requires two or more different authentication factors (something you know, have, or are) to verify identity, significantly improving security."
+                }
+            ],
+            intermediate: [
+                {
+                    question: "In the Pyramid of Pain, which indicators are hardest for attackers to change?",
+                    answers: ["Hash values", "IP addresses", "Domain names", "TTPs (Tactics, Techniques, Procedures)"],
+                    correct: 3,
+                    explanation: "TTPs are at the top of the Pyramid of Pain because they represent how attackers operate and are the most difficult and expensive for them to change."
+                },
+                {
+                    question: "What Splunk command would you use to find the top 10 source IPs in your data?",
+                    answers: [
+                        "stats count by src_ip | head 10",
+                        "top limit=10 src_ip",
+                        "eval top_ips=src_ip | head 10",
+                        "search src_ip | limit 10"
+                    ],
+                    correct: 1,
+                    explanation: "The 'top' command in Splunk automatically counts occurrences and sorts them, making 'top limit=10 src_ip' the most efficient way to get the top 10 source IPs."
+                },
+                {
+                    question: "Which Windows Event ID indicates a successful logon?",
+                    answers: ["4624", "4625", "4648", "4720"],
+                    correct: 0,
+                    explanation: "Event ID 4624 indicates a successful account logon. 4625 is failed logon, 4648 is explicit credential use, and 4720 is user account creation."
+                },
+                {
+                    question: "What is the primary purpose of DNS tunneling?",
+                    answers: [
+                        "To speed up DNS resolution",
+                        "To encrypt DNS queries",
+                        "To exfiltrate data or establish C2 communication",
+                        "To prevent DNS poisoning"
+                    ],
+                    correct: 2,
+                    explanation: "DNS tunneling is often used by attackers to hide command and control communication or exfiltrate data by encoding it within DNS queries and responses."
+                },
+                {
+                    question: "In YARA rules, what does the 'strings' section define?",
+                    answers: [
+                        "File metadata",
+                        "Text or hex patterns to search for",
+                        "Rule conditions",
+                        "Import statements"
+                    ],
+                    correct: 1,
+                    explanation: "The 'strings' section in YARA rules defines the text patterns, hex patterns, or regular expressions that the rule will search for in files or memory."
+                },
+                {
+                    question: "What technique do attackers commonly use to maintain persistence on Windows systems?",
+                    answers: [
+                        "Modifying DNS settings",
+                        "Creating scheduled tasks",
+                        "Changing network configurations",
+                        "Updating antivirus signatures"
+                    ],
+                    correct: 1,
+                    explanation: "Creating scheduled tasks is a common persistence technique that allows malware to automatically restart or execute at specified times or events."
+                },
+                {
+                    question: "Which PowerShell cmdlet is most useful for analyzing Windows event logs?",
+                    answers: ["Get-Process", "Get-WinEvent", "Get-Service", "Get-NetAdapter"],
+                    correct: 1,
+                    explanation: "Get-WinEvent is the primary PowerShell cmdlet for querying and filtering Windows event logs, making it essential for threat hunting on Windows systems."
+                },
+                {
+                    question: "What is living-off-the-land in the context of cyberattacks?",
+                    answers: [
+                        "Using only mobile devices",
+                        "Using legitimate system tools for malicious purposes",
+                        "Attacking only rural targets",
+                        "Using only cloud-based attacks"
+                    ],
+                    correct: 1,
+                    explanation: "Living-off-the-land refers to attackers using legitimate system tools and utilities (like PowerShell, WMI, or PsExec) to carry out malicious activities, making detection harder."
+                },
+                {
+                    question: "In network traffic analysis, what might indicate data exfiltration?",
+                    answers: [
+                        "High inbound traffic during business hours",
+                        "Large outbound transfers at unusual times",
+                        "Normal DNS query patterns",
+                        "Standard HTTP response codes"
+                    ],
+                    correct: 1,
+                    explanation: "Large amounts of outbound data transfer, especially during off-hours or to unusual destinations, can indicate data exfiltration."
+                },
+                {
+                    question: "What is the primary difference between signature-based and behavioral detection?",
+                    answers: [
+                        "Signature-based is faster",
+                        "Behavioral detection looks for known patterns, signature-based looks for anomalies",
+                        "Signature-based looks for known patterns, behavioral detection looks for anomalies",
+                        "There is no difference"
+                    ],
+                    correct: 2,
+                    explanation: "Signature-based detection looks for known malicious patterns or signatures, while behavioral detection identifies anomalies or suspicious behaviors that may indicate unknown threats."
+                },
+                {
+                    question: "Which technique is commonly used by APT groups for initial access?",
+                    answers: [
+                        "DDoS attacks",
+                        "Spear phishing",
+                        "Website defacement",
+                        "Password spraying only"
+                    ],
+                    correct: 1,
+                    explanation: "Spear phishing - targeted phishing attacks against specific individuals or organizations - is one of the most common initial access techniques used by APT groups."
+                },
+                {
+                    question: "What does the term 'dwell time' refer to in cybersecurity?",
+                    answers: [
+                        "Time to patch a vulnerability",
+                        "Time an attacker remains undetected in a network",
+                        "Time to respond to an incident",
+                        "Time to complete a security scan"
+                    ],
+                    correct: 1,
+                    explanation: "Dwell time is the period between when an attacker first gains access to a network and when they are detected and removed."
+                },
+                {
+                    question: "In threat hunting, what is a hypothesis-driven approach?",
+                    answers: [
+                        "Randomly searching through logs",
+                        "Only investigating known threats",
+                        "Starting with an assumption about potential threats and testing it",
+                        "Waiting for alerts to trigger investigations"
+                    ],
+                    correct: 2,
+                    explanation: "Hypothesis-driven hunting involves forming educated assumptions about potential threats based on threat intelligence, then systematically testing these hypotheses with data analysis."
+                },
+                {
+                    question: "Which MITRE ATT&CK tactic involves attackers trying to avoid detection?",
+                    answers: ["Persistence", "Privilege Escalation", "Defense Evasion", "Collection"],
+                    correct: 2,
+                    explanation: "Defense Evasion is the MITRE ATT&CK tactic that covers techniques attackers use to avoid detection and maintain access without being discovered."
+                },
+                {
+                    question: "What is the purpose of threat intelligence in threat hunting?",
+                    answers: [
+                        "To replace the need for hunting",
+                        "To provide context and direction for hunting activities",
+                        "To automate all security processes",
+                        "To eliminate false positives"
+                    ],
+                    correct: 1,
+                    explanation: "Threat intelligence provides valuable context about current threats, attack patterns, and IOCs that help threat hunters focus their efforts and develop more effective hunting hypotheses."
+                },
+                {
+                    question: "What is fileless malware?",
+                    answers: [
+                        "Malware that only affects files",
+                        "Malware that operates in memory without writing files to disk",
+                        "Malware that deletes all files",
+                        "Malware that only targets file servers"
+                    ],
+                    correct: 1,
+                    explanation: "Fileless malware operates entirely in memory, using legitimate system processes and tools, making it harder to detect with traditional antivirus solutions."
+                },
+                {
+                    question: "Which Windows registry key is commonly modified for persistence?",
+                    answers: [
+                        "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run",
+                        "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Services",
+                        "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall",
+                        "Both A and B"
+                    ],
+                    correct: 3,
+                    explanation: "Both Run keys and Services registry locations are commonly modified by malware to establish persistence on Windows systems."
+                },
+                {
+                    question: "What is credential stuffing?",
+                    answers: [
+                        "Encrypting stolen credentials",
+                        "Using breached credentials from one site to attack others",
+                        "Storing credentials in multiple locations",
+                        "Generating random credentials"
+                    ],
+                    correct: 1,
+                    explanation: "Credential stuffing involves using username/password pairs obtained from data breaches to attempt logins on other services, exploiting password reuse."
+                },
+                {
+                    question: "In log analysis, what does a high number of 4625 events followed by a 4624 event suggest?",
+                    answers: [
+                        "Normal user behavior",
+                        "System maintenance",
+                        "Potential brute force attack followed by successful compromise",
+                        "Network connectivity issues"
+                    ],
+                    correct: 2,
+                    explanation: "Multiple 4625 events (failed logons) followed by 4624 (successful logon) often indicates a brute force attack that eventually succeeded."
+                },
+                {
+                    question: "What is the difference between threat hunting and vulnerability assessment?",
+                    answers: [
+                        "They are the same activity",
+                        "Threat hunting looks for active threats, vulnerability assessment identifies potential weaknesses",
+                        "Vulnerability assessment is only for networks",
+                        "Threat hunting is automated, vulnerability assessment is manual"
+                    ],
+                    correct: 1,
+                    explanation: "Threat hunting actively searches for existing threats and malicious activity, while vulnerability assessment identifies security weaknesses that could be exploited."
+                }
+            ],
+            scenarios: [
+                {
+                    question: "You notice multiple failed SSH login attempts from various IPs, followed by successful logins. What should be your first priority?",
+                    answers: [
+                        "Block all SSH traffic",
+                        "Check if the successful logins are from expected locations/users",
+                        "Restart the SSH service",
+                        "Change all passwords immediately"
+                    ],
+                    correct: 1,
+                    explanation: "First verify if the successful logins are legitimate by checking user patterns, geolocation, and timing. This helps determine if it's a successful attack or normal user behavior."
+                },
+                {
+                    question: "During analysis, you find a process making DNS queries to recently registered domains. What's your next step?",
+                    answers: [
+                        "Ignore it as normal behavior",
+                        "Immediately isolate the system",
+                        "Research the domains and analyze the process behavior",
+                        "Delete the process"
+                    ],
+                    correct: 2,
+                    explanation: "Investigate the domains (registration date, reputation, content) and analyze the process (what started it, what it's doing) before taking action. This could be malware C2 communication."
+                },
+                {
+                    question: "A user reports slow computer performance. You find an unknown process using high CPU. What do you do first?",
+                    answers: [
+                        "Kill the process immediately",
+                        "Document the process details before any action",
+                        "Reboot the computer",
+                        "Run a full antivirus scan"
+                    ],
+                    correct: 1,
+                    explanation: "Document everything first - process name, PID, command line, parent process, network connections. This evidence might be crucial if it's malware and could be lost if you act too quickly."
+                },
+                {
+                    question: "You detect unusual PowerShell execution with encoded commands. What's the best approach?",
+                    answers: [
+                        "Block all PowerShell usage",
+                        "Decode and analyze the commands while investigating the source",
+                        "Ignore it if it's from an admin account",
+                        "Only check if it triggered other alerts"
+                    ],
+                    correct: 1,
+                    explanation: "Decode the PowerShell commands to understand what they're doing, investigate what triggered them, and check if they're part of legitimate admin activities or potential attack."
+                },
+                {
+                    question: "Network monitoring shows large data transfers to an external IP at 3 AM. How do you investigate?",
+                    answers: [
+                        "Block the IP immediately",
+                        "Wait to see if it happens again",
+                        "Identify the source system and investigate what data was transferred",
+                        "Only monitor for future occurrences"
+                    ],
+                    correct: 2,
+                    explanation: "Identify which internal system initiated the transfer, what type of data it was, and whether this represents normal or suspicious activity. Time of day makes this particularly concerning."
+                },
+                {
+                    question: "You find evidence of credential dumping tools on a compromised system. What's your immediate priority?",
+                    answers: [
+                        "Delete the tools",
+                        "Document the compromise and assume other credentials may be compromised",
+                        "Only monitor the affected account",
+                        "Reset only the local administrator password"
+                    ],
+                    correct: 1,
+                    explanation: "If credential dumping occurred, assume multiple accounts may be compromised. Document everything, consider forced password resets, and look for signs of lateral movement using those credentials."
+                },
+                {
+                    question: "During incident response, you discover the attacker has been in the network for 6 months. What does this indicate?",
+                    answers: [
+                        "The attack just started",
+                        "This is likely an APT with significant dwell time",
+                        "The incident is not serious",
+                        "Only recent activities matter"
+                    ],
+                    correct: 1,
+                    explanation: "Six months of dwell time suggests an advanced persistent threat (APT). You need comprehensive forensic analysis to understand the full scope of compromise and what data may have been accessed."
+                },
+                {
+                    question: "You notice admin accounts logging in from multiple geographic locations simultaneously. What's this likely indicating?",
+                    answers: [
+                        "Normal admin behavior",
+                        "VPN usage",
+                        "Compromised credentials being used by attackers",
+                        "Time zone differences"
+                    ],
+                    correct: 2,
+                    explanation: "Simultaneous logins from geographically distant locations (especially if impossible to travel between in the timeframe) strongly suggests credential compromise and account abuse."
+                },
+                {
+                    question: "A web application shows SQL injection attempts in logs, but your WAF says it's blocking them. How do you verify security?",
+                    answers: [
+                        "Trust the WAF and take no action",
+                        "Test if any attempts bypassed the WAF and check for successful injections",
+                        "Only monitor for future attempts",
+                        "Disable the web application"
+                    ],
+                    correct: 1,
+                    explanation: "WAFs aren't perfect. Verify by checking application logs, database logs, and testing whether any malicious queries reached the database. Look for signs of successful data extraction."
+                },
+                {
+                    question: "You discover suspicious scheduled tasks on multiple systems. What should you investigate?",
+                    answers: [
+                        "Only the task content",
+                        "When they were created, by whom, what they execute, and how they spread",
+                        "Just delete them",
+                        "Only monitor their execution"
+                    ],
+                    correct: 1,
+                    explanation: "Investigate the full lifecycle: creation time/method, creator, what the tasks do, how they spread across systems. This helps understand if it's lateral movement or persistence mechanism."
+                },
+                {
+                    question: "During hunting, you find normal business applications connecting to suspicious domains. What's your approach?",
+                    answers: [
+                        "Block the applications",
+                        "Investigate if the applications are legitimate or if malware is masquerading as them",
+                        "Ignore since the applications are known",
+                        "Only block the domains"
+                    ],
+                    correct: 1,
+                    explanation: "Malware often masquerades as legitimate applications. Verify the applications are genuine (digital signatures, file locations, versions) and not malware using familiar names."
+                },
+                {
+                    question: "You detect privilege escalation activity on a system. What's the most important next step?",
+                    answers: [
+                        "Immediately patch the vulnerability",
+                        "Determine what level of access was gained and what the attacker did with it",
+                        "Reboot the system",
+                        "Only monitor for future attempts"
+                    ],
+                    correct: 1,
+                    explanation: "Understanding what privileges were gained and how they were used is crucial. This determines the scope of compromise and what other systems or data might be at risk."
+                },
+                {
+                    question: "You find unusual registry modifications across multiple endpoints. What's your investigation priority?",
+                    answers: [
+                        "Restore registry backups immediately",
+                        "Identify the pattern, timing, and method of modification",
+                        "Only monitor affected systems",
+                        "Ignore if systems appear functional"
+                    ],
+                    correct: 1,
+                    explanation: "Analyze what registry keys were modified, when, and how the changes propagated. This could indicate malware persistence, lateral movement, or system compromise."
+                },
+                {
+                    question: "Network logs show a spike in traffic to cloud storage services during off-hours. How do you proceed?",
+                    answers: [
+                        "Block all cloud storage access",
+                        "Investigate which users/systems accessed cloud storage and what data was involved",
+                        "Assume it's normal backup activity",
+                        "Only alert if it happens again"
+                    ],
+                    correct: 1,
+                    explanation: "Investigate the source of uploads, what data was transferred, and whether the activity aligns with legitimate business processes or indicates data exfiltration."
+                },
+                {
+                    question: "You discover a user account that hasn't been used in months suddenly shows activity. What's your response?",
+                    answers: [
+                        "Disable the account immediately",
+                        "Investigate the activity and verify the user's identity and purpose",
+                        "Reset the password only",
+                        "Ignore if activity seems normal"
+                    ],
+                    correct: 1,
+                    explanation: "Investigate what the account accessed, from where, and verify with the actual user. Dormant accounts are often targets for attackers as they're less monitored."
+                },
+                {
+                    question: "Security tools detect cryptocurrency mining software on corporate workstations. What's your approach?",
+                    answers: [
+                        "Only remove the mining software",
+                        "Investigate how it got there and check for other indicators of compromise",
+                        "Ignore it as a policy violation only",
+                        "Block cryptocurrency-related websites"
+                    ],
+                    correct: 1,
+                    explanation: "Cryptocurrency miners are often delivered by malware. Investigate the infection vector, check for other malicious activities, and ensure no additional compromise occurred."
+                },
+                {
+                    question: "You find evidence of data staging in unusual directories before external transfers. What does this suggest?",
+                    answers: [
+                        "Normal file organization",
+                        "Potential data exfiltration preparation",
+                        "System backup activity",
+                        "User productivity improvements"
+                    ],
+                    correct: 1,
+                    explanation: "Data staging - collecting and organizing files in temporary locations before transfer - is a common technique used by attackers preparing for data exfiltration."
+                },
+                {
+                    question: "Antivirus logs show repeated quarantine of the same file on different systems. What should you investigate?",
+                    answers: [
+                        "Only update antivirus signatures",
+                        "Investigate the infection vector and lateral spread mechanism",
+                        "Ignore since antivirus is catching it",
+                        "Only monitor affected systems"
+                    ],
+                    correct: 1,
+                    explanation: "The same malware appearing on multiple systems suggests active spreading. Investigate how it's propagating (network shares, email, removable media) to prevent further infection."
+                }
+            ]
+        };
+
+        let currentGame = {
+            questions: [],
+            currentIndex: 0,
+            correctAnswers: 0,
+            passedQuestions: 0,
+            streak: 0,
+            maxStreak: 0,
+            wrongAnswers: [],
+            passedAnswers: []
+        };
+
+        function startGame(mode) {
+            let questions = [];
+            
+            if (mode === 'mixed') {
+                questions = [
+                    ...shuffleArray(questionBanks.basics).slice(0, 8),
+                    ...shuffleArray(questionBanks.intermediate).slice(0, 9),
+                    ...shuffleArray(questionBanks.scenarios).slice(0, 8)
+                ];
+            } else {
+                questions = questionBanks[mode] || questionBanks.basics;
+            }
+            
+            currentGame.questions = shuffleArray(questions);
+            currentGame.currentIndex = 0;
+            currentGame.correctAnswers = 0;
+            currentGame.passedQuestions = 0;
+            currentGame.streak = 0;
+            currentGame.maxStreak = 0;
+            currentGame.wrongAnswers = [];
+            currentGame.passedAnswers = [];
+            
+            document.getElementById('mode-selection').style.display = 'none';
+            document.getElementById('question-container').classList.add('active');
+            
+            showQuestion();
+        }
+
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function showQuestion() {
+            const question = currentGame.questions[currentGame.currentIndex];
+            
+            document.getElementById('question-text').textContent = question.question;
+            document.getElementById('current-question').textContent = currentGame.currentIndex + 1;
+            document.getElementById('correct-answers').textContent = currentGame.correctAnswers;
+            document.getElementById('passed-questions').textContent = currentGame.passedQuestions;
+            document.getElementById('streak').textContent = currentGame.streak;
+            
+            const progress = ((currentGame.currentIndex) / currentGame.questions.length) * 100;
+            document.getElementById('progress-fill').style.width = progress + '%';
+            
+            const answersContainer = document.getElementById('answers');
+            answersContainer.innerHTML = '';
+            
+            question.answers.forEach((answer, index) => {
+                const button = document.createElement('button');
+                button.className = 'answer-btn';
+                button.textContent = `${String.fromCharCode(65 + index)}. ${answer}`;
+                button.onclick = () => selectAnswer(index);
+                answersContainer.appendChild(button);
+            });
+            
+            document.getElementById('explanation').classList.remove('show');
+            document.getElementById('next-btn').disabled = true;
+            document.getElementById('pass-btn').disabled = false;
+        }
+
+        function selectAnswer(selectedIndex) {
+            const question = currentGame.questions[currentGame.currentIndex];
+            const buttons = document.querySelectorAll('.answer-btn');
+            
+            buttons.forEach(btn => btn.classList.add('disabled'));
+            
+            buttons[selectedIndex].classList.add(selectedIndex === question.correct ? 'correct' : 'incorrect');
+            
+            if (selectedIndex !== question.correct) {
+                buttons[question.correct].classList.add('correct');
+                currentGame.streak = 0;
+                currentGame.wrongAnswers.push({
+                    question: question.question,
+                    yourAnswer: question.answers[selectedIndex],
+                    correctAnswer: question.answers[question.correct],
+                    explanation: question.explanation
+                });
+            } else {
+                currentGame.correctAnswers++;
+                currentGame.streak++;
+                currentGame.maxStreak = Math.max(currentGame.maxStreak, currentGame.streak);
+            }
+            
+            document.getElementById('explanation').innerHTML = `
+                <strong>${selectedIndex === question.correct ? 'Correct!' : 'Incorrect'}</strong><br>
+                ${question.explanation}
+            `;
+            document.getElementById('explanation').classList.add('show');
+            
+            document.getElementById('next-btn').disabled = false;
+            document.getElementById('pass-btn').disabled = true;
+            
+            document.getElementById('correct-answers').textContent = currentGame.correctAnswers;
+            document.getElementById('streak').textContent = currentGame.streak;
+        }
+
+        function passQuestion() {
+            const question = currentGame.questions[currentGame.currentIndex];
+            
+            currentGame.passedQuestions++;
+            currentGame.streak = 0; // Reset streak when passing
+            
+            currentGame.passedAnswers.push({
+                question: question.question,
+                correctAnswer: question.answers[question.correct],
+                explanation: question.explanation
+            });
+            
+            document.getElementById('explanation').innerHTML = `
+                <strong>Question Passed</strong><br>
+                <strong>Correct answer was:</strong> ${question.answers[question.correct]}<br>
+                ${question.explanation}
+            `;
+            document.getElementById('explanation').classList.add('show');
+            
+            document.getElementById('next-btn').disabled = false;
+            document.getElementById('pass-btn').disabled = true;
+            
+            document.getElementById('passed-questions').textContent = currentGame.passedQuestions;
+            document.getElementById('streak').textContent = currentGame.streak;
+        }
+
+        function nextQuestion() {
+            currentGame.currentIndex++;
+            
+            if (currentGame.currentIndex >= currentGame.questions.length) {
+                endGame();
+            } else {
+                showQuestion();
+            }
+        }
+
+        function endGame() {
+            document.getElementById('question-container').classList.remove('active');
+            
+            const totalQuestions = currentGame.questions.length;
+            const answeredQuestions = totalQuestions - currentGame.passedQuestions;
+            const score = answeredQuestions > 0 ? Math.round((currentGame.correctAnswers / answeredQuestions) * 100) : 0;
+            
+            document.getElementById('final-score').textContent = `${score}%`;
+            
+            let feedbackClass, feedbackText, detailedFeedback;
+            
+            if (score >= 90) {
+                feedbackClass = 'excellent';
+                feedbackText = 'Excellent! You have mastered these concepts!';
+                detailedFeedback = 'Outstanding performance! You have a strong grasp of threat hunting concepts and cybersecurity fundamentals.';
+            } else if (score >= 75) {
+                feedbackClass = 'good';
+                feedbackText = 'Good work! Just a little more study needed.';
+                detailedFeedback = 'Solid performance! Review the areas where you missed questions to strengthen your knowledge further.';
+            } else if (score >= 60) {
+                feedbackClass = 'needs-work';
+                feedbackText = 'Getting there! Focus on your weak areas.';
+                detailedFeedback = 'You\'re on the right track but need more preparation. Focus on the fundamentals and practice scenario-based thinking.';
+            } else {
+                feedbackClass = 'poor';
+                feedbackText = 'Keep studying! You can do this!';
+                detailedFeedback = 'Don\'t get discouraged! Cybersecurity is complex. Focus on the basics, practice regularly, and consider additional study resources.';
+            }
+            
+            document.getElementById('feedback').className = `performance-feedback ${feedbackClass}`;
+            document.getElementById('feedback').textContent = feedbackText;
+            
+            const passedText = currentGame.passedQuestions > 0 ? ` You passed ${currentGame.passedQuestions} questions.` : '';
+            document.getElementById('detailed-feedback').textContent = `
+                You answered ${currentGame.correctAnswers} out of ${answeredQuestions} attempted questions correctly.${passedText}
+                Your longest streak was ${currentGame.maxStreak} questions.
+                ${detailedFeedback}
+            `;
+            
+            document.getElementById('game-over').classList.add('show');
+        }
+
+        function showResults() {
+            document.getElementById('game-over').style.display = 'none';
+            const resultsDiv = document.getElementById('results-review');
+            const mistakesList = document.getElementById('mistakes-list');
+            
+            let reviewContent = '';
+            
+            if (currentGame.wrongAnswers.length === 0 && currentGame.passedAnswers.length === 0) {
+                reviewContent = '<p style="text-align: center; color: #4CAF50; font-size: 1.2em;">Perfect score! No mistakes to review!</p>';
+            } else {
+                if (currentGame.wrongAnswers.length > 0) {
+                    reviewContent += '<h3 style="color: #f44336;">Incorrect Answers</h3>';
+                    reviewContent += currentGame.wrongAnswers.map((mistake, index) => `
+                        <div class="question-card">
+                            <div class="question">Question ${index + 1}: ${mistake.question}</div>
+                            <p><strong>Your answer:</strong> ${mistake.yourAnswer}</p>
+                            <p><strong>Correct answer:</strong> ${mistake.correctAnswer}</p>
+                            <div class="explanation show">
+                                <strong>Explanation:</strong> ${mistake.explanation}
+                            </div>
+                        </div>
+                    `).join('');
+                }
+                
+                if (currentGame.passedAnswers.length > 0) {
+                    reviewContent += '<h3 style="color: #6c757d; margin-top: 30px;">Passed Questions</h3>';
+                    reviewContent += currentGame.passedAnswers.map((passed, index) => `
+                        <div class="question-card">
+                            <div class="question">Passed Question ${index + 1}: ${passed.question}</div>
+                            <p><strong>Correct answer:</strong> ${passed.correctAnswer}</p>
+                            <div class="explanation show">
+                                <strong>Explanation:</strong> ${passed.explanation}
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            }
+            
+            mistakesList.innerHTML = reviewContent;
+            resultsDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
