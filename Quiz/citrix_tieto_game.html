@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Citrix Cloud VDI Knowledge Game</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #0072CE 0%, #00A1E0 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #0072CE 0%, #00A1E0 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+        
+        .game-stats {
+            display: flex;
+            justify-content: space-around;
+            background: #2c3e50;
+            color: white;
+            padding: 15px;
+        }
+        
+        .stat {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .game-mode-selection {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .mode-btn {
+            background: linear-gradient(135deg, #0072CE 0%, #00A1E0 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            margin: 10px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .mode-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        
+        .question-container {
+            display: none;
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 30px;
+            margin: 20px 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .question-container.active {
+            display: block;
+            animation: slideIn 0.5s ease;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(50px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        
+        .question {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+        
+        .answers {
+            display: grid;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .answer-btn {
+            background: white;
+            border: 2px solid #e0e0e0;
+            padding: 15px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+            font-size: 14px;
+            position: relative;
+        }
+        
+        .answer-btn:hover {
+            border-color: #0072CE;
+            transform: translateX(5px);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+        
+        .answer-btn.correct {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            border-color: #4CAF50;
+            animation: correctPulse 0.5s ease;
+        }
+        
+        .answer-btn.incorrect {
+            background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+            color: white;
+            border-color: #f44336;
+            animation: incorrectShake 0.5s ease;
+        }
+        
+        .answer-btn.disabled {
+            pointer-events: none;
+            opacity: 0.7;
+        }
+        
+        @keyframes correctPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        @keyframes incorrectShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        
+        .explanation {
+            margin-top: 20px;
+            padding: 20px;
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border-radius: 8px;
+            border-left: 4px solid #2196F3;
+            display: none;
+        }
+        
+        .explanation.show {
+            display: block;
+            animation: fadeInUp 0.5s ease;
+        }
+        
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .next-btn {
+            background: linear-gradient(135deg, #0072CE 0%, #00A1E0 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            flex: 1;
+        }
+        
+        .next-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 114, 206, 0.3);
+        }
+        
+        .next-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .pass-btn {
+            background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            flex: 1;
+        }
+        
+        .pass-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(108, 117, 125, 0.3);
+        }
+        
+        .pass-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .game-over {
+            text-align: center;
+            display: none;
+            padding: 40px;
+        }
+        
+        .game-over.show {
+            display: block;
+            animation: bounceIn 0.8s ease;
+        }
+        
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.05); }
+            70% { transform: scale(0.9); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .score-display {
+            font-size: 3em;
+            font-weight: bold;
+            background: linear-gradient(135deg, #0072CE 0%, #00A1E0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin: 20px 0;
+        }
+        
+        .performance-feedback {
+            font-size: 1.2em;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        
+        .excellent { background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; }
+        .good { background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); color: white; }
+        .needs-work { background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); color: white; }
+        .poor { background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%); color: white; }
+        
+        .restart-btn {
+            background: linear-gradient(135deg, #0072CE 0%, #00A1E0 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .restart-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #0072CE, #00A1E0);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        .question-card {
+            background: #f8f9fa;
+            border-left: 4px solid #0072CE;
+            margin: 15px 0;
+            padding: 20px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Citrix Cloud VDI Knowledge Game</h1>
+            <p>Test your expertise in Citrix Cloud, Virtual Apps and Desktop management!</p>
+        </div>
+        
+        <div class="game-stats">
+            <div class="stat">
+                <div class="stat-value" id="current-question">0</div>
+                <div>Question</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="correct-answers">0</div>
+                <div>Correct</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="passed-questions">0</div>
+                <div>Passed</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="streak">0</div>
+                <div>Streak</div>
+            </div>
+        </div>
+        
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill"></div>
+        </div>
+        
+        <div class="content">
+            <div id="mode-selection" class="game-mode-selection">
+                <h2>Choose Your Challenge</h2>
+                <button class="mode-btn" onclick="startGame('basics')">Fundamentals (15 questions)</button>
+                <button class="mode-btn" onclick="startGame('technical')">Technical Deep Dive (20 questions)</button>
+                <button class="mode-btn" onclick="startGame('scenarios')">Real-World Scenarios (18 questions)</button>
+                <button class="mode-btn" onclick="startGame('mixed')">Full Challenge (25 questions)</button>
+            </div>
+            
+            <div id="question-container" class="question-container">
+                <div class="question" id="question-text"></div>
+                <div class="answers" id="answers"></div>
+                <div class="explanation" id="explanation"></div>
+                <div style="display: flex; gap: 15px; margin-top: 20px;">
+                    <button class="next-btn" id="next-btn" onclick="nextQuestion()" disabled>Next Question</button>
+                    <button class="pass-btn" id="pass-btn" onclick="passQuestion()">Pass</button>
+                </div>
+            </div>
+            
+            <div id="game-over" class="game-over">
+                <div class="score-display" id="final-score"></div>
+                <div class="performance-feedback" id="feedback"></div>
+                <p id="detailed-feedback"></p>
+                <button class="restart-btn" onclick="location.reload()">Play Again</button>
+                <button class="restart-btn" onclick="showResults()">Review Mistakes</button>
+            </div>
+            
+            <div id="results-review" style="display: none;">
+                <h2>Review Your Results</h2>
+                <div id="mistakes-list"></div>
+                <button class="restart-btn" onclick="location.reload()">Start Over</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const questionBanks = {
+            basics: [
+                {
+                    question: "What is Citrix Cloud primarily designed for?",
+                    answers: [
+                        "Delivering virtual apps and desktops as a cloud service",
+                        "Data storage and backup solutions",
+                        "Web hosting and domain management",
+                        "Email and collaboration services"
+                    ],
+                    correct: 0,
+                    explanation: "Citrix Cloud is a platform that delivers virtual applications and desktops as a cloud service, allowing organizations to provide secure access to resources from anywhere."
+                },
+                {
+                    question: "What does VDI stand for?",
+                    answers: [
+                        "Virtual Data Integration",
+                        "Virtual Desktop Infrastructure",
+                        "Visual Desktop Interface",
+                        "Virtual Deployment Infrastructure"
+                    ],
+                    correct: 1,
+                    explanation: "VDI stands for Virtual Desktop Infrastructure - a technology that hosts desktop operating systems on centralized servers and deploys them to end-users on request."
+                },
+                {
+                    question: "What is the primary component that connects users to Citrix Cloud services?",
+                    answers: [
+                        "Citrix Gateway",
+                        "Citrix Studio",
+                        "Citrix Workspace app",
+                        "Citrix Director"
+                    ],
+                    correct: 2,
+                    explanation: "The Citrix Workspace app is the primary client software that users install to access virtual apps and desktops delivered through Citrix Cloud."
+                },
+                {
+                    question: "In Citrix terminology, what is a 'Resource Location'?",
+                    answers: [
+                        "The physical location where users are based",
+                        "The data center hosting Citrix Cloud services",
+                        "The location where licenses are stored",
+                        "A connection point between Citrix Cloud and your resource infrastructure"
+                    ],
+                    correct: 3,
+                    explanation: "A Resource Location is a connection point that links Citrix Cloud to your on-premises or cloud infrastructure where your resources (VMs, applications) are hosted."
+                },
+                {
+                    question: "What is Citrix DaaS?",
+                    answers: [
+                        "Desktop as a Service",
+                        "Data as a Service",
+                        "Device as a Service",
+                        "Database as a Service"
+                    ],
+                    correct: 0,
+                    explanation: "Citrix DaaS (Desktop as a Service) is Citrix's cloud-based virtual desktop solution that provides virtual desktops and applications from the cloud."
+                },
+                {
+                    question: "Which protocol is commonly used for Citrix virtual desktop connections?",
+                    answers: [
+                        "RDP",
+                        "HDX",
+                        "VNC",
+                        "SSH"
+                    ],
+                    correct: 1,
+                    explanation: "HDX (High Definition eXperience) is Citrix's proprietary protocol suite designed to deliver high-performance virtual desktop and application experiences."
+                },
+                {
+                    question: "What is the purpose of Citrix Cloud Connectors?",
+                    answers: [
+                        "To store user data in the cloud",
+                        "To monitor network performance",
+                        "To establish secure connections between Citrix Cloud and on-premises resources",
+                        "To backup virtual machines"
+                    ],
+                    correct: 2,
+                    explanation: "Citrix Cloud Connectors are components installed on-premises that establish secure, outbound connections to Citrix Cloud, enabling cloud-based management of on-premises resources."
+                },
+                {
+                    question: "In Citrix Virtual Apps and Desktops, what is a Machine Catalog?",
+                    answers: [
+                        "A list of all physical machines in the organization",
+                        "A database of user permissions",
+                        "A catalog of available applications",
+                        "A collection of virtual machines with identical configurations"
+                    ],
+                    correct: 3,
+                    explanation: "A Machine Catalog is a collection of virtual or physical machines that share the same configuration, operating system, and applications."
+                },
+                {
+                    question: "What is the primary benefit of using Citrix Cloud over on-premises deployments?",
+                    answers: [
+                        "Reduced infrastructure management overhead",
+                        "Lower licensing costs",
+                        "Better application performance",
+                        "Faster network speeds"
+                    ],
+                    correct: 0,
+                    explanation: "Citrix Cloud reduces infrastructure management overhead by moving the control plane to the cloud, eliminating the need to manage and maintain on-premises infrastructure components."
+                },
+                {
+                    question: "What is a Delivery Group in Citrix Virtual Apps and Desktops?",
+                    answers: [
+                        "A group of administrators who manage deployments",
+                        "A collection of machines from Machine Catalogs that deliver resources to users",
+                        "A set of network delivery rules",
+                        "A group of applications bundled together"
+                    ],
+                    correct: 1,
+                    explanation: "A Delivery Group is a collection of machines from one or more Machine Catalogs that deliver applications or desktops to specified users or groups."
+                },
+                {
+                    question: "What authentication method is commonly integrated with Citrix Cloud?",
+                    answers: [
+                        "Local user accounts only",
+                        "Social media logins",
+                        "Active Directory",
+                        "Biometric authentication"
+                    ],
+                    correct: 2,
+                    explanation: "Citrix Cloud commonly integrates with Active Directory for user authentication and authorization, leveraging existing enterprise identity infrastructure."
+                },
+                {
+                    question: "What is the purpose of Citrix Policies?",
+                    answers: [
+                        "To define user access permissions",
+                        "To manage network routing",
+                        "To schedule maintenance windows",
+                        "To configure session and user experience settings"
+                    ],
+                    correct: 3,
+                    explanation: "Citrix Policies are used to configure session settings, user experience parameters, and various aspects of how users interact with virtual apps and desktops."
+                },
+                {
+                    question: "What is session sharing in Citrix?",
+                    answers: [
+                        "The ability for one user to access multiple applications in a single session",
+                        "Multiple users accessing the same virtual machine simultaneously",
+                        "Sharing session data between different users",
+                        "Load balancing sessions across multiple servers"
+                    ],
+                    correct: 0,
+                    explanation: "Session sharing allows a user to access multiple published applications within a single session, reducing resource consumption and improving user experience."
+                },
+                {
+                    question: "What is the main difference between Citrix Virtual Apps and Citrix Virtual Desktops?",
+                    answers: [
+                        "Virtual Apps runs on Windows, Virtual Desktops runs on Linux",
+                        "Virtual Apps delivers individual applications, Virtual Desktops delivers full desktop environments",
+                        "Virtual Apps is for internal users, Virtual Desktops is for external users",
+                        "Virtual Apps is free, Virtual Desktops requires licensing"
+                    ],
+                    correct: 1,
+                    explanation: "Virtual Apps delivers individual applications to users, while Virtual Desktops provides complete desktop environments with full operating system access."
+                },
+                {
+                    question: "What is Citrix Workspace?",
+                    answers: [
+                        "A physical workspace design tool",
+                        "A collaboration messaging platform",
+                        "A unified platform that aggregates all apps, desktops, and data",
+                        "A project management application"
+                    ],
+                    correct: 2,
+                    explanation: "Citrix Workspace is a digital workspace platform that provides users with secure, unified access to all their apps, desktops, and data from any device."
+                }
+            ],
+            technical: [
+                {
+                    question: "Which hypervisor platforms are supported by Citrix Virtual Apps and Desktops?",
+                    answers: [
+                        "VMware vSphere, Microsoft Hyper-V, and Citrix Hypervisor",
+                        "Only VMware vSphere",
+                        "Only Microsoft Hyper-V",
+                        "Only Citrix Hypervisor"
+                    ],
+                    correct: 0,
+                    explanation: "Citrix Virtual Apps and Desktops supports multiple hypervisor platforms including VMware vSphere, Microsoft Hyper-V, Citrix Hypervisor, AWS, Azure, and Google Cloud Platform."
+                },
+                {
+                    question: "What is Machine Creation Services (MCS) in Citrix?",
+                    answers: [
+                        "A service that creates physical machines",
+                        "A service that creates and manages virtual machines from master images",
+                        "A service that monitors machine performance",
+                        "A service that backs up virtual machines"
+                    ],
+                    correct: 1,
+                    explanation: "MCS (Machine Creation Services) is a Citrix technology that creates and manages virtual machines from master images, providing rapid provisioning and consistent configurations."
+                },
+                {
+                    question: "What is Provisioning Services (PVS) in Citrix?",
+                    answers: [
+                        "A service that provisions user accounts",
+                        "A service that provisions cloud resources",
+                        "A service that streams operating system images to target devices over the network",
+                        "A service that manages application licenses"
+                    ],
+                    correct: 2,
+                    explanation: "PVS (Provisioning Services) streams a shared operating system image to target devices over the network, eliminating the need for local hard drives and reducing management overhead."
+                },
+                {
+                    question: "In Citrix Cloud, what is the Site Database equivalent?",
+                    answers: [
+                        "Cloud Database",
+                        "Resource Database",
+                        "Virtual Database",
+                        "Citrix Cloud automatically manages the database in the cloud"
+                    ],
+                    correct: 3,
+                    explanation: "In Citrix Cloud, the site database functionality is managed automatically by Citrix in the cloud, eliminating the need for on-premises database management."
+                },
+                {
+                    question: "What is the maximum number of Cloud Connectors recommended per Resource Location?",
+                    answers: [
+                        "2",
+                        "1",
+                        "4",
+                        "No limit"
+                    ],
+                    correct: 0,
+                    explanation: "Citrix recommends deploying 2 Cloud Connectors per Resource Location for high availability and load distribution."
+                },
+                {
+                    question: "What is Local Host Cache in Citrix Virtual Apps and Desktops?",
+                    answers: [
+                        "A cache that stores application data locally",
+                        "A feature that allows operations to continue during connectivity outages to the Site Database",
+                        "A cache that stores user profile information",
+                        "A local DNS cache for faster name resolution"
+                    ],
+                    correct: 1,
+                    explanation: "Local Host Cache allows Virtual Delivery Agents to continue accepting connections and broker new sessions during connectivity outages to the Site Database."
+                },
+                {
+                    question: "Which port does the HDX protocol typically use?",
+                    answers: [
+                        "3389",
+                        "80",
+                        "1494",
+                        "443"
+                    ],
+                    correct: 2,
+                    explanation: "HDX protocol typically uses port 1494 for ICA connections, though it can also use port 2598 and HTTPS (443) depending on configuration."
+                },
+                {
+                    question: "What is Citrix Profile Management used for?",
+                    answers: [
+                        "Managing application installations",
+                        "Managing virtual machine profiles",
+                        "Managing network connection profiles",
+                        "Managing user profiles and settings across sessions"
+                    ],
+                    correct: 3,
+                    explanation: "Citrix Profile Management ensures users' personal settings, documents, and customizations follow them across different sessions and devices."
+                },
+                {
+                    question: "What is the purpose of the Citrix Session Recording feature?",
+                    answers: [
+                        "To capture and replay user sessions for compliance and troubleshooting",
+                        "To record audio in sessions",
+                        "To record performance metrics",
+                        "To record network traffic"
+                    ],
+                    correct: 0,
+                    explanation: "Citrix Session Recording captures user sessions for compliance, security auditing, training, and troubleshooting purposes."
+                },
+                {
+                    question: "What is Citrix Workspace Environment Management (WEM)?",
+                    answers: [
+                        "A tool for managing physical workspace layouts",
+                        "A solution for optimizing user environments and system performance",
+                        "A web content management system",
+                        "A workflow management application"
+                    ],
+                    correct: 1,
+                    explanation: "WEM optimizes user environments by managing user settings, resources, and system performance while reducing logon times and resource consumption."
+                },
+                {
+                    question: "In Citrix Virtual Apps and Desktops, what is a Published App?",
+                    answers: [
+                        "An application available in an app store",
+                        "An application published to a website",
+                        "An application made available to users through Citrix delivery infrastructure",
+                        "An application available for public download"
+                    ],
+                    correct: 2,
+                    explanation: "A Published App is an application that has been made available to users through the Citrix Virtual Apps delivery infrastructure, accessible via the Workspace app."
+                },
+                {
+                    question: "What is Citrix Director used for?",
+                    answers: [
+                        "Creating and managing virtual machines",
+                        "Configuring network settings",
+                        "Managing user accounts",
+                        "Monitoring and troubleshooting Citrix deployments"
+                    ],
+                    correct: 3,
+                    explanation: "Citrix Director is a web-based monitoring and troubleshooting tool that provides real-time insights into the health and performance of Citrix deployments."
+                },
+                {
+                    question: "What is the difference between persistent and non-persistent virtual desktops?",
+                    answers: [
+                        "Persistent desktops retain changes after logoff, non-persistent desktops reset to original state",
+                        "Persistent desktops are faster than non-persistent ones",
+                        "Persistent desktops require more licenses",
+                        "Non-persistent desktops are more secure"
+                    ],
+                    correct: 0,
+                    explanation: "Persistent desktops maintain user changes and customizations after logoff, while non-persistent desktops revert to their original state, providing a fresh environment each session."
+                },
+                {
+                    question: "What is Citrix Adaptive Authentication?",
+                    answers: [
+                        "A single sign-on solution",
+                        "A contextual authentication service that assesses risk and applies appropriate security measures",
+                        "A password management tool",
+                        "A biometric authentication system"
+                    ],
+                    correct: 1,
+                    explanation: "Citrix Adaptive Authentication provides contextual, risk-based authentication that evaluates user behavior and environmental factors to apply appropriate security measures."
+                },
+                {
+                    question: "What is the purpose of Citrix Cloud Resource Locations?",
+                    answers: [
+                        "To define where user data is stored",
+                        "To set geographic access restrictions",
+                        "To establish connectivity between Citrix Cloud and your infrastructure resources",
+                        "To configure backup locations"
+                    ],
+                    correct: 2,
+                    explanation: "Resource Locations establish secure connectivity between Citrix Cloud and your infrastructure resources, whether on-premises or in other clouds."
+                },
+                {
+                    question: "What is Application Layering in Citrix?",
+                    answers: [
+                        "A method to organize applications in folders",
+                        "A way to prioritize application traffic",
+                        "A method to backup applications",
+                        "A technology that separates applications, OS, and user data into independent layers"
+                    ],
+                    correct: 3,
+                    explanation: "Application Layering technology separates applications, operating systems, and user data into independent, portable layers that can be combined at runtime."
+                },
+                {
+                    question: "What is Global Server Load Balancing (GSLB) in Citrix NetScaler?",
+                    answers: [
+                        "DNS-based load balancing across multiple geographic locations",
+                        "Load balancing within a single data center",
+                        "Application-level load balancing",
+                        "User session load balancing"
+                    ],
+                    correct: 0,
+                    explanation: "GSLB provides DNS-based load balancing and disaster recovery across multiple data centers or geographic locations, directing users to the optimal site."
+                },
+                {
+                    question: "What is the Citrix HDX RealTime Optimization Pack?",
+                    answers: [
+                        "A network optimization tool",
+                        "A multimedia redirection solution for optimizing audio/video in virtual sessions",
+                        "A storage optimization utility",
+                        "A CPU optimization service"
+                    ],
+                    correct: 1,
+                    explanation: "The HDX RealTime Optimization Pack provides multimedia redirection for Microsoft Skype for Business and Teams, optimizing audio/video performance in virtual sessions."
+                },
+                {
+                    question: "What is Citrix Federated Authentication Service (FAS)?",
+                    answers: [
+                        "A file sharing service",
+                        "A federated identity management system",
+                        "A service that enables smart card and certificate-based authentication for virtual sessions",
+                        "A single sign-on solution for web applications"
+                    ],
+                    correct: 2,
+                    explanation: "FAS enables the use of smart cards, certificates, and other forms of federated authentication with Citrix Virtual Apps and Desktops without requiring certificates on virtual machines."
+                },
+                {
+                    question: "What is the purpose of Citrix Licensing Server?",
+                    answers: [
+                        "To manage software updates",
+                        "To authenticate users",
+                        "To monitor system performance",
+                        "To track and control the usage of Citrix product licenses"
+                    ],
+                    correct: 3,
+                    explanation: "The Citrix Licensing Server manages and allocates licenses for Citrix products, ensuring compliance with licensing agreements and tracking usage."
+                }
+            ],
+            scenarios: [
+                {
+                    question: "Users complain that their virtual desktops are running slowly. What would be your first troubleshooting step?",
+                    answers: [
+                        "Check resource utilization on the hypervisor hosts",
+                        "Restart all virtual machines",
+                        "Increase the number of published applications",
+                        "Disable all Citrix policies"
+                    ],
+                    correct: 0,
+                    explanation: "Checking resource utilization (CPU, memory, storage) on hypervisor hosts is the logical first step to identify if the issue is related to resource constraints."
+                },
+                {
+                    question: "A user cannot connect to their virtual desktop and receives an error about no available resources. What should you investigate?",
+                    answers: [
+                        "Network connectivity between user and data center",
+                        "Machine Catalog capacity and Delivery Group assignments",
+                        "User's device specifications",
+                        "Internet bandwidth at user location"
+                    ],
+                    correct: 1,
+                    explanation: "The 'no available resources' error typically indicates insufficient capacity in the Machine Catalog or improper Delivery Group configuration."
+                },
+                {
+                    question: "You need to deploy 500 new virtual desktops quickly with identical configurations. Which approach is most efficient?",
+                    answers: [
+                        "Manually create each virtual machine",
+                        "Copy and paste existing VMs",
+                        "Use Machine Creation Services (MCS) with a master image",
+                        "Use physical machines instead"
+                    ],
+                    correct: 2,
+                    explanation: "MCS with a master image is the most efficient way to rapidly deploy large numbers of identical virtual machines with consistent configurations."
+                },
+                {
+                    question: "Users report intermittent disconnections from their virtual sessions. What would you check first?",
+                    answers: [
+                        "User account permissions",
+                        "Application compatibility",
+                        "Virtual machine memory allocation",
+                        "Network connectivity and session timeout policies"
+                    ],
+                    correct: 3,
+                    explanation: "Intermittent disconnections are often caused by network issues or session timeout policies that need to be adjusted based on usage patterns."
+                },
+                {
+                    question: "You need to provide secure remote access to internal applications for external contractors. What Citrix solution would you implement?",
+                    answers: [
+                        "Citrix Virtual Apps with Citrix Gateway",
+                        "Direct VPN access to internal network",
+                        "Email the applications to contractors",
+                        "Set up physical workstations for contractors"
+                    ],
+                    correct: 0,
+                    explanation: "Citrix Virtual Apps with Citrix Gateway provides secure, controlled access to internal applications without exposing the entire network infrastructure."
+                },
+                {
+                    question: "A critical business application frequently crashes in virtual desktop sessions but works fine on physical machines. What should you investigate?",
+                    answers: [
+                        "User training requirements",
+                        "Hypervisor compatibility and resource allocation",
+                        "Application licensing costs",
+                        "Network security policies"
+                    ],
+                    correct: 1,
+                    explanation: "Application crashes in virtual environments often stem from hypervisor compatibility issues or insufficient resource allocation (CPU, memory) to the virtual machines."
+                },
+                {
+                    question: "You need to ensure business continuity during planned maintenance of your primary data center. What feature should you implement?",
+                    answers: [
+                        "Increase server capacity",
+                        "Schedule maintenance during business hours",
+                        "Global Server Load Balancing (GSLB) with secondary site",
+                        "Backup all user data"
+                    ],
+                    correct: 2,
+                    explanation: "GSLB with a secondary site provides automated failover capabilities, ensuring users can continue working during primary site maintenance."
+                },
+                {
+                    question: "Users complain that printing from virtual desktops is not working. What should you verify?",
+                    answers: [
+                        "User has administrator rights on the virtual desktop",
+                        "Virtual desktop has internet connectivity",
+                        "User's physical printer is network-enabled",
+                        "Print driver compatibility and Citrix Universal Print Driver configuration"
+                    ],
+                    correct: 3,
+                    explanation: "Printing issues in virtual environments typically relate to driver compatibility. Citrix Universal Print Driver helps resolve most printing compatibility issues."
+                },
+                {
+                    question: "You notice that user login times to virtual desktops have increased significantly. What optimization should you consider?",
+                    answers: [
+                        "Implement Workspace Environment Management (WEM) and optimize user profiles",
+                        "Increase virtual machine CPU allocation",
+                        "Reduce screen resolution settings",
+                        "Disable all startup applications"
+                    ],
+                    correct: 0,
+                    explanation: "WEM optimizes the login process by managing user environment settings efficiently, and profile optimization reduces login time by minimizing data transfer."
+                },
+                {
+                    question: "A department needs to run a resource-intensive CAD application. How would you optimize the virtual desktop experience?",
+                    answers: [
+                        "Assign more users per virtual machine",
+                        "Provide dedicated, high-specification virtual machines with GPU passthrough",
+                        "Reduce application features to improve performance",
+                        "Use thin client devices with local processing"
+                    ],
+                    correct: 1,
+                    explanation: "Resource-intensive applications like CAD require dedicated, high-specification virtual machines, often with GPU passthrough for optimal graphics performance."
+                },
+                {
+                    question: "Your organization needs to comply with strict data retention policies. Which Citrix feature would help with auditing user activities?",
+                    answers: [
+                        "Citrix Profile Management",
+                        "Citrix Director monitoring",
+                        "Citrix Session Recording",
+                        "Citrix Workspace Environment Management"
+                    ],
+                    correct: 2,
+                    explanation: "Citrix Session Recording captures and stores user session activities, providing detailed audit trails for compliance and security requirements."
+                },
+                {
+                    question: "Remote users experience poor performance when accessing graphics-intensive applications. What HDX optimization would you enable?",
+                    answers: [
+                        "Increase bandwidth allocation",
+                        "Reduce screen color depth",
+                        "Disable hardware acceleration",
+                        "Enable HDX 3D Pro and optimize graphics policies"
+                    ],
+                    correct: 3,
+                    explanation: "HDX 3D Pro provides GPU acceleration and graphics optimization policies specifically designed for graphics-intensive applications and remote access scenarios."
+                },
+                {
+                    question: "You need to migrate from on-premises Citrix deployment to Citrix Cloud. What is the recommended approach?",
+                    answers: [
+                        "Use Citrix Cloud migration tools and maintain hybrid connectivity with Cloud Connectors",
+                        "Rebuild everything from scratch in the cloud",
+                        "Migrate all data first, then applications",
+                        "Move users in random groups"
+                    ],
+                    correct: 0,
+                    explanation: "Citrix provides migration tools and Cloud Connectors enable hybrid deployments, allowing gradual migration while maintaining service continuity."
+                },
+                {
+                    question: "Users working with sensitive data need additional security controls. What Citrix security feature would you implement?",
+                    answers: [
+                        "Stronger password requirements",
+                        "Citrix Secure Browser and App Protection with anti-keylogging",
+                        "Additional firewalls",
+                        "Encrypted storage drives"
+                    ],
+                    correct: 1,
+                    explanation: "Citrix Secure Browser and App Protection provide advanced security features including anti-keylogging, screenshot protection, and data loss prevention for sensitive environments."
+                },
+                {
+                    question: "A remote office has limited bandwidth but needs access to virtual desktops. How would you optimize the experience?",
+                    answers: [
+                        "Reduce the number of users",
+                        "Install faster internet connection",
+                        "Configure HDX adaptive transport and enable bandwidth optimization policies",
+                        "Use only text-based applications"
+                    ],
+                    correct: 2,
+                    explanation: "HDX adaptive transport automatically adjusts to network conditions, and bandwidth optimization policies help deliver acceptable performance over limited connections."
+                },
+                {
+                    question: "Your organization wants to provide BYOD access while maintaining security. What architecture would you recommend?",
+                    answers: [
+                        "Allow direct device access to corporate network",
+                        "Purchase corporate devices for all users",
+                        "Use cloud storage for all corporate data",
+                        "Implement Citrix Workspace with Citrix Gateway and endpoint management policies"
+                    ],
+                    correct: 3,
+                    explanation: "Citrix Workspace with Gateway provides secure BYOD access while endpoint management policies ensure security compliance without compromising user experience."
+                },
+                {
+                    question: "A user's virtual desktop becomes unresponsive during peak hours. What load balancing strategy would help?",
+                    answers: [
+                        "Implement load balancing policies and consider additional host capacity",
+                        "Restart the user's session",
+                        "Reduce user permissions",
+                        "Schedule user access during off-peak hours"
+                    ],
+                    correct: 0,
+                    explanation: "Load balancing policies distribute user sessions more effectively across available resources, and additional capacity helps handle peak usage periods."
+                },
+                {
+                    question: "You need to provide disaster recovery for critical virtual applications. What would be your strategy?",
+                    answers: [
+                        "Daily backups of application servers",
+                        "Implement multi-site deployment with GSLB and automated failover",
+                        "Keep spare hardware on standby",
+                        "Document recovery procedures"
+                    ],
+                    correct: 1,
+                    explanation: "Multi-site deployment with GSLB provides automated failover capabilities, ensuring business continuity with minimal downtime during disasters."
+                }
+            ]
+        };
+
+        let currentGame = {
+            questions: [],
+            currentIndex: 0,
+            correctAnswers: 0,
+            passedQuestions: 0,
+            streak: 0,
+            maxStreak: 0,
+            wrongAnswers: [],
+            passedAnswers: []
+        };
+
+        function startGame(mode) {
+            let questions = [];
+            
+            if (mode === 'mixed') {
+                questions = [
+                    ...shuffleArray(questionBanks.basics).slice(0, 8),
+                    ...shuffleArray(questionBanks.technical).slice(0, 9),
+                    ...shuffleArray(questionBanks.scenarios).slice(0, 8)
+                ];
+            } else {
+                questions = questionBanks[mode] || questionBanks.basics;
+            }
+            
+            currentGame.questions = shuffleArray(questions);
+            currentGame.currentIndex = 0;
+            currentGame.correctAnswers = 0;
+            currentGame.passedQuestions = 0;
+            currentGame.streak = 0;
+            currentGame.maxStreak = 0;
+            currentGame.wrongAnswers = [];
+            currentGame.passedAnswers = [];
+            
+            document.getElementById('mode-selection').style.display = 'none';
+            document.getElementById('question-container').classList.add('active');
+            
+            showQuestion();
+        }
+
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function showQuestion() {
+            const question = currentGame.questions[currentGame.currentIndex];
+            
+            document.getElementById('question-text').textContent = question.question;
+            document.getElementById('current-question').textContent = currentGame.currentIndex + 1;
+            document.getElementById('correct-answers').textContent = currentGame.correctAnswers;
+            document.getElementById('passed-questions').textContent = currentGame.passedQuestions;
+            document.getElementById('streak').textContent = currentGame.streak;
+            
+            const progress = ((currentGame.currentIndex) / currentGame.questions.length) * 100;
+            document.getElementById('progress-fill').style.width = progress + '%';
+            
+            const answersContainer = document.getElementById('answers');
+            answersContainer.innerHTML = '';
+            
+            question.answers.forEach((answer, index) => {
+                const button = document.createElement('button');
+                button.className = 'answer-btn';
+                button.textContent = `${String.fromCharCode(65 + index)}. ${answer}`;
+                button.onclick = () => selectAnswer(index);
+                answersContainer.appendChild(button);
+            });
+            
+            document.getElementById('explanation').classList.remove('show');
+            document.getElementById('next-btn').disabled = true;
+            document.getElementById('pass-btn').disabled = false;
+        }
+
+        function selectAnswer(selectedIndex) {
+            const question = currentGame.questions[currentGame.currentIndex];
+            const buttons = document.querySelectorAll('.answer-btn');
+            
+            buttons.forEach(btn => btn.classList.add('disabled'));
+            
+            buttons[selectedIndex].classList.add(selectedIndex === question.correct ? 'correct' : 'incorrect');
+            
+            if (selectedIndex !== question.correct) {
+                buttons[question.correct].classList.add('correct');
+                currentGame.streak = 0;
+                currentGame.wrongAnswers.push({
+                    question: question.question,
+                    yourAnswer: question.answers[selectedIndex],
+                    correctAnswer: question.answers[question.correct],
+                    explanation: question.explanation
+                });
+            } else {
+                currentGame.correctAnswers++;
+                currentGame.streak++;
+                currentGame.maxStreak = Math.max(currentGame.maxStreak, currentGame.streak);
+            }
+            
+            document.getElementById('explanation').innerHTML = `
+                <strong>${selectedIndex === question.correct ? 'Correct!' : 'Incorrect'}</strong><br>
+                ${question.explanation}
+            `;
+            document.getElementById('explanation').classList.add('show');
+            
+            document.getElementById('next-btn').disabled = false;
+            document.getElementById('pass-btn').disabled = true;
+            
+            document.getElementById('correct-answers').textContent = currentGame.correctAnswers;
+            document.getElementById('streak').textContent = currentGame.streak;
+        }
+
+        function passQuestion() {
+            const question = currentGame.questions[currentGame.currentIndex];
+            
+            currentGame.passedQuestions++;
+            currentGame.streak = 0;
+            
+            currentGame.passedAnswers.push({
+                question: question.question,
+                correctAnswer: question.answers[question.correct],
+                explanation: question.explanation
+            });
+            
+            document.getElementById('explanation').innerHTML = `
+                <strong>Question Passed</strong><br>
+                <strong>Correct answer was:</strong> ${question.answers[question.correct]}<br>
+                ${question.explanation}
+            `;
+            document.getElementById('explanation').classList.add('show');
+            
+            document.getElementById('next-btn').disabled = false;
+            document.getElementById('pass-btn').disabled = true;
+            
+            document.getElementById('passed-questions').textContent = currentGame.passedQuestions;
+            document.getElementById('streak').textContent = currentGame.streak;
+        }
+
+        function nextQuestion() {
+            currentGame.currentIndex++;
+            
+            if (currentGame.currentIndex >= currentGame.questions.length) {
+                endGame();
+            } else {
+                showQuestion();
+            }
+        }
+
+        function endGame() {
+            document.getElementById('question-container').classList.remove('active');
+            
+            const totalQuestions = currentGame.questions.length;
+            const answeredQuestions = totalQuestions - currentGame.passedQuestions;
+            const score = answeredQuestions > 0 ? Math.round((currentGame.correctAnswers / answeredQuestions) * 100) : 0;
+            
+            document.getElementById('final-score').textContent = `${score}%`;
+            
+            let feedbackClass, feedbackText, detailedFeedback;
+            
+            if (score >= 90) {
+                feedbackClass = 'excellent';
+                feedbackText = 'Excellent! You have mastered Citrix Cloud and VDI concepts!';
+                detailedFeedback = 'Outstanding performance! You demonstrate strong expertise in Citrix technologies and virtual infrastructure management.';
+            } else if (score >= 75) {
+                feedbackClass = 'good';
+                feedbackText = 'Good work! You have solid Citrix knowledge.';
+                detailedFeedback = 'Solid performance! Review the areas where you missed questions to further strengthen your Citrix expertise.';
+            } else if (score >= 60) {
+                feedbackClass = 'needs-work';
+                feedbackText = 'Getting there! Focus on your weak areas.';
+                detailedFeedback = 'You\'re making progress but need more study. Focus on fundamentals and hands-on practice with Citrix technologies.';
+            } else {
+                feedbackClass = 'poor';
+                feedbackText = 'Keep studying! Citrix technologies require practice.';
+                detailedFeedback = 'Don\'t get discouraged! Citrix technologies are complex. Consider training resources, documentation, and hands-on lab practice.';
+            }
+            
+            document.getElementById('feedback').className = `performance-feedback ${feedbackClass}`;
+            document.getElementById('feedback').textContent = feedbackText;
+            
+            const passedText = currentGame.passedQuestions > 0 ? ` You passed ${currentGame.passedQuestions} questions.` : '';
+            document.getElementById('detailed-feedback').textContent = `
+                You answered ${currentGame.correctAnswers} out of ${answeredQuestions} attempted questions correctly.${passedText}
+                Your longest streak was ${currentGame.maxStreak} questions.
+                ${detailedFeedback}
+            `;
+            
+            document.getElementById('game-over').classList.add('show');
+        }
+
+        function showResults() {
+            document.getElementById('game-over').style.display = 'none';
+            const resultsDiv = document.getElementById('results-review');
+            const mistakesList = document.getElementById('mistakes-list');
+            
+            let reviewContent = '';
+            
+            if (currentGame.wrongAnswers.length === 0 && currentGame.passedAnswers.length === 0) {
+                reviewContent = '<p style="text-align: center; color: #4CAF50; font-size: 1.2em;">Perfect score! No mistakes to review!</p>';
+            } else {
+                if (currentGame.wrongAnswers.length > 0) {
+                    reviewContent += '<h3 style="color: #f44336;">Incorrect Answers</h3>';
+                    reviewContent += currentGame.wrongAnswers.map((mistake, index) => `
+                        <div class="question-card">
+                            <div class="question">Question ${index + 1}: ${mistake.question}</div>
+                            <p><strong>Your answer:</strong> ${mistake.yourAnswer}</p>
+                            <p><strong>Correct answer:</strong> ${mistake.correctAnswer}</p>
+                            <div class="explanation show">
+                                <strong>Explanation:</strong> ${mistake.explanation}
+                            </div>
+                        </div>
+                    `).join('');
+                }
+                
+                if (currentGame.passedAnswers.length > 0) {
+                    reviewContent += '<h3 style="color: #6c757d; margin-top: 30px;">Passed Questions</h3>';
+                    reviewContent += currentGame.passedAnswers.map((passed, index) => `
+                        <div class="question-card">
+                            <div class="question">Passed Question ${index + 1}: ${passed.question}</div>
+                            <p><strong>Correct answer:</strong> ${passed.correctAnswer}</p>
+                            <div class="explanation show">
+                                <strong>Explanation:</strong> ${passed.explanation}
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            }
+            
+            mistakesList.innerHTML = reviewContent;
+            resultsDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
