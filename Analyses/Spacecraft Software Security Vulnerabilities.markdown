@@ -1,4 +1,4 @@
-# Spacecraft Software Security: Study and Mitigation 
+# Spacecraft Software Security Vulnerabilities
 
 https://github.com/onhexgroup/Conferences/blob/main/BlackHat_USA_2025_Slides/Andrzej%20Olchawa%26Milenko%20Starcik%26Ricardo%20Fradique%26Ayman%20Boulaich_Burning%2C%20Trashing%2C%20Spacecraft%20Crashing%20A%20Collection%20of%20Vulnerabilities%20That%20Will%20End%20Your%20Space%20Mission.pdf
 
