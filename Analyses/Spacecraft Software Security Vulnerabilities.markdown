@@ -1,6 +1,5 @@
 # Spacecraft Software Security Vulnerabilities
 
-https://github.com/onhexgroup/Conferences/blob/main/BlackHat_USA_2025_Slides/Andrzej%20Olchawa%26Milenko%20Starcik%26Ricardo%20Fradique%26Ayman%20Boulaich_Burning%2C%20Trashing%2C%20Spacecraft%20Crashing%20A%20Collection%20of%20Vulnerabilities%20That%20Will%20End%20Your%20Space%20Mission.pdf
 
 ## Overview
 This README summarizes critical vulnerabilities in open-source spacecraft command and control software, as presented at Black Hat USA 2025 in the briefing "Burning, Trashing, Spacecraft Crashing: A Collection of Vulnerabilities That Will End Your Space Mission" by Andrzej Olchawa, Milenko Starcik, Ricardo Fradique, and Ayman Boulaich from VisionSpace Technologies GmbH. It also provides secure coding practices to mitigate these issues, tailored to the affected software (Yamcs, OpenC3 Cosmos, CryptoLib, NASA’s cFS).
@@ -67,6 +66,7 @@ Simple hacks can disrupt space missions more effectively than physical weapons. 
 - Black Hat USA 2025 Briefing Schedule.
 - VisionSpace Technologies Assessments.
 - 24 𝕏 posts, 50 web pages.
+- https://github.com/onhexgroup/Conferences/blob/main/BlackHat_USA_2025_Slides/Andrzej%20Olchawa%26Milenko%20Starcik%26Ricardo%20Fradique%26Ayman%20Boulaich_Burning%2C%20Trashing%2C%20Spacecraft%20Crashing%20A%20Collection%20of%20Vulnerabilities%20That%20Will%20End%20Your%20Space%20Mission.pdf
 
 ## Secure Coding Practices Prevention 
 
@@ -327,3 +327,10 @@ public class WebController {
 
 ## Conclusion
 This README combines analysis of Black Hat USA 2025 findings with practical coding practices to secure spacecraft software. All code is verified for correctness and addresses the vulnerabilities. For further details, refer to Black Hat resources or VisionSpace Technologies’ assessments.
+
+https://github.com/onhexgroup/Conferences/blob/main/BlackHat_USA_2025_Slides/Andrzej%20Olchawa%26Milenko%20Starcik%26Ricardo%20Fradique%26Ayman%20Boulaich_Burning%2C%20Trashing%2C%20Spacecraft%20Crashing%20A%20Collection%20of%20Vulnerabilities%20That%20Will%20End%20Your%20Space%20Mission.pdf
+
+
+
+
+-pk
