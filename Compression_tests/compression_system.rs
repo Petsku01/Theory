@@ -26,7 +26,7 @@ edition = "2021"
 license = "MIT OR Apache-2.0"
 authors = ["ENCS Team"]
 description = "Enterprise Neural Compression System"
-repository = "https://github.com/encs/encs"
+
 readme = "README.md"
 keywords = ["compression", "neural", "security", "enterprise"]
 categories = ["compression", "cryptography", "command-line-utilities"]
@@ -1624,7 +1624,7 @@ impl EnterpriseCompressionEngine {
     }
     
     // ===========================================================================================
-    // PRIVATE IMPLEMENTATION METHODS
+    // PRIVATE IMPLEMENTATION METHODS Version 0.0.1.1
     // ===========================================================================================
     
     async fn validate_compression_inputs(
@@ -2533,7 +2533,7 @@ impl EnterpriseCompressionEngine {
         options: &CompressionOptions,
         progress_bar: &ProgressBar,
     ) -> CompressionResult<CompressionResult> {
-        // Determine optimal chunk size based on file size and algorithm
+        // Determine optimal chunk size based on file sizes and algorithm
         let chunk_size = self.determine_optimal_chunk_size(file_info.size, algorithm);
         
         // Open input and output files
