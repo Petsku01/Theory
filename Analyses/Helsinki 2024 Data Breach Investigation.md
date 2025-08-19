@@ -38,7 +38,7 @@ Response
 
 Detection: Alerts on April 25 were missed due to a ticketing system error and no monitoring service. Critical alerts at 03:10 on April 30 prompted DigiHelsinki to lock accounts, revealing the breach (page 6).
 Containment: The VPN router was disconnected on April 30 at 13:40, with its cable unplugged to preserve evidence. The backup server was isolated on May 8 after malware detection (pages 6–7).
-Management: The city formed groups (MIM, KASKO crisis, coordination) for response, holding dozens of meetings (page 7).
+Management: The city formed group(KASKO MIM) for response, holding dozens of meetings (page 7).
 Communication: Notifications started April 30 via intranet, followed by Wilma (school platform), daycare channels, and a website (hel.fi/tietomurto) in multiple languages. Public disclosure began May 1 after media reports, with a briefing on May 13 via Helsinki Channel. Due to unidentified victims, including those with protected identities (turvakielto), the city used public GDPR notifications, reported to the Data Protection Ombudsman on May 8 (pages 8–10).
 
 Consequences
