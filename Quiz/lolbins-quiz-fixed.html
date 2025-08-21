@@ -1,0 +1,2028 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comprehensive LOLBins Assessment</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: #ffffff;
+        }
+        
+        .quiz-container {
+            background: #1e1e1e;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            max-width: 1000px;
+            width: 100%;
+            padding: 30px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #333;
+        }
+        
+        .quiz-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+        }
+        
+        .quiz-header h1 {
+            color: #ffffff;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .quiz-header p {
+            color: #cccccc;
+            font-size: 1.1em;
+        }
+        
+        .category-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+        
+        .category-btn {
+            padding: 10px 20px;
+            border: 2px solid #667eea;
+            background: #2d2d2d;
+            color: #ffffff;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+        
+        .category-btn.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .category-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        .category-info {
+            background: #2d2d2d;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .category-info h3 {
+            color: #ffffff;
+            margin-bottom: 5px;
+        }
+        
+        .category-info p {
+            color: #cccccc;
+            font-size: 0.9em;
+        }
+        
+        .question-container {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #2d2d2d;
+            border-radius: 10px;
+            border-left: 5px solid #667eea;
+            display: none;
+        }
+        
+        .question-container.active {
+            display: block;
+            animation: slideIn 0.3s ease-in;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        
+        .question {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+        
+        .code-block {
+            background: #1a1a1a;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9em;
+            margin: 10px 0;
+            overflow-x: auto;
+            border: 1px solid #444;
+        }
+        
+        .options {
+            list-style: none;
+        }
+        
+        .option {
+            margin-bottom: 10px;
+        }
+        
+        .option label {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            background: #1a1a1a;
+            border: 2px solid #444;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1em;
+            color: #ffffff;
+        }
+        
+        .option label:hover {
+            border-color: #667eea;
+            background: #333;
+        }
+        
+        .option input[type="radio"] {
+            margin-right: 12px;
+            transform: scale(1.2);
+        }
+        
+        .option label.correct {
+            background: #1e4d1e;
+            border-color: #28a745;
+            color: #90ee90;
+            font-weight: 600;
+        }
+        
+        .option label.incorrect {
+            background: #4d1e1e;
+            border-color: #dc3545;
+            color: #ffb3b3;
+        }
+        
+        .option label.selected {
+            border-color: #667eea;
+            background: #333;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #444;
+        }
+        
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #444;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #555;
+            transform: translateY(-2px);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+        
+        .question-counter {
+            text-align: center;
+            color: #cccccc;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        
+        .feedback {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .feedback.correct {
+            background: #1e4d1e;
+            border: 1px solid #28a745;
+            color: #90ee90;
+        }
+        
+        .feedback.incorrect {
+            background: #4d1e1e;
+            border: 1px solid #dc3545;
+            color: #ffb3b3;
+        }
+        
+        .feedback h4 {
+            margin-bottom: 8px;
+            font-size: 1.1em;
+            color: inherit;
+        }
+        
+        .results {
+            text-align: center;
+            display: none;
+        }
+        
+        .results.show {
+            display: block;
+            animation: slideIn 0.5s ease;
+        }
+        
+        .score-circle {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            margin: 20px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5em;
+            font-weight: bold;
+            color: white;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+        }
+        
+        .results h2 {
+            color: #ffffff;
+            margin-bottom: 15px;
+        }
+        
+        .results p {
+            color: #cccccc;
+            font-size: 1.1em;
+            margin-bottom: 20px;
+        }
+        
+        .category-results {
+            background: #2d2d2d;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border: 1px solid #444;
+        }
+        
+        .category-score {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: #1a1a1a;
+            border-radius: 5px;
+            color: #ffffff;
+        }
+        
+        .total-questions {
+            text-align: center;
+            color: #cccccc;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="quiz-container">
+        <div class="quiz-header">
+            <h1>Comprehensive LOLBins Assessment</h1>
+            <p>Professional evaluation of Living Off The Land Binaries knowledge</p>
+            <div class="total-questions">60 Questions Across 6 Categories</div>
+        </div>
+
+        <div class="category-selector">
+            <button class="category-btn active" onclick="selectCategory('basic')">Basic Concepts</button>
+            <button class="category-btn" onclick="selectCategory('detection')">Detection & Monitoring</button>
+            <button class="category-btn" onclick="selectCategory('mitre')">MITRE ATT&CK</button>
+            <button class="category-btn" onclick="selectCategory('hunting')">Threat Hunting</button>
+            <button class="category-btn" onclick="selectCategory('evasion')">Evasion Techniques</button>
+            <button class="category-btn" onclick="selectCategory('enterprise')">Enterprise Defense</button>
+        </div>
+
+        <div class="category-info" id="categoryInfo">
+            <h3>Basic Concepts</h3>
+            <p>Fundamental understanding of LOLBins, terminology, and core concepts (10 questions)</p>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <div class="question-counter" id="questionCounter">Question 1 of 10</div>
+
+        <!-- Basic Concepts Questions 1-10 -->
+        <div class="question-container active" data-question="1" data-category="basic">
+            <div class="question">What does LOLBins stand for in cybersecurity terminology?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q1" value="a"> Lots of Little Binaries</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q1" value="b"> Living Off The Land Binaries</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q1" value="c"> Log-On Local Binaries</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q1" value="d"> Locked Operating Level Binaries</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback1"></div>
+        </div>
+
+        <div class="question-container" data-question="2" data-category="basic">
+            <div class="question">Which characteristic is NOT typically associated with LOLBins?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q2" value="a"> Digitally signed by trusted vendors</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q2" value="b"> Present on systems by default</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q2" value="c"> Always require administrative privileges to execute</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q2" value="d"> Can be misused for unintended purposes</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback2"></div>
+        </div>
+
+        <div class="question-container" data-question="3" data-category="basic">
+            <div class="question">Which Windows utility is commonly abused for file downloads?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q3" value="a"> tasklist.exe</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q3" value="b"> certutil.exe</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q3" value="c"> diskpart.exe</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q3" value="d"> chkdsk.exe</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback3"></div>
+        </div>
+
+        <div class="question-container" data-question="4" data-category="basic">
+            <div class="question">What is the primary advantage of using LOLBins for attackers?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q4" value="a"> They are easier to program than custom malware</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q4" value="b"> They blend in with normal system operations</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q4" value="c"> They execute faster than traditional malware</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q4" value="d"> They automatically escalate privileges</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback4"></div>
+        </div>
+
+        <div class="question-container" data-question="5" data-category="basic">
+            <div class="question">Which of the following is NOT a common LOLBin category?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q5" value="a"> Script interpreters (PowerShell, WScript)</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q5" value="b"> File transfer utilities</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q5" value="c"> Hardware diagnostic tools</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q5" value="d"> Archive and compression tools</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback5"></div>
+        </div>
+
+        <div class="question-container" data-question="6" data-category="basic">
+            <div class="question">Which Microsoft utility can be abused to execute HTA files from remote locations?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q6" value="a"> mshta.exe</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q6" value="b"> msinfo32.exe</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q6" value="c"> msconfig.exe</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q6" value="d"> mstsc.exe</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback6"></div>
+        </div>
+
+        <div class="question-container" data-question="7" data-category="basic">
+            <div class="question">What makes bitsadmin.exe useful for attackers?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q7" value="a"> It can download files using Windows Background Intelligent Transfer Service</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q7" value="b"> It can encrypt local files automatically</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q7" value="c"> It can modify system boot settings</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q7" value="d"> It can disable antivirus software</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback7"></div>
+        </div>
+
+        <div class="question-container" data-question="8" data-category="basic">
+            <div class="question">Which LOLBin is commonly used for lateral movement via WMI?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q8" value="a"> wmic.exe</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q8" value="b"> winrm.exe</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q8" value="c"> wusa.exe</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q8" value="d"> whoami.exe</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback8"></div>
+        </div>
+
+        <div class="question-container" data-question="9" data-category="basic">
+            <div class="question">What is the main difference between LOLBins and traditional malware?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q9" value="a"> LOLBins are more sophisticated</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q9" value="b"> LOLBins are legitimate tools being misused</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q9" value="c"> LOLBins only work on Windows systems</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q9" value="d"> LOLBins cannot be detected</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback9"></div>
+        </div>
+
+        <div class="question-container" data-question="10" data-category="basic">
+            <div class="question">Which of these utilities can be used for both legitimate administration and malicious purposes?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q10" value="a"> forfiles.exe</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q10" value="b"> rundll32.exe</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q10" value="c"> regsvr32.exe</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q10" value="d"> All of the above</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback10"></div>
+        </div>
+
+        <!-- Detection & Monitoring Questions 11-20 -->
+        <div class="question-container" data-question="11" data-category="detection">
+            <div class="question">Which Windows Event ID is most useful for detecting process creation activities?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q11" value="a"> Event ID 4624 (Logon)</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q11" value="b"> Event ID 4688 (Process Creation)</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q11" value="c"> Event ID 4648 (Explicit Logon)</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q11" value="d"> Event ID 5156 (Network Connection)</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback11"></div>
+        </div>
+
+        <div class="question-container" data-question="12" data-category="detection">
+            <div class="question">What Sysmon Event ID tracks image/library loading?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q12" value="a"> Event ID 1 (Process Creation)</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q12" value="b"> Event ID 3 (Network Connection)</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q12" value="c"> Event ID 7 (Image Loaded)</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q12" value="d"> Event ID 11 (File Created)</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback12"></div>
+        </div>
+
+        <div class="question-container" data-question="13" data-category="detection">
+            <div class="question">Which detection approach is most effective for LOLBin abuse?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q13" value="a"> Signature-based detection only</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q13" value="b"> Behavioral analysis and anomaly detection</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q13" value="c"> Hash-based file verification</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q13" value="d"> Network-based detection only</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback13"></div>
+        </div>
+
+        <div class="question-container" data-question="14" data-category="detection">
+            <div class="question">What PowerShell logging feature helps detect encoded command execution?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q14" value="a"> Module Logging only</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q14" value="b"> Script Block Logging only</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q14" value="c"> Transcription Logging only</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q14" value="d"> All PowerShell logging features combined</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback14"></div>
+        </div>
+
+        <div class="question-container" data-question="15" data-category="detection">
+            <div class="question">Which Sysmon Event ID would detect file creation by LOLBins?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q15" value="a"> Event ID 8 (Create Remote Thread)</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q15" value="b"> Event ID 10 (Process Access)</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q15" value="c"> Event ID 11 (File Create)</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q15" value="d"> Event ID 13 (Registry Value Set)</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback15"></div>
+        </div>
+
+        <div class="question-container" data-question="16" data-category="detection">
+            <div class="question">What makes AMSI (Antimalware Scan Interface) relevant to LOLBin detection?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q16" value="a"> It scans scripts and commands before execution</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q16" value="b"> It only works with custom malware</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q16" value="c"> It prevents all LOLBin execution</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q16" value="d"> It only monitors network traffic</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback16"></div>
+        </div>
+
+        <div class="question-container" data-question="17" data-category="detection">
+            <div class="question">Which command line parameter pattern indicates potential rundll32.exe abuse?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q17" value="a"> rundll32.exe shell32.dll,ShellExec_RunDLL</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q17" value="b"> rundll32.exe javascript:"malicious_code"</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q17" value="c"> rundll32.exe user32.dll,LockWorkStation</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q17" value="d"> rundll32.exe printui.dll,PrintUIEntry</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback17"></div>
+        </div>
+
+        <div class="question-container" data-question="18" data-category="detection">
+            <div class="question">What EDR capability is most crucial for LOLBin detection?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q18" value="a"> File hash reputation checking</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q18" value="b"> Command-line argument monitoring and analysis</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q18" value="c"> Memory scanning for packed malware</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q18" value="d"> Certificate validation checking</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback18"></div>
+        </div>
+
+        <div class="question-container" data-question="19" data-category="detection">
+            <div class="question">Which Windows Event ID indicates PowerShell module loading?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q19" value="a"> Event ID 4103 (Module Logging)</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q19" value="b"> Event ID 4104 (Script Block Logging)</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q19" value="c"> Event ID 4105 (Script Start)</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q19" value="d"> Event ID 4106 (Script Stop)</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback19"></div>
+        </div>
+
+        <div class="question-container" data-question="20" data-category="detection">
+            <div class="question">What detection rule would identify certutil abuse for file downloads?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q20" value="a"> Process name = certutil.exe</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q20" value="b"> Command line contains "-urlcache" and "-f"</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q20" value="c"> Parent process = explorer.exe</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q20" value="d"> Network connection on port 443</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback20"></div>
+        </div>
+
+        <!-- MITRE ATT&CK Questions 21-30 -->
+        <div class="question-container" data-question="21" data-category="mitre">
+            <div class="question">Which MITRE ATT&CK technique covers signed binary proxy execution?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q21" value="a"> T1055 - Process Injection</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q21" value="b"> T1218 - Signed Binary Proxy Execution</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q21" value="c"> T1036 - Masquerading</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q21" value="d"> T1070 - Indicator Removal</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback21"></div>
+        </div>
+
+        <div class="question-container" data-question="22" data-category="mitre">
+            <div class="question">PowerShell abuse maps to which specific MITRE ATT&CK sub-technique?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q22" value="a"> T1059.001 - Command and Scripting Interpreter: PowerShell</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q22" value="b"> T1059.003 - Command and Scripting Interpreter: Windows Command Shell</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q22" value="c"> T1059.005 - Command and Scripting Interpreter: Visual Basic</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q22" value="d"> T1059.007 - Command and Scripting Interpreter: JavaScript</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback22"></div>
+        </div>
+
+        <div class="question-container" data-question="23" data-category="mitre">
+            <div class="question">Regsvr32.exe abuse for remote scriptlet execution falls under which technique?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q23" value="a"> T1218.010 - Signed Binary Proxy Execution: Regsvr32</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q23" value="b"> T1105 - Ingress Tool Transfer</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q23" value="c"> T1027 - Obfuscated Files or Information</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q23" value="d"> T1140 - Deobfuscate/Decode Files or Information</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback23"></div>
+        </div>
+
+        <div class="question-container" data-question="24" data-category="mitre">
+            <div class="question">WMIC abuse for remote code execution aligns with which MITRE ATT&CK technique?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q24" value="a"> T1047 - Windows Management Instrumentation</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q24" value="b"> T1021 - Remote Services</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q24" value="c"> T1570 - Lateral Tool Transfer</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q24" value="d"> T1569 - System Services</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback24"></div>
+        </div>
+
+        <div class="question-container" data-question="25" data-category="mitre">
+            <div class="question">Which MITRE ATT&CK tactic do LOLBins primarily support?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q25" value="a"> Initial Access</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q25" value="b"> Defense Evasion</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q25" value="c"> Credential Access</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q25" value="d"> Impact</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback25"></div>
+        </div>
+
+        <div class="question-container" data-question="26" data-category="mitre">
+            <div class="question">Mshta.exe abuse corresponds to which MITRE ATT&CK sub-technique?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q26" value="a"> T1218.005 - Signed Binary Proxy Execution: Mshta</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q26" value="b"> T1218.011 - Signed Binary Proxy Execution: Rundll32</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q26" value="c"> T1059.007 - Command and Scripting Interpreter: JavaScript</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q26" value="d"> T1027 - Obfuscated Files or Information</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback26"></div>
+        </div>
+
+        <div class="question-container" data-question="27" data-category="mitre">
+            <div class="question">Certutil used for file encoding/decoding maps to which technique?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q27" value="a"> T1140 - Deobfuscate/Decode Files or Information</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q27" value="b"> T1027 - Obfuscated Files or Information</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q27" value="c"> T1105 - Ingress Tool Transfer</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q27" value="d"> All of the above depending on context</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback27"></div>
+        </div>
+
+        <div class="question-container" data-question="28" data-category="mitre">
+            <div class="question">Bitsadmin.exe file downloads align with which MITRE ATT&CK technique?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q28" value="a"> T1197 - BITS Jobs</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q28" value="b"> T1105 - Ingress Tool Transfer</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q28" value="c"> T1041 - Exfiltration Over C2 Channel</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q28" value="d"> Both A and B</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback28"></div>
+        </div>
+
+        <div class="question-container" data-question="29" data-category="mitre">
+            <div class="question">Which technique covers the use of forfiles.exe for code execution?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q29" value="a"> T1059 - Command and Scripting Interpreter</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q29" value="b"> T1202 - Indirect Command Execution</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q29" value="c"> T1083 - File and Directory Discovery</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q29" value="d"> T1135 - Network Share Discovery</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback29"></div>
+        </div>
+
+        <div class="question-container" data-question="30" data-category="mitre">
+            <div class="question">Rundll32.exe JavaScript execution maps to which MITRE ATT&CK sub-technique?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q30" value="a"> T1218.011 - Signed Binary Proxy Execution: Rundll32</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q30" value="b"> T1059.007 - Command and Scripting Interpreter: JavaScript</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q30" value="c"> T1140 - Deobfuscate/Decode Files or Information</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q30" value="d"> T1027 - Obfuscated Files or Information</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback30"></div>
+        </div>
+
+        <!-- Threat Hunting Questions 31-40 -->
+        <div class="question-container" data-question="31" data-category="hunting">
+            <div class="question">Which hunt hypothesis is most effective for LOLBin detection?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q31" value="a"> All signed binaries are safe and should be ignored</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q31" value="b"> Trusted binaries with unusual network communications indicate potential abuse</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q31" value="c"> Only focus on unsigned executables</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q31" value="d"> Administrative tools should never be monitored</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback31"></div>
+        </div>
+
+        <div class="question-container" data-question="32" data-category="hunting">
+            <div class="question">What indicates potential certutil abuse in process logs?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q32" value="a"> certutil.exe -verify</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q32" value="b"> certutil.exe -urlcache -split -f</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q32" value="c"> certutil.exe -store</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q32" value="d"> certutil.exe -services</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback32"></div>
+        </div>
+
+        <div class="question-container" data-question="33" data-category="hunting">
+            <div class="question">Which PowerShell execution pattern most strongly suggests malicious activity?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q33" value="a"> powershell.exe -File script.ps1</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q33" value="b"> powershell.exe -NoProfile -WindowStyle Hidden -EncodedCommand</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q33" value="c"> powershell.exe -Help</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q33" value="d"> powershell.exe -Version</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback33"></div>
+        </div>
+
+        <div class="question-container" data-question="34" data-category="hunting">
+            <div class="question">What time-based anomaly might indicate LOLBin abuse?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q34" value="a"> Administrative tools executed during business hours</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q34" value="b"> System utilities executed by non-administrative users at unusual times</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q34" value="c"> Scheduled maintenance scripts running on weekends</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q34" value="d"> Antivirus scans during off-hours</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback34"></div>
+        </div>
+
+        <div class="question-container" data-question="35" data-category="hunting">
+            <div class="question">Which data source combination provides the best LOLBin hunting coverage?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q35" value="a"> Process logs only</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q35" value="b"> Network logs only</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q35" value="c"> Process execution, command line arguments, and network connections</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q35" value="d"> File system changes only</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback35"></div>
+        </div>
+
+        <div class="question-container" data-question="36" data-category="hunting">
+            <div class="question">What hunting query would identify suspicious bitsadmin usage?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q36" value="a"> Process = bitsadmin.exe</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q36" value="b"> Process = bitsadmin.exe AND CommandLine contains "/transfer"</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q36" value="c"> ParentProcess = cmd.exe</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q36" value="d"> User != Administrator</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback36"></div>
+        </div>
+
+        <div class="question-container" data-question="37" data-category="hunting">
+            <div class="question">Which LOLBin behavior is most suspicious for threat hunting?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q37" value="a"> Execution from expected system directories</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q37" value="b"> Network connections to unexpected external domains</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q37" value="c"> Execution during normal business hours</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q37" value="d"> Standard parameter usage</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback37"></div>
+        </div>
+
+        <div class="question-container" data-question="38" data-category="hunting">
+            <div class="question">What parent-child process relationship suggests LOLBin abuse?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q38" value="a"> winword.exe spawning powershell.exe</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q38" value="b"> explorer.exe spawning cmd.exe</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q38" value="c"> services.exe spawning svchost.exe</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q38" value="d"> userinit.exe spawning explorer.exe</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback38"></div>
+        </div>
+
+        <div class="question-container" data-question="39" data-category="hunting">
+            <div class="question">Which technique helps identify command line obfuscation in LOLBins?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q39" value="a"> Entropy analysis of command line strings</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q39" value="b"> File size comparison</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q39" value="c"> Registry key monitoring</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q39" value="d"> Memory dump analysis</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback39"></div>
+        </div>
+
+        <div class="question-container" data-question="40" data-category="hunting">
+            <div class="question">What hunting methodology works best for unknown LOLBin variants?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q40" value="a"> Signature-based detection</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q40" value="b"> Baseline deviation hunting</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q40" value="c"> Hash-based identification</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q40" value="d"> Manual log review</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback40"></div>
+        </div>
+
+        <!-- Evasion Techniques Questions 41-50 -->
+        <div class="question-container" data-question="41" data-category="evasion">
+            <div class="question">What is the "Squiblydoo" technique?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q41" value="a"> Using regsvr32.exe to execute remote scriptlets</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q41" value="b"> PowerShell command obfuscation</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q41" value="c"> DLL side-loading attack</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q41" value="d"> Process hollowing technique</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback41"></div>
+        </div>
+
+        <div class="question-container" data-question="42" data-category="evasion">
+            <div class="question">Which mshta.exe feature makes it particularly useful for evasion?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q42" value="a"> Built-in encryption capabilities</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q42" value="b"> Ability to execute JavaScript and VBScript from URLs</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q42" value="c"> Automatic privilege escalation</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q42" value="d"> Rootkit installation capabilities</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback42"></div>
+        </div>
+
+        <div class="question-container" data-question="43" data-category="evasion">
+            <div class="question">How do attackers typically obfuscate PowerShell commands?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q43" value="a"> Base64 encoding</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q43" value="b"> Character substitution and concatenation</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q43" value="c"> Variable insertion and formatting operators</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q43" value="d"> All of the above</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback43"></div>
+        </div>
+
+        <div class="question-container" data-question="44" data-category="evasion">
+            <div class="question">What makes rundll32.exe particularly challenging to monitor effectively?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q44" value="a"> It can load any DLL and execute arbitrary functions</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q44" value="b"> It automatically deletes execution logs</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q44" value="c"> It runs with system privileges by default</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q44" value="d"> It encrypts all loaded code</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback44"></div>
+        </div>
+
+        <div class="question-container" data-question="45" data-category="evasion">
+            <div class="question">Which AMSI bypass technique is commonly used with PowerShell LOLBins?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q45" value="a"> Patching amsi.dll in memory</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q45" value="b"> Loading a malicious amsi.dll</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q45" value="c"> Setting AmsiContext to null</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q45" value="d"> All of the above</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback45"></div>
+        </div>
+
+        <div class="question-container" data-question="46" data-category="evasion">
+            <div class="question">What technique allows LOLBins to bypass application whitelisting?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q46" value="a"> Code signing validation</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q46" value="b"> Being on default allow lists as trusted binaries</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q46" value="c"> File system permissions</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q46" value="d"> Network access controls</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback46"></div>
+        </div>
+
+        <div class="question-container" data-question="47" data-category="evasion">
+            <div class="question">Which evasion technique uses legitimate file paths to hide malicious activity?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q47" value="a"> DLL search order hijacking</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q47" value="b"> Process hollowing</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q47" value="c"> Living off the land via trusted directories</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q47" value="d"> Memory injection</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback47"></div>
+        </div>
+
+        <div class="question-container" data-question="48" data-category="evasion">
+            <div class="question">How do attackers use forfiles.exe for evasion?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q48" value="a"> To execute commands indirectly through the /c parameter</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q48" value="b"> To encrypt files automatically</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q48" value="c"> To disable antivirus software</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q48" value="d"> To modify system registry</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback48"></div>
+        </div>
+
+        <div class="question-container" data-question="49" data-category="evasion">
+            <div class="question">What evasion advantage does using InstallUtil.exe provide?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q49" value="a"> Bypasses code execution policies by appearing as legitimate .NET installation</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q49" value="b"> Provides automatic privilege escalation</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q49" value="c"> Creates persistent backdoors</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q49" value="d"> Disables Windows Defender</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback49"></div>
+        </div>
+
+        <div class="question-container" data-question="50" data-category="evasion">
+            <div class="question">Which technique makes LOLBin network activity blend with normal traffic?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q50" value="a"> Using standard ports (80, 443) and protocols</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q50" value="b"> Encrypting all communications</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q50" value="c"> Using proxy servers exclusively</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q50" value="d"> Avoiding network connections entirely</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback50"></div>
+        </div>
+
+        <!-- Enterprise Defense Questions 51-60 -->
+        <div class="question-container" data-question="51" data-category="enterprise">
+            <div class="question">What is the primary challenge of implementing LOLBin defenses in enterprises?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q51" value="a"> High false positive rates from legitimate business activities</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q51" value="b"> Lack of available security tools</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q51" value="c"> Insufficient network bandwidth</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q51" value="d"> Hardware compatibility issues</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback51"></div>
+        </div>
+
+        <div class="question-container" data-question="52" data-category="enterprise">
+            <div class="question">Which application control strategy best addresses LOLBin abuse?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q52" value="a"> Block all system binaries completely</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q52" value="b"> Implement context-aware execution policies</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q52" value="c"> Only allow custom applications</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q52" value="d"> Disable PowerShell entirely</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback52"></div>
+        </div>
+
+        <div class="question-container" data-question="53" data-category="enterprise">
+            <div class="question">What role does user education play in LOLBin defense?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q53" value="a"> Users should be trained to identify and report suspicious system utility usage</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q53" value="b"> User education has no impact on LOLBin threats</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q53" value="c"> Only technical staff need LOLBin awareness training</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q53" value="d"> Users should be prohibited from using any system utilities</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback53"></div>
+        </div>
+
+        <div class="question-container" data-question="54" data-category="enterprise">
+            <div class="question">Which security framework component is most critical for LOLBin defense?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q54" value="a"> Preventive controls only</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q54" value="b"> Detective controls only</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q54" value="c"> Layered defense with prevention, detection, and response capabilities</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q54" value="d"> Corrective controls only</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback54"></div>
+        </div>
+
+        <div class="question-container" data-question="55" data-category="enterprise">
+            <div class="question">How should organizations prioritize LOLBin monitoring efforts?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q55" value="a"> Monitor all system binaries equally</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q55" value="b"> Focus on the most commonly abused utilities and high-risk scenarios</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q55" value="c"> Only monitor during business hours</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q55" value="d"> Ignore LOLBins and focus on traditional malware</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback55"></div>
+        </div>
+
+        <div class="question-container" data-question="56" data-category="enterprise">
+            <div class="question">What PowerShell security configuration helps mitigate LOLBin abuse?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q56" value="a"> Constrained Language Mode and execution policy restrictions</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q56" value="b"> Removing PowerShell from all systems</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q56" value="c"> Allowing unrestricted PowerShell access</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q56" value="d"> Only monitoring PowerShell during business hours</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback56"></div>
+        </div>
+
+        <div class="question-container" data-question="57" data-category="enterprise">
+            <div class="question">Which Windows feature can help restrict LOLBin abuse in enterprise environments?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q57" value="a"> Windows Defender Application Control (WDAC)</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q57" value="b"> Windows Firewall only</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q57" value="c"> User Account Control only</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q57" value="d"> Windows Update</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback57"></div>
+        </div>
+
+        <div class="question-container" data-question="58" data-category="enterprise">
+            <div class="question">What incident response consideration is unique to LOLBin attacks?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q58" value="a"> The tools used are legitimate and may be needed for remediation</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q58" value="b"> LOLBin attacks cannot be remediated</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q58" value="c"> Only custom forensic tools work</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q58" value="d"> Network isolation is impossible</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback58"></div>
+        </div>
+
+        <div class="question-container" data-question="59" data-category="enterprise">
+            <div class="question">Which compliance framework consideration applies to LOLBin defense?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q59" value="a"> Logging and monitoring requirements for privileged activities</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q59" value="b"> LOLBins are exempt from compliance requirements</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q59" value="c"> Only financial regulations apply</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q59" value="d"> Compliance frameworks don't address LOLBins</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback59"></div>
+        </div>
+
+        <div class="question-container" data-question="60" data-category="enterprise">
+            <div class="question">What business impact assessment factor is most important for LOLBin defenses?</div>
+            <ul class="options">
+                <li class="option">
+                    <label><input type="radio" name="q60" value="a"> Cost of security tools only</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q60" value="b"> Balancing security effectiveness with operational disruption</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q60" value="c"> Employee satisfaction surveys</label>
+                </li>
+                <li class="option">
+                    <label><input type="radio" name="q60" value="d"> Marketing considerations</label>
+                </li>
+            </ul>
+            <div class="feedback" id="feedback60"></div>
+        </div>
+
+        <div class="results" id="results">
+            <h2>Comprehensive Assessment Complete</h2>
+            <div class="score-circle" id="scoreCircle">0%</div>
+            <p id="scoreText">You got 0 out of 60 questions correct.</p>
+            <p id="scoreMessage">Professional LOLBin knowledge assessment complete!</p>
+            
+            <div class="category-results" id="categoryResults">
+                <h3>Category Breakdown</h3>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-secondary" id="prevBtn" onclick="previousQuestion()" disabled>Previous</button>
+            <button class="btn btn-primary" id="nextBtn" onclick="nextQuestion()">Next</button>
+            <button class="btn btn-primary" id="submitBtn" onclick="submitQuiz()" style="display: none;">Submit Quiz</button>
+            <button class="btn btn-secondary" id="restartBtn" onclick="restartQuiz()" style="display: none;">Restart Quiz</button>
+        </div>
+    </div>
+
+    <script>
+        let currentQuestion = 1;
+        const totalQuestions = 60;
+        let answers = {};
+        let quizSubmitted = false;
+        let currentCategory = 'basic';
+
+        const categories = {
+            basic: { name: 'Basic Concepts', description: 'Fundamental understanding of LOLBins, terminology, and core concepts (10 questions)', questions: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] },
+            detection: { name: 'Detection & Monitoring', description: 'Event logging, Sysmon, and detection strategies (10 questions)', questions: [11, 12, 13, 14, 15, 16, 17, 18, 19, 20] },
+            mitre: { name: 'MITRE ATT&CK', description: 'Framework mapping and technique identification (10 questions)', questions: [21, 22, 23, 24, 25, 26, 27, 28, 29, 30] },
+            hunting: { name: 'Threat Hunting', description: 'Proactive hunting methodologies and indicators (10 questions)', questions: [31, 32, 33, 34, 35, 36, 37, 38, 39, 40] },
+            evasion: { name: 'Evasion Techniques', description: 'Advanced attack methods and bypasses (10 questions)', questions: [41, 42, 43, 44, 45, 46, 47, 48, 49, 50] },
+            enterprise: { name: 'Enterprise Defense', description: 'Organizational strategy and implementation (10 questions)', questions: [51, 52, 53, 54, 55, 56, 57, 58, 59, 60] }
+        };
+
+        const correctAnswers = {
+            // Basic Concepts (1-10)
+            q1: 'b', q2: 'c', q3: 'b', q4: 'b', q5: 'c', q6: 'a', q7: 'a', q8: 'a', q9: 'b', q10: 'd',
+            // Detection & Monitoring (11-20)
+            q11: 'b', q12: 'c', q13: 'b', q14: 'd', q15: 'c', q16: 'a', q17: 'b', q18: 'b', q19: 'a', q20: 'b',
+            // MITRE ATT&CK (21-30)
+            q21: 'b', q22: 'a', q23: 'a', q24: 'a', q25: 'b', q26: 'a', q27: 'd', q28: 'd', q29: 'b', q30: 'a',
+            // Threat Hunting (31-40)
+            q31: 'b', q32: 'b', q33: 'b', q34: 'b', q35: 'c', q36: 'b', q37: 'b', q38: 'a', q39: 'a', q40: 'b',
+            // Evasion Techniques (41-50)
+            q41: 'a', q42: 'b', q43: 'd', q44: 'a', q45: 'd', q46: 'b', q47: 'c', q48: 'a', q49: 'a', q50: 'a',
+            // Enterprise Defense (51-60)
+            q51: 'a', q52: 'b', q53: 'a', q54: 'c', q55: 'b', q56: 'a', q57: 'a', q58: 'a', q59: 'a', q60: 'b'
+        };
+
+        const explanations = {
+            // Basic Concepts explanations
+            q1: { correct: 'Correct! LOLBins stands for Living Off The Land Binaries.', incorrect: 'Incorrect. LOLBins stands for Living Off The Land Binaries.', correctAnswer: 'Living Off The Land Binaries' },
+            q2: { correct: 'Correct! Many LOLBins can be executed by standard users without admin privileges.', incorrect: 'Incorrect. Most LOLBins do not require administrative privileges.', correctAnswer: 'Always require administrative privileges to execute' },
+            q3: { correct: 'Correct! Certutil.exe can download files using -urlcache parameter.', incorrect: 'Incorrect. Certutil.exe is commonly abused for file downloads.', correctAnswer: 'certutil.exe' },
+            q4: { correct: 'Correct! LOLBins blend in with normal system operations, making detection difficult.', incorrect: 'Incorrect. The primary advantage is blending in with normal operations.', correctAnswer: 'They blend in with normal system operations' },
+            q5: { correct: 'Correct! Hardware diagnostic tools are not typically considered LOLBins.', incorrect: 'Incorrect. Hardware diagnostic tools are not a common LOLBin category.', correctAnswer: 'Hardware diagnostic tools' },
+            q6: { correct: 'Correct! Mshta.exe executes HTML Application (HTA) files.', incorrect: 'Incorrect. Mshta.exe is used for executing HTA files.', correctAnswer: 'mshta.exe' },
+            q7: { correct: 'Correct! Bitsadmin leverages the legitimate BITS service for downloads.', incorrect: 'Incorrect. Bitsadmin uses the Windows Background Intelligent Transfer Service.', correctAnswer: 'It can download files using Windows Background Intelligent Transfer Service' },
+            q8: { correct: 'Correct! WMIC (Windows Management Instrumentation Command-line) is used for WMI operations.', incorrect: 'Incorrect. WMIC is the tool for WMI-based lateral movement.', correctAnswer: 'wmic.exe' },
+            q9: { correct: 'Correct! LOLBins are legitimate tools being misused for malicious purposes.', incorrect: 'Incorrect. LOLBins are legitimate tools being misused, not custom malware.', correctAnswer: 'LOLBins are legitimate tools being misused' },
+            q10: { correct: 'Correct! All these utilities have legitimate uses but can be abused.', incorrect: 'Incorrect. All listed utilities can be used for both legitimate and malicious purposes.', correctAnswer: 'All of the above' },
+
+            // Detection & Monitoring explanations
+            q11: { correct: 'Correct! Event ID 4688 logs process creation with command line details.', incorrect: 'Incorrect. Event ID 4688 tracks process creation activities.', correctAnswer: 'Event ID 4688 (Process Creation)' },
+            q12: { correct: 'Correct! Sysmon Event ID 7 tracks DLL and image loading.', incorrect: 'Incorrect. Event ID 7 tracks image/library loading.', correctAnswer: 'Event ID 7 (Image Loaded)' },
+            q13: { correct: 'Correct! Behavioral analysis is most effective for detecting LOLBin abuse.', incorrect: 'Incorrect. Behavioral analysis and anomaly detection work best for LOLBins.', correctAnswer: 'Behavioral analysis and anomaly detection' },
+            q14: { correct: 'Correct! All PowerShell logging features combined provide comprehensive coverage.', incorrect: 'Incorrect. Combined PowerShell logging features provide best detection.', correctAnswer: 'All PowerShell logging features combined' },
+            q15: { correct: 'Correct! Sysmon Event ID 11 tracks file creation activities.', incorrect: 'Incorrect. Event ID 11 tracks file creation.', correctAnswer: 'Event ID 11 (File Create)' },
+            q16: { correct: 'Correct! AMSI scans scripts and commands at runtime before execution.', incorrect: 'Incorrect. AMSI scans scripts and commands before execution.', correctAnswer: 'It scans scripts and commands before execution' },
+            q17: { correct: 'Correct! JavaScript protocol handler with rundll32 is a known abuse technique.', incorrect: 'Incorrect. JavaScript: protocol with rundll32 indicates abuse.', correctAnswer: 'rundll32.exe javascript:"malicious_code"' },
+            q18: { correct: 'Correct! Command-line monitoring is crucial for detecting LOLBin parameter abuse.', incorrect: 'Incorrect. Command-line argument monitoring is most crucial for LOLBins.', correctAnswer: 'Command-line argument monitoring and analysis' },
+            q19: { correct: 'Correct! Event ID 4103 logs PowerShell module loading activities.', incorrect: 'Incorrect. Event ID 4103 indicates PowerShell module loading.', correctAnswer: 'Event ID 4103 (Module Logging)' },
+            q20: { correct: 'Correct! The urlcache parameters with -f flag indicate file download abuse.', incorrect: 'Incorrect. Command line containing -urlcache and -f indicates abuse.', correctAnswer: 'Command line contains "-urlcache" and "-f"' },
+
+            // MITRE ATT&CK explanations
+            q21: { correct: 'Correct! T1218 specifically covers signed binary proxy execution techniques.', incorrect: 'Incorrect. T1218 covers LOLBin abuse under signed binary proxy execution.', correctAnswer: 'T1218 - Signed Binary Proxy Execution' },
+            q22: { correct: 'Correct! T1059.001 is the specific sub-technique for PowerShell.', incorrect: 'Incorrect. T1059.001 specifically addresses PowerShell abuse.', correctAnswer: 'T1059.001 - Command and Scripting Interpreter: PowerShell' },
+            q23: { correct: 'Correct! T1218.010 is the specific sub-technique for regsvr32 abuse.', incorrect: 'Incorrect. T1218.010 specifically covers regsvr32 abuse.', correctAnswer: 'T1218.010 - Signed Binary Proxy Execution: Regsvr32' },
+            q24: { correct: 'Correct! T1047 covers Windows Management Instrumentation techniques.', incorrect: 'Incorrect. T1047 specifically covers WMI abuse.', correctAnswer: 'T1047 - Windows Management Instrumentation' },
+            q25: { correct: 'Correct! LOLBins primarily support Defense Evasion tactics.', incorrect: 'Incorrect. Defense Evasion is the primary tactic supported by LOLBins.', correctAnswer: 'Defense Evasion' },
+            q26: { correct: 'Correct! T1218.005 is the specific sub-technique for mshta abuse.', incorrect: 'Incorrect. T1218.005 specifically covers mshta abuse.', correctAnswer: 'T1218.005 - Signed Binary Proxy Execution: Mshta' },
+            q27: { correct: 'Correct! Certutil can map to multiple techniques depending on usage context.', incorrect: 'Incorrect. Certutil usage can map to different techniques based on context.', correctAnswer: 'All of the above depending on context' },
+            q28: { correct: 'Correct! Bitsadmin maps to both T1197 (BITS Jobs) and T1105 (Ingress Tool Transfer).', incorrect: 'Incorrect. Bitsadmin maps to both BITS Jobs and Ingress Tool Transfer.', correctAnswer: 'Both A and B' },
+            q29: { correct: 'Correct! Forfiles.exe abuse falls under indirect command execution.', incorrect: 'Incorrect. T1202 covers indirect command execution via forfiles.', correctAnswer: 'T1202 - Indirect Command Execution' },
+            q30: { correct: 'Correct! T1218.011 specifically covers rundll32 abuse techniques.', incorrect: 'Incorrect. T1218.011 specifically covers rundll32 abuse.', correctAnswer: 'T1218.011 - Signed Binary Proxy Execution: Rundll32' },
+
+            // Threat Hunting explanations
+            q31: { correct: 'Correct! This hypothesis focuses on behavioral anomalies rather than trust.', incorrect: 'Incorrect. Focus on trusted binaries with unusual network behavior.', correctAnswer: 'Trusted binaries with unusual network communications indicate potential abuse' },
+            q32: { correct: 'Correct! The urlcache parameters with split and f indicate download abuse.', incorrect: 'Incorrect. -urlcache -split -f parameters indicate file download abuse.', correctAnswer: 'certutil.exe -urlcache -split -f' },
+            q33: { correct: 'Correct! Hidden window with encoded commands strongly suggests malicious activity.', incorrect: 'Incorrect. Hidden execution with encoded commands is highly suspicious.', correctAnswer: 'powershell.exe -NoProfile -WindowStyle Hidden -EncodedCommand' },
+            q34: { correct: 'Correct! Non-admin users executing system utilities at unusual times is suspicious.', incorrect: 'Incorrect. Unusual timing and user context indicates potential abuse.', correctAnswer: 'System utilities executed by non-administrative users at unusual times' },
+            q35: { correct: 'Correct! Combined data sources provide comprehensive hunting coverage.', incorrect: 'Incorrect. Multiple combined data sources provide best hunting coverage.', correctAnswer: 'Process execution, command line arguments, and network connections' },
+            q36: { correct: 'Correct! Bitsadmin with /transfer parameter indicates file download activity.', incorrect: 'Incorrect. Bitsadmin with /transfer parameter indicates download activity.', correctAnswer: 'Process = bitsadmin.exe AND CommandLine contains "/transfer"' },
+            q37: { correct: 'Correct! Network connections to unexpected domains is most suspicious behavior.', incorrect: 'Incorrect. Unexpected external network connections are most suspicious.', correctAnswer: 'Network connections to unexpected external domains' },
+            q38: { correct: 'Correct! Office applications spawning PowerShell is highly suspicious.', incorrect: 'Incorrect. Office applications spawning PowerShell indicates potential compromise.', correctAnswer: 'winword.exe spawning powershell.exe' },
+            q39: { correct: 'Correct! Entropy analysis can identify obfuscated or encoded command lines.', incorrect: 'Incorrect. Entropy analysis helps detect command line obfuscation.', correctAnswer: 'Entropy analysis of command line strings' },
+            q40: { correct: 'Correct! Baseline deviation hunting works best for unknown variants.', incorrect: 'Incorrect. Baseline deviation hunting identifies unknown LOLBin variants.', correctAnswer: 'Baseline deviation hunting' },
+
+            // Evasion Techniques explanations
+            q41: { correct: 'Correct! Squiblydoo uses regsvr32 to execute remote scriptlets (SCT files).', incorrect: 'Incorrect. Squiblydoo is the regsvr32 remote scriptlet execution technique.', correctAnswer: 'Using regsvr32.exe to execute remote scriptlets' },
+            q42: { correct: 'Correct! Mshta can execute scripts directly from URLs making it very versatile.', incorrect: 'Incorrect. The script execution capability from URLs makes mshta dangerous.', correctAnswer: 'Ability to execute JavaScript and VBScript from URLs' },
+            q43: { correct: 'Correct! All these methods are commonly used for PowerShell obfuscation.', incorrect: 'Incorrect. All listed methods are common PowerShell obfuscation techniques.', correctAnswer: 'All of the above' },
+            q44: { correct: 'Correct! Rundll32 can load any DLL and call arbitrary exported functions.', incorrect: 'Incorrect. The ability to load arbitrary DLLs makes rundll32 versatile.', correctAnswer: 'It can load any DLL and execute arbitrary functions' },
+            q45: { correct: 'Correct! All these methods are used to bypass AMSI in PowerShell.', incorrect: 'Incorrect. All listed methods are common AMSI bypass techniques.', correctAnswer: 'All of the above' },
+            q46: { correct: 'Correct! Being on default allow lists as trusted binaries bypasses whitelisting.', incorrect: 'Incorrect. Trusted binary status bypasses application whitelisting.', correctAnswer: 'Being on default allow lists as trusted binaries' },
+            q47: { correct: 'Correct! Using trusted system directories helps hide malicious activity.', incorrect: 'Incorrect. Living off the land via trusted directories is the technique.', correctAnswer: 'Living off the land via trusted directories' },
+            q48: { correct: 'Correct! Forfiles /c parameter allows indirect command execution.', incorrect: 'Incorrect. Forfiles /c parameter enables indirect command execution.', correctAnswer: 'To execute commands indirectly through the /c parameter' },
+            q49: { correct: 'Correct! InstallUtil appears as legitimate .NET installation bypassing policies.', incorrect: 'Incorrect. InstallUtil bypasses policies by appearing as legitimate .NET activity.', correctAnswer: 'Bypasses code execution policies by appearing as legitimate .NET installation' },
+            q50: { correct: 'Correct! Using standard ports and protocols makes traffic appear normal.', incorrect: 'Incorrect. Standard ports and protocols make malicious traffic blend in.', correctAnswer: 'Using standard ports (80, 443) and protocols' },
+
+            // Enterprise Defense explanations
+            q51: { correct: 'Correct! False positives from legitimate activities are the primary challenge.', incorrect: 'Incorrect. False positives from legitimate business activities are the main challenge.', correctAnswer: 'High false positive rates from legitimate business activities' },
+            q52: { correct: 'Correct! Context-aware policies balance security with operational needs.', incorrect: 'Incorrect. Context-aware execution policies are most effective.', correctAnswer: 'Implement context-aware execution policies' },
+            q53: { correct: 'Correct! User education helps identify and report suspicious system utility usage.', incorrect: 'Incorrect. User education is important for identifying suspicious activities.', correctAnswer: 'Users should be trained to identify and report suspicious system utility usage' },
+            q54: { correct: 'Correct! Layered defense with multiple capabilities provides comprehensive protection.', incorrect: 'Incorrect. Layered defense with prevention, detection, and response is most critical.', correctAnswer: 'Layered defense with prevention, detection, and response capabilities' },
+            q55: { correct: 'Correct! Risk-based prioritization focusing on common abuse patterns is most effective.', incorrect: 'Incorrect. Focus on commonly abused utilities and high-risk scenarios.', correctAnswer: 'Focus on the most commonly abused utilities and high-risk scenarios' },
+            q56: { correct: 'Correct! Constrained Language Mode and execution policies limit PowerShell abuse.', incorrect: 'Incorrect. Constrained Language Mode and execution policy restrictions help mitigate abuse.', correctAnswer: 'Constrained Language Mode and execution policy restrictions' },
+            q57: { correct: 'Correct! WDAC can control application execution including LOLBin parameters.', incorrect: 'Incorrect. Windows Defender Application Control helps restrict LOLBin abuse.', correctAnswer: 'Windows Defender Application Control (WDAC)' },
+            q58: { correct: 'Correct! LOLBin tools are legitimate and may be needed for incident response.', incorrect: 'Incorrect. The legitimacy of tools creates unique incident response considerations.', correctAnswer: 'The tools used are legitimate and may be needed for remediation' },
+            q59: { correct: 'Correct! Compliance frameworks require logging and monitoring of privileged activities.', incorrect: 'Incorrect. Logging and monitoring requirements apply to LOLBin defense.', correctAnswer: 'Logging and monitoring requirements for privileged activities' },
+            q60: { correct: 'Correct! Balancing security effectiveness with operational impact is most important.', incorrect: 'Incorrect. Balancing security and operational disruption is the key factor.', correctAnswer: 'Balancing security effectiveness with operational disruption' }
+        };
+
+        function selectCategory(cat) {
+            currentCategory = cat;
+            const catInfo = categories[cat];
+            
+            // Update category buttons
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.textContent === catInfo.name) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            // Update category info
+            document.getElementById('categoryInfo').innerHTML = `
+                <h3>${catInfo.name}</h3>
+                <p>${catInfo.description}</p>
+            `;
+            
+            // Jump to first question of category
+            const firstQuestion = catInfo.questions[0];
+            showQuestion(firstQuestion);
+        }
+
+        function showQuestion(questionNum) {
+            // Hide all questions
+            document.querySelectorAll('.question-container').forEach(container => {
+                container.classList.remove('active');
+            });
+            
+            // Show current question
+            const currentContainer = document.querySelector(`[data-question="${questionNum}"]`);
+            if (currentContainer) {
+                currentContainer.classList.add('active');
+                currentQuestion = questionNum;
+                
+                // Update category based on question
+                for (const [key, value] of Object.entries(categories)) {
+                    if (value.questions.includes(questionNum)) {
+                        currentCategory = key;
+                        
+                        // Update category buttons
+                        document.querySelectorAll('.category-btn').forEach(btn => {
+                            btn.classList.remove('active');
+                            if (btn.textContent === value.name) {
+                                btn.classList.add('active');
+                            }
+                        });
+                        
+                        // Update category info
+                        document.getElementById('categoryInfo').innerHTML = `
+                            <h3>${value.name}</h3>
+                            <p>${value.description}</p>
+                        `;
+                        break;
+                    }
+                }
+                
+                updateProgressBar();
+                updateButtons();
+                
+                // Check if question was already answered
+                const savedAnswer = answers[`q${questionNum}`];
+                if (savedAnswer) {
+                    const radio = document.querySelector(`input[name="q${questionNum}"][value="${savedAnswer}"]`);
+                    if (radio) {
+                        radio.checked = true;
+                        // If feedback is already shown, keep the answered state
+                        const feedback = document.getElementById(`feedback${questionNum}`);
+                        if (feedback && feedback.style.display === 'block') {
+                            // Question was already answered, keep disabled state
+                            const options = document.querySelectorAll(`input[name="q${questionNum}"]`);
+                            options.forEach(option => {
+                                option.disabled = true;
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        function nextQuestion() {
+            if (currentQuestion < totalQuestions) {
+                showQuestion(currentQuestion + 1);
+            }
+        }
+
+        function previousQuestion() {
+            if (currentQuestion > 1) {
+                showQuestion(currentQuestion - 1);
+            }
+        }
+
+        function updateProgressBar() {
+            const progress = (currentQuestion / totalQuestions) * 100;
+            document.getElementById('progressFill').style.width = `${progress}%`;
+            
+            // Update question counter with answered status
+            const answeredCount = Object.keys(answers).length;
+            const currentCategoryInfo = categories[currentCategory];
+            const categoryIndex = currentCategoryInfo.questions.indexOf(currentQuestion) + 1;
+            
+            let counterText = `Question ${categoryIndex} of ${currentCategoryInfo.questions.length}`;
+            if (answeredCount > 0) {
+                counterText += ` | Total Answered: ${answeredCount}/${totalQuestions}`;
+            }
+            document.getElementById('questionCounter').textContent = counterText;
+        }
+
+        function updateButtons() {
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const submitBtn = document.getElementById('submitBtn');
+            
+            prevBtn.disabled = currentQuestion === 1;
+            
+            if (currentQuestion === totalQuestions) {
+                nextBtn.style.display = 'none';
+                submitBtn.style.display = 'inline-block';
+            } else {
+                nextBtn.style.display = 'inline-block';
+                submitBtn.style.display = 'none';
+            }
+        }
+
+        function submitQuiz() {
+            if (quizSubmitted) return;
+            
+            quizSubmitted = true;
+            let correctCount = 0;
+            const categoryScores = {};
+            
+            // Initialize category scores
+            for (const key of Object.keys(categories)) {
+                categoryScores[key] = { correct: 0, total: 0 };
+            }
+            
+            // Calculate scores (answers were already checked immediately)
+            for (let i = 1; i <= totalQuestions; i++) {
+                const questionName = `q${i}`;
+                const userAnswer = answers[questionName];
+                const correctAnswer = correctAnswers[questionName];
+                
+                // Find category for this question
+                let questionCategory = null;
+                for (const [key, value] of Object.entries(categories)) {
+                    if (value.questions.includes(i)) {
+                        questionCategory = key;
+                        categoryScores[key].total++;
+                        break;
+                    }
+                }
+                
+                // If user didn't answer this question, show feedback now
+                if (!userAnswer) {
+                    const feedback = document.getElementById(`feedback${i}`);
+                    if (feedback && feedback.style.display !== 'block') {
+                        const explanation = explanations[questionName];
+                        feedback.className = 'feedback incorrect';
+                        feedback.innerHTML = `
+                            <h4>✗ Not answered</h4>
+                            <p>The correct answer is: <strong>${explanation.correctAnswer}</strong></p>
+                        `;
+                        feedback.style.display = 'block';
+                        
+                        // Show correct answer
+                        const options = document.querySelectorAll(`input[name="${questionName}"]`);
+                        options.forEach(option => {
+                            if (option.value === correctAnswer) {
+                                option.parentElement.classList.add('correct');
+                            }
+                            option.disabled = true;
+                        });
+                    }
+                } else if (userAnswer === correctAnswer) {
+                    correctCount++;
+                    if (questionCategory) {
+                        categoryScores[questionCategory].correct++;
+                    }
+                }
+            }
+            
+            // Show results
+            showResults(correctCount, categoryScores);
+        }
+
+        function showResults(correctCount, categoryScores) {
+            const percentage = Math.round((correctCount / totalQuestions) * 100);
+            
+            // Hide question area
+            document.querySelectorAll('.question-container').forEach(container => {
+                container.style.display = 'none';
+            });
+            
+            // Update results
+            document.getElementById('scoreCircle').textContent = `${percentage}%`;
+            document.getElementById('scoreText').textContent = 
+                `You got ${correctCount} out of ${totalQuestions} questions correct.`;
+            
+            // Update score message based on percentage
+            let message = '';
+            if (percentage >= 90) {
+                message = 'Excellent! Expert-level LOLBins knowledge demonstrated!';
+            } else if (percentage >= 80) {
+                message = 'Great job! Strong understanding of LOLBins concepts!';
+            } else if (percentage >= 70) {
+                message = 'Good work! Solid foundation in LOLBins knowledge!';
+            } else if (percentage >= 60) {
+                message = 'Decent performance! Consider reviewing weak areas.';
+            } else {
+                message = 'Keep studying! LOLBins knowledge needs improvement.';
+            }
+            document.getElementById('scoreMessage').textContent = message;
+            
+            // Show category breakdown
+            let categoryHTML = '<h3>Category Breakdown</h3>';
+            for (const [key, value] of Object.entries(categoryScores)) {
+                const catInfo = categories[key];
+                const catPercentage = Math.round((value.correct / value.total) * 100);
+                categoryHTML += `
+                    <div class="category-score">
+                        <span>${catInfo.name}</span>
+                        <span>${value.correct}/${value.total} (${catPercentage}%)</span>
+                    </div>
+                `;
+            }
+            document.getElementById('categoryResults').innerHTML = categoryHTML;
+            
+            // Show results section
+            document.getElementById('results').classList.add('show');
+            
+            // Update buttons
+            document.getElementById('prevBtn').style.display = 'none';
+            document.getElementById('nextBtn').style.display = 'none';
+            document.getElementById('submitBtn').style.display = 'none';
+            document.getElementById('restartBtn').style.display = 'inline-block';
+        }
+
+        function restartQuiz() {
+            // Reset variables
+            currentQuestion = 1;
+            answers = {};
+            quizSubmitted = false;
+            currentCategory = 'basic';
+            
+            // Reset all radio buttons and feedback
+            for (let i = 1; i <= totalQuestions; i++) {
+                const questionName = `q${i}`;
+                const options = document.querySelectorAll(`input[name="${questionName}"]`);
+                options.forEach(option => {
+                    option.checked = false;
+                    option.disabled = false;
+                    const label = option.parentElement;
+                    label.classList.remove('correct', 'incorrect', 'selected');
+                });
+                
+                const feedback = document.getElementById(`feedback${i}`);
+                if (feedback) {
+                    feedback.style.display = 'none';
+                    feedback.className = 'feedback';
+                    feedback.innerHTML = '';
+                }
+            }
+            
+            // Reset question containers
+            document.querySelectorAll('.question-container').forEach(container => {
+                container.style.display = 'block';
+            });
+            
+            // Hide results
+            document.getElementById('results').classList.remove('show');
+            
+            // Reset buttons
+            document.getElementById('prevBtn').style.display = 'inline-block';
+            document.getElementById('nextBtn').style.display = 'inline-block';
+            document.getElementById('restartBtn').style.display = 'none';
+            
+            // Show first question
+            showQuestion(1);
+        }
+
+        // Function to check answer immediately
+        function checkAnswer(questionNum, selectedValue) {
+            const questionName = `q${questionNum}`;
+            const correctAnswer = correctAnswers[questionName];
+            const explanation = explanations[questionName];
+            
+            // Disable all options for this question
+            const options = document.querySelectorAll(`input[name="${questionName}"]`);
+            options.forEach(option => {
+                option.disabled = true;
+                const label = option.parentElement;
+                
+                // Highlight correct answer
+                if (option.value === correctAnswer) {
+                    label.classList.add('correct');
+                }
+                // Highlight incorrect selection
+                else if (option.value === selectedValue && selectedValue !== correctAnswer) {
+                    label.classList.add('incorrect');
+                }
+            });
+            
+            // Show feedback
+            const feedback = document.getElementById(`feedback${questionNum}`);
+            if (feedback) {
+                if (selectedValue === correctAnswer) {
+                    feedback.className = 'feedback correct';
+                    feedback.innerHTML = `
+                        <h4>✓ ${explanation.correct}</h4>
+                    `;
+                } else {
+                    feedback.className = 'feedback incorrect';
+                    feedback.innerHTML = `
+                        <h4>✗ ${explanation.incorrect}</h4>
+                        <p>The correct answer is: <strong>${explanation.correctAnswer}</strong></p>
+                    `;
+                }
+                feedback.style.display = 'block';
+            }
+            
+            // Update progress to show answered count
+            updateProgressBar();
+            
+            // Auto-advance to next question after a delay (optional)
+            // Uncomment the following lines if you want auto-advance
+            /*
+            if (currentQuestion < totalQuestions) {
+                setTimeout(() => {
+                    nextQuestion();
+                }, 2000); // 2 second delay
+            }
+            */
+        }
+
+        // Save answer when radio button is clicked
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add event listeners to all radio buttons
+            for (let i = 1; i <= totalQuestions; i++) {
+                const radios = document.querySelectorAll(`input[name="q${i}"]`);
+                radios.forEach(radio => {
+                    radio.addEventListener('change', function() {
+                        const questionNum = i;
+                        answers[`q${questionNum}`] = this.value;
+                        
+                        // Update visual selection
+                        radios.forEach(r => {
+                            r.parentElement.classList.remove('selected');
+                        });
+                        this.parentElement.classList.add('selected');
+                        
+                        // Check answer immediately
+                        checkAnswer(questionNum, this.value);
+                    });
+                });
+            }
+            
+            // Initialize the quiz
+            showQuestion(1);
+        });
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(event) {
+            if (quizSubmitted) return;
+            
+            if (event.key === 'ArrowRight' && currentQuestion < totalQuestions) {
+                nextQuestion();
+            } else if (event.key === 'ArrowLeft' && currentQuestion > 1) {
+                previousQuestion();
+            } else if (event.key === 'Enter' && currentQuestion === totalQuestions) {
+                const submitBtn = document.getElementById('submitBtn');
+                if (submitBtn.style.display !== 'none') {
+                    submitQuiz();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
