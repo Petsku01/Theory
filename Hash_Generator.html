@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Hash Generator</title>
+    <style>
+        /* Inverted color scheme: dark mode */
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background-color: #121212; 
+            color: #e0e0e0; 
+        }
+        .container { 
+            max-width: 600px; 
+            margin: auto; 
+        }
+        .file-upload { 
+            border: 2px dashed #444; 
+            padding: 20px; 
+            text-align: center; 
+            margin-bottom: 20px; 
+            background-color: #1e1e1e; 
+        }
+        .hash-result { 
+            margin-top: 20px; 
+            padding: 10px; 
+            border: 1px solid #333; 
+            background-color: #1e1e1e; 
+        }
+        button { 
+            margin-right: 10px; 
+            background-color: #333; 
+            color: #e0e0e0; 
+            border: 1px solid #444; 
+        }
+        button:hover { 
+            background-color: #444; 
+        }
+        pre { 
+            color: #e0e0e0; 
+        }
+        input[type="text"] { 
+            background-color: #1e1e1e; 
+            color: #e0e0e0; 
+            border: 1px solid #444; 
+        }
+        select { 
+            background-color: #1e1e1e; 
+            color: #e0e0e0; 
+            border: 1px solid #444; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>File Hash Generator</h1>
+
+        <div class="file-upload" id="drop-area">
+            <p>Click here or drag & drop a file</p>
+            <input type="file" id="file-input" style="display: none;">
+            <p>Maximum file size: 100MB</p>
+        </div>
+
+        <div>
+            <label for="hash-algorithm">Select Hash Algorithm:</label>
+            <select id="hash-algorithm">
+                <option value="SHA-256">SHA-256</option>
+                <option value="SHA-1">SHA-1</option>
+                <option value="SHA-384">SHA-384</option>
+                <option value="SHA-512">SHA-512</option>  
+            </select>
+        </div>
+
+        <div class="file-info" id="file-info">
+            <h2>File Information</h2>
+            <p>Name: <span id="file-name"></span></p>
+            <p>Size: <span id="file-size"></span></p>
+            <p>Type: <span id="file-type"></span></p>
+            <p>Modified: <span id="file-modified"></span></p>
+        </div>
+
+        <button id="calculate-btn">Calculate Hash</button>
+
+        <div class="hash-result" id="hash-result">
+            <h2>Hash Result</h2>
+            <pre id="hash-output"></pre>
+            <button id="copy-btn">Copy</button>
+        </div>
+
+        <div class="compare-hash">
+            <h2>Compare Hash</h2>
+            <input type="text" id="compare-input" placeholder="Enter hash to compare">
+            <button id="compare-btn">Compare</button>
+            <p id="compare-result"></p>
+        </div>
+    </div>
+
+    <script>
+        // JavaScript to make the tool functional using Web Crypto API
+
+        const dropArea = document.getElementById('drop-area');
+        const fileInput = document.getElementById('file-input');
+        const hashAlgorithm = document.getElementById('hash-algorithm');
+        const calculateBtn = document.getElementById('calculate-btn');
+        const copyBtn = document.getElementById('copy-btn');
+        const compareBtn = document.getElementById('compare-btn');
+        const fileName = document.getElementById('file-name');
+        const fileSize = document.getElementById('file-size');
+        const fileType = document.getElementById('file-type');
+        const fileModified = document.getElementById('file-modified');
+        const hashOutput = document.getElementById('hash-output');
+        const compareInput = document.getElementById('compare-input');
+        const compareResult = document.getElementById('compare-result');
+
+        let selectedFile = null;
+
+        // Handle file selection
+        dropArea.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', handleFile);
+        dropArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropArea.style.borderColor = '#888';
+        });
+        dropArea.addEventListener('dragleave', () => dropArea.style.borderColor = '#444');
+        dropArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropArea.style.borderColor = '#444';
+            if (e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                handleFile();
+            }
+        });
+
+        function handleFile() {
+            selectedFile = fileInput.files[0];
+            if (selectedFile) {
+                if (selectedFile.size > 100 * 1024 * 1024) {
+                    alert('File exceeds 100MB limit.');
+                    selectedFile = null;
+                    return;
+                }
+                fileName.textContent = selectedFile.name;
+                fileSize.textContent = `${(selectedFile.size / 1024 / 1024).toFixed(2)} MB`;
+                fileType.textContent = selectedFile.type;
+                fileModified.textContent = new Date(selectedFile.lastModified).toLocaleString();
+            }
+        }
+
+        // Calculate hash
+        calculateBtn.addEventListener('click', async () => {
+            if (!selectedFile) {
+                alert('Please select a file first.');
+                return;
+            }
+            const algo = hashAlgorithm.value;
+            try {
+                const buffer = await selectedFile.arrayBuffer();
+                const hashBuffer = await crypto.subtle.digest(algo, buffer);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                hashOutput.textContent = hashHex;
+            } catch (error) {
+                hashOutput.textContent = `Error: ${error.message}`;
+            }
+        });
+
+        // Copy hash
+        copyBtn.addEventListener('click', () => {
+            const text = hashOutput.textContent;
+            if (text) {
+                navigator.clipboard.writeText(text).then(() => alert('Hash copied!'));
+            }
+        });
+
+        // Compare hash
+        compareBtn.addEventListener('click', () => {
+            const inputHash = compareInput.value.trim().toLowerCase();
+            const computedHash = hashOutput.textContent.trim().toLowerCase();
+            if (!computedHash) {
+                compareResult.textContent = 'Compute hash first.';
+                return;
+            }
+            compareResult.textContent = inputHash === computedHash ? 'Hashes match!' : 'Hashes do not match.';
+        });
+    </script>
+</body>
+</html>
