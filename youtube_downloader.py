@@ -2,7 +2,7 @@
 # Done in 2021, updated 2025
 # For personal use only (e.g., your own videos or Creative Commons content)
 # YouTube's Terms of Service prohibit unauthorized downloading: https://www.youtube.com/tos
-# Run with: python youtube_downloader_gui_extended.py
+# Run with: python youtube_downloader.py
 
 import os
 import re
@@ -18,7 +18,7 @@ try:
 except ImportError:
     GOOGLE_API_AVAILABLE = False
 
-# Optional: Set your YouTube Data API key here for search functionality
+# Optional: Set your YouTube Data API key here for search function
 YOUTUBE_API_KEY = ""  # Replace with your API key, or leave empty for basic search
 
 class YouTubeDownloaderApp:
