@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photo Converter to Base64</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-weight: 300;
+            font-size: 2.2em;
+        }
+        
+        .upload-section {
+            background: #f8f9fa;
+            border: 3px dashed #dee2e6;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .upload-section:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+        
+        .upload-section.dragover {
+            border-color: #667eea;
+            background: #e3f2fd;
+            transform: scale(1.02);
+        }
+        
+        .upload-icon {
+            font-size: 3em;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        
+        .upload-text {
+            color: #666;
+            font-size: 1.1em;
+            margin-bottom: 20px;
+        }
+        
+        #fileInput {
+            display: none;
+        }
+        
+        .upload-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: transform 0.2s ease;
+        }
+        
+        .upload-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .preview-section {
+            display: none;
+            margin-bottom: 30px;
+        }
+        
+        .preview-container {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .preview-img {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            border: 4px solid #667eea;
+            object-fit: cover;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        
+        .preview-info {
+            text-align: center;
+        }
+        
+        .preview-info h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .file-details {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .code-section {
+            display: none;
+            margin-top: 30px;
+        }
+        
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .copy-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s ease;
+        }
+        
+        .copy-btn:hover {
+            background: #218838;
+        }
+        
+        .copy-btn.copied {
+            background: #007bff;
+        }
+        
+        .code-container {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: #333;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .instructions {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 20px;
+            border-radius: 0 10px 10px 0;
+            margin-top: 20px;
+        }
+        
+        .instructions h3 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+        
+        .instructions ol {
+            color: #333;
+            margin-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+        }
+        
+        .reset-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 20px;
+        }
+        
+        .reset-btn:hover {
+            background: #5a6268;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            
+            .preview-container {
+                flex-direction: column;
+            }
+            
+            .code-header {
+                flex-direction: column;
+                gap: 10px;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Photo Converter to Base64</h1>
+        
+        <div class="upload-section" id="uploadArea">
+            <div class="upload-icon">+</div>
+            <div class="upload-text">
+                Drag & drop your photo here<br>
+                <small>or click to browse</small>
+            </div>
+            <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                Choose Photo
+            </button>
+            <input type="file" id="fileInput" accept="image/*">
+        </div>
+        
+        <div class="preview-section" id="previewSection">
+            <div class="preview-container">
+                <img id="previewImg" class="preview-img" alt="Preview">
+                <div class="preview-info">
+                    <h3>Preview</h3>
+                    <div class="file-details" id="fileDetails"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="code-section" id="codeSection">
+            <div class="code-header">
+                <h3>Base64 HTML Code</h3>
+                <button class="copy-btn" id="copyBtn">Copy Code</button>
+            </div>
+            <div class="code-container" id="codeContainer"></div>
+            
+            <div class="instructions">
+                <h3>How to use this code:</h3>
+                <ol>
+                    <li>Copy the code above</li>
+                    <li>Paste it into your HTML document where you want the circular image</li>
+                    <li>Adjust the styling as needed for your project</li>
+                    <li>Save and open your HTML file to see your photo!</li>
+                </ol>
+            </div>
+            
+            <button class="reset-btn" onclick="resetTool()">Upload Another Photo</button>
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const uploadArea = document.getElementById('uploadArea');
+        const previewSection = document.getElementById('previewSection');
+        const codeSection = document.getElementById('codeSection');
+        const previewImg = document.getElementById('previewImg');
+        const fileDetails = document.getElementById('fileDetails');
+        const codeContainer = document.getElementById('codeContainer');
+        const copyBtn = document.getElementById('copyBtn');
+
+        // File input change event
+        fileInput.addEventListener('change', handleFileSelect);
+        
+        // Drag and drop events
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+        
+        // Click to upload
+        uploadArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+        
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        }
+        
+        function handleFile(file) {
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                alert('Please select an image file');
+                return;
+            }
+            
+            // Validate file size (5MB max)
+            if (file.size > 5 * 1024 * 1024) {
+                alert('File size should be less than 5MB');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64Data = e.target.result;
+                displayPreview(file, base64Data);
+                generateHTMLCode(base64Data);
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        function displayPreview(file, base64Data) {
+            previewImg.src = base64Data;
+            
+            const sizeKB = (file.size / 1024).toFixed(1);
+            const sizeText = sizeKB > 1024 ? (sizeKB / 1024).toFixed(1) + ' MB' : sizeKB + ' KB';
+            
+            fileDetails.innerHTML = `
+                <strong>File:</strong> ${file.name}<br>
+                <strong>Size:</strong> ${sizeText}<br>
+                <strong>Type:</strong> ${file.type}
+            `;
+            
+            previewSection.style.display = 'block';
+        }
+        
+        function generateHTMLCode(base64Data) {
+            const htmlCode = `<div class="profile-img">
+    <img src="${base64Data}" 
+         alt="Profile Photo" 
+         style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+</div>`;
+            
+            codeContainer.textContent = htmlCode;
+            codeSection.style.display = 'block';
+            
+            // Scroll to code section
+            codeSection.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        // Copy to clipboard functionality
+        copyBtn.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(codeContainer.textContent);
+                copyBtn.textContent = 'Copied!';
+                copyBtn.classList.add('copied');
+                
+                setTimeout(() => {
+                    copyBtn.textContent = 'Copy Code';
+                    copyBtn.classList.remove('copied');
+                }, 2000);
+            } catch (err) {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = codeContainer.textContent;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                copyBtn.textContent = 'Copied!';
+                setTimeout(() => {
+                    copyBtn.textContent = 'Copy Code';
+                }, 2000);
+            }
+        });
+        
+        function resetTool() {
+            fileInput.value = '';
+            previewSection.style.display = 'none';
+            codeSection.style.display = 'none';
+            uploadArea.scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
