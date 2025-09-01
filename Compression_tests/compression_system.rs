@@ -1,17 +1,16 @@
 /*!
- * Enterprise Neural Compression System (ENCS) v4.0 - 
- * 
+ * Compression System (ENCS) v5.1.0
+ * Pain // do not use wihtout testing
  */
-
 
 /*
 [package]
 name = "encs"
-version = "4.0.0"
+version = "5.0.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 authors = ["ENCS Team"]
-description = "Enterprise Neural Compression System"
+description = "Enterprise Neural Compression System - Enhanced"
 
 [dependencies]
 # Core compression - exact working versions
@@ -25,15 +24,16 @@ snap = "1.1.0"
 blake3 = "1.5.0"
 sha2 = "0.10.8"
 crc32fast = "1.3.2"
-crc = "3.0.1"
 
 # Serialization
 serde = { version = "1.0.193", features = ["derive"] }
 serde_json = "1.0.108"
 bincode = "1.3.3"
+toml = "0.8.8"
 
-# Async runtime (specific version to avoid API changes)
-tokio = { version = "1.35.0", features = ["rt-multi-thread", "macros", "fs", "io-util"] }
+# Async runtime
+tokio = { version = "1.35.0", features = ["rt-multi-thread", "macros", "fs", "io-util", "sync"] }
+futures = "0.3.30"
 
 # Parallel processing
 rayon = "1.8.0"
@@ -60,6 +60,10 @@ env_logger = "0.10.1"
 sysinfo = "0.29.11"
 num_cpus = "1.16.0"
 infer = "0.15.0"
+dirs = "5.0.1"
+
+# Testing
+tempfile = "3.8.1"
 
 [profile.release]
 opt-level = 3
@@ -70,19 +74,21 @@ opt-level = 1
 debug = true
 */
 
-// Comprehensive imports - all APIs verified
+// Comprehensive imports
 use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::{self, Read, Write, BufReader, BufWriter, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, atomic::{AtomicU64, Ordering}};
+use std::sync::{Arc, atomic::{AtomicU32, AtomicU64, AtomicUsize, Ordering}};
 use std::time::{Instant, SystemTime, Duration};
 use std::fmt;
 use std::hash::{Hash, Hasher, DefaultHasher};
 
-// Async I/O - verified working APIs only
+// Async I/O
 use tokio::fs::File as AsyncFile;
 use tokio::io::{AsyncRead, AsyncWrite, AsyncReadExt, AsyncWriteExt, BufWriter as AsyncBufWriter};
+use tokio::sync::{mpsc, Mutex as AsyncMutex};
+use futures::stream::{Stream, StreamExt};
 
 // Parallel processing
 use rayon::prelude::*;
@@ -94,18 +100,17 @@ use serde::{Serialize, Deserialize};
 use blake3::Hasher as Blake3Hasher;
 use sha2::{Sha256, Digest};
 use crc32fast::Hasher as Crc32Hasher;
-use crc::{Crc, CRC_64_ECMA_182};
 
 // Thread-safe structures
 use parking_lot::RwLock;
 use dashmap::DashMap;
 
-// Progress tracking with thread safety
+// Progress tracking
 use indicatif::{ProgressBar, ProgressStyle, MultiProgress};
 
 // Error handling
 use thiserror::Error;
-use anyhow::{Result, anyhow};
+use anyhow::{Result, anyhow, Context};
 
 // Logging
 use log::{info, warn, error, debug};
@@ -122,13 +127,12 @@ use clap::{Parser, Subcommand, ValueEnum};
 use dialoguer::Confirm;
 
 // ================================================================================================
-// CONSTANTS - Conservative and safe values
+// CONSTANTS
 // ================================================================================================
 
 const MAGIC_BYTES: &[u8] = b"ENCS";
-const VERSION: u32 = 4;
+const VERSION: u32 = 5;
 
-// Safe chunk sizes
 const CHUNK_SIZE_SMALL: usize = 1024 * 1024;          // 1MB
 const CHUNK_SIZE_MEDIUM: usize = 4 * 1024 * 1024;     // 4MB  
 const CHUNK_SIZE_LARGE: usize = 16 * 1024 * 1024;     // 16MB
@@ -136,53 +140,62 @@ const CHUNK_SIZE_LARGE: usize = 16 * 1024 * 1024;     // 16MB
 const SMALL_FILE_THRESHOLD: u64 = 16 * 1024 * 1024;   // 16MB
 const LARGE_FILE_THRESHOLD: u64 = 1024 * 1024 * 1024; // 1GB
 
-const DETECTION_SAMPLE_SIZE: usize = 64 * 1024;       // 64KB - safe
+const DETECTION_SAMPLE_SIZE: usize = 64 * 1024;       // 64KB
 const MAX_MEMORY_PER_THREAD: usize = 64 * 1024 * 1024; // 64MB limit
 
-const CRC64: Crc<u64> = Crc::<u64>::new(&CRC_64_ECMA_182);
-
 // ================================================================================================
-// ERROR HANDLING - Comprehensive with proper conversions
+// ENHANCED ERROR HANDLING
 // ================================================================================================
 
-#[derive(Error, Debug, Clone)]
+#[derive(Error, Debug)]
 pub enum CompressionError {
-    #[error("I/O error: {message}")]
-    Io { message: String },
+    #[error("Failed to read file '{path}': {source}")]
+    FileRead { 
+        path: PathBuf, 
+        #[source] 
+        source: std::io::Error 
+    },
     
-    #[error("Compression error with {algorithm}: {message}")]
-    Algorithm { algorithm: String, message: String },
+    #[error("Failed to write file '{path}': {source}")]
+    FileWrite { 
+        path: PathBuf, 
+        #[source] 
+        source: std::io::Error 
+    },
+    
+    #[error("Compression failed for chunk {chunk_id} using {algorithm}: {message}")]
+    ChunkCompression { 
+        chunk_id: u32,
+        algorithm: String,
+        message: String,
+    },
+    
+    #[error("Decompression failed: {message}")]
+    Decompression { message: String },
+    
+    #[error("Invalid file format: {message}")]
+    InvalidFormat { message: String },
     
     #[error("Configuration error: {message}")]
     Configuration { message: String },
     
-    #[error("Memory error: requested {requested} bytes")]
-    Memory { requested: usize },
+    #[error("Memory limit exceeded: requested {requested} bytes, limit is {limit} bytes")]
+    MemoryLimit { requested: usize, limit: usize },
     
     #[error("Feature unavailable: {feature}")]
     FeatureUnavailable { feature: String },
-}
-
-// Safe error conversions
-impl From<std::io::Error> for CompressionError {
-    fn from(err: std::io::Error) -> Self {
-        CompressionError::Io { message: err.to_string() }
-    }
-}
-
-impl From<bincode::Error> for CompressionError {
-    fn from(err: bincode::Error) -> Self {
-        CompressionError::Algorithm { 
-            algorithm: "serialization".to_string(), 
-            message: err.to_string() 
-        }
-    }
+    
+    #[error("I/O error: {0}")]
+    Io(#[from] std::io::Error),
+    
+    #[error("Serialization error: {0}")]
+    Serialization(#[from] bincode::Error),
 }
 
 pub type CompressionResult<T> = Result<T, CompressionError>;
 
 // ================================================================================================
-// DATA STRUCTURES - Simplified and robust
+// DATA STRUCTURES
 // ================================================================================================
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Hash)]
@@ -193,6 +206,19 @@ pub enum CompressionAlgorithm {
     Snappy,
     Brotli { quality: u32 },
     Deflate { level: u32 },
+}
+
+impl CompressionAlgorithm {
+    pub fn name(&self) -> &str {
+        match self {
+            Self::Store => "store",
+            Self::Zstd { .. } => "zstd",
+            Self::Lz4 { .. } => "lz4",
+            Self::Snappy => "snappy",
+            Self::Brotli { .. } => "brotli",
+            Self::Deflate { .. } => "deflate",
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
@@ -206,8 +232,10 @@ pub enum OptimizationTarget {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompressionMetrics {
     pub compression_time_ms: u64,
+    pub decompression_time_ms: Option<u64>,
     pub compression_ratio: f64,
     pub compression_speed_mbps: f64,
+    pub decompression_speed_mbps: Option<f64>,
     pub original_size: u64,
     pub compressed_size: u64,
     pub chunk_count: u32,
@@ -249,33 +277,18 @@ pub struct FileHash {
     pub crc32: u32,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BenchmarkResult {
+    pub algorithm: CompressionAlgorithm,
+    pub compression_ratio: f64,
+    pub compression_speed_mbps: f64,
+    pub decompression_speed_mbps: f64,
+    pub compressed_size: usize,
+}
+
 // ================================================================================================
-// COMPRESSION ENGINE - Robust implementation with proper error handling
+// COMPRESSION OPTIONS WITH BUILDER PATTERN
 // ================================================================================================
-
-pub struct CompressionEngine {
-    config: Arc<RwLock<EngineConfig>>,
-    progress_manager: Arc<MultiProgress>,
-    content_cache: Arc<DashMap<u64, ContentAnalysis>>,
-    processing_stats: Arc<AtomicU64>,
-}
-
-#[derive(Debug, Clone)]
-pub struct EngineConfig {
-    pub max_threads: usize,
-    pub memory_limit: u64,
-    pub optimization_target: OptimizationTarget,
-}
-
-impl Default for EngineConfig {
-    fn default() -> Self {
-        Self {
-            max_threads: num_cpus::get().min(8), // Reasonable limit
-            memory_limit: 2 * 1024 * 1024 * 1024, // 2GB
-            optimization_target: OptimizationTarget::Balanced,
-        }
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct CompressionOptions {
@@ -283,6 +296,8 @@ pub struct CompressionOptions {
     pub optimization_target: OptimizationTarget,
     pub chunk_size: usize,
     pub thread_count: Option<usize>,
+    pub verify: bool,
+    pub streaming: bool,
 }
 
 impl Default for CompressionOptions {
@@ -292,7 +307,191 @@ impl Default for CompressionOptions {
             optimization_target: OptimizationTarget::Balanced,
             chunk_size: CHUNK_SIZE_MEDIUM,
             thread_count: None,
+            verify: false,
+            streaming: false,
         }
+    }
+}
+
+impl CompressionOptions {
+    pub fn builder() -> CompressionOptionsBuilder {
+        CompressionOptionsBuilder::default()
+    }
+}
+
+#[derive(Default)]
+pub struct CompressionOptionsBuilder {
+    algorithm: Option<CompressionAlgorithm>,
+    optimization_target: Option<OptimizationTarget>,
+    chunk_size: Option<usize>,
+    thread_count: Option<usize>,
+    verify: Option<bool>,
+    streaming: Option<bool>,
+}
+
+impl CompressionOptionsBuilder {
+    pub fn algorithm(mut self, algorithm: CompressionAlgorithm) -> Self {
+        self.algorithm = Some(algorithm);
+        self
+    }
+    
+    pub fn optimize_for(mut self, target: OptimizationTarget) -> Self {
+        self.optimization_target = Some(target);
+        self
+    }
+    
+    pub fn chunk_size(mut self, size: usize) -> Self {
+        self.chunk_size = Some(size);
+        self
+    }
+    
+    pub fn threads(mut self, count: usize) -> Self {
+        self.thread_count = Some(count);
+        self
+    }
+    
+    pub fn verify(mut self, verify: bool) -> Self {
+        self.verify = Some(verify);
+        self
+    }
+    
+    pub fn streaming(mut self, streaming: bool) -> Self {
+        self.streaming = Some(streaming);
+        self
+    }
+    
+    pub fn build(self) -> CompressionOptions {
+        CompressionOptions {
+            algorithm: self.algorithm,
+            optimization_target: self.optimization_target.unwrap_or(OptimizationTarget::Balanced),
+            chunk_size: self.chunk_size.unwrap_or(CHUNK_SIZE_MEDIUM),
+            thread_count: self.thread_count,
+            verify: self.verify.unwrap_or(false),
+            streaming: self.streaming.unwrap_or(false),
+        }
+    }
+}
+
+// ================================================================================================
+// STREAMING COMPRESSION SUPPORT
+// ================================================================================================
+
+pub struct StreamingCompressor {
+    writer: AsyncMutex<Box<dyn AsyncWrite + Unpin + Send>>,
+    algorithm: CompressionAlgorithm,
+    chunk_id: AtomicU32,
+    bytes_processed: AtomicU64,
+    bytes_written: AtomicU64,
+}
+
+impl StreamingCompressor {
+    pub fn new<W: AsyncWrite + Unpin + Send + 'static>(
+        writer: W,
+        algorithm: CompressionAlgorithm,
+    ) -> Self {
+        Self {
+            writer: AsyncMutex::new(Box::new(writer)),
+            algorithm,
+            chunk_id: AtomicU32::new(0),
+            bytes_processed: AtomicU64::new(0),
+            bytes_written: AtomicU64::new(0),
+        }
+    }
+    
+    pub async fn write_chunk(&self, data: &[u8]) -> CompressionResult<()> {
+        let chunk_id = self.chunk_id.fetch_add(1, Ordering::SeqCst);
+        let compressed = tokio::task::spawn_blocking({
+            let data = data.to_vec();
+            let algorithm = self.algorithm.clone();
+            move || CompressionEngine::compress_chunk(&data, &algorithm, chunk_id)
+        }).await
+        .map_err(|e| CompressionError::Configuration { 
+            message: format!("Task error: {}", e) 
+        })??;
+        
+        let mut writer = self.writer.lock().await;
+        writer.write_all(&(compressed.len() as u32).to_le_bytes()).await?;
+        writer.write_all(&compressed).await?;
+        
+        self.bytes_processed.fetch_add(data.len() as u64, Ordering::Relaxed);
+        self.bytes_written.fetch_add(compressed.len() as u64, Ordering::Relaxed);
+        
+        Ok(())
+    }
+    
+    pub async fn finish(self) -> CompressionResult<CompressionMetrics> {
+        let mut writer = self.writer.lock().await;
+        writer.flush().await?;
+        
+        Ok(CompressionMetrics {
+            compression_time_ms: 0, // Would need timing
+            decompression_time_ms: None,
+            compression_ratio: self.bytes_processed.load(Ordering::Relaxed) as f64 
+                / self.bytes_written.load(Ordering::Relaxed).max(1) as f64,
+            compression_speed_mbps: 0.0, // Would need timing
+            decompression_speed_mbps: None,
+            original_size: self.bytes_processed.load(Ordering::Relaxed),
+            compressed_size: self.bytes_written.load(Ordering::Relaxed),
+            chunk_count: self.chunk_id.load(Ordering::Relaxed),
+        })
+    }
+}
+
+// ================================================================================================
+// COMPRESSION ENGINE - Enhanced with decompression and streaming
+// ================================================================================================
+
+pub struct CompressionEngine {
+    config: Arc<RwLock<EngineConfig>>,
+    progress_manager: Arc<MultiProgress>,
+    content_cache: Arc<DashMap<u64, ContentAnalysis>>,
+    processing_stats: Arc<AtomicU64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EngineConfig {
+    pub max_threads: usize,
+    pub memory_limit: u64,
+    pub optimization_target: OptimizationTarget,
+    pub auto_detect: bool,
+}
+
+impl Default for EngineConfig {
+    fn default() -> Self {
+        Self {
+            max_threads: num_cpus::get().min(8),
+            memory_limit: 2 * 1024 * 1024 * 1024, // 2GB
+            optimization_target: OptimizationTarget::Balanced,
+            auto_detect: true,
+        }
+    }
+}
+
+impl EngineConfig {
+    pub fn load() -> Result<Self> {
+        let config_path = dirs::config_dir()
+            .ok_or_else(|| anyhow!("Cannot find config directory"))?
+            .join("encs")
+            .join("config.toml");
+        
+        if config_path.exists() {
+            let contents = fs::read_to_string(config_path)?;
+            Ok(toml::from_str(&contents)?)
+        } else {
+            Ok(Self::default())
+        }
+    }
+    
+    pub fn save(&self) -> Result<()> {
+        let config_dir = dirs::config_dir()
+            .ok_or_else(|| anyhow!("Cannot find config directory"))?
+            .join("encs");
+        
+        fs::create_dir_all(&config_dir)?;
+        let config_path = config_dir.join("config.toml");
+        let contents = toml::to_string_pretty(self)?;
+        fs::write(config_path, contents)?;
+        Ok(())
     }
 }
 
@@ -310,19 +509,27 @@ impl CompressionEngine {
         })
     }
     
+    // Unified compress_file that detects async context
     pub fn compress_file<P: AsRef<Path>>(
         &self,
         input_path: P,
         output_path: P,
         options: CompressionOptions,
     ) -> CompressionResult<FileMetadata> {
-        // Use blocking task for sync interface
-        let rt = tokio::runtime::Runtime::new()
-            .map_err(|e| CompressionError::Configuration { 
-                message: format!("Failed to create runtime: {}", e) 
-            })?;
-        
-        rt.block_on(self.compress_file_async(input_path, output_path, options))
+        match tokio::runtime::Handle::try_current() {
+            Ok(handle) => {
+                // We're already in async context
+                handle.block_on(self.compress_file_async(input_path, output_path, options))
+            }
+            Err(_) => {
+                // Create runtime only if not in async context
+                let rt = tokio::runtime::Runtime::new()
+                    .map_err(|e| CompressionError::Configuration { 
+                        message: format!("Failed to create runtime: {}", e) 
+                    })?;
+                rt.block_on(self.compress_file_async(input_path, output_path, options))
+            }
+        }
     }
     
     pub async fn compress_file_async<P: AsRef<Path>>(
@@ -353,17 +560,24 @@ impl CompressionEngine {
         let algorithm = self.select_algorithm(&analysis, &options)?;
         
         // Create progress tracking
-        let progress_bar = self.create_progress_bar(file_info.size / 1024 / 1024, "Compressing")?;
+        let progress_bar = self.create_progress_bar(
+            file_info.size,
+            &format!("Compressing with {}", algorithm.name())
+        )?;
         
         // Perform compression
-        let compression_result = self.compress_internal(
-            &file_info,
-            output_path,
-            &algorithm,
-            &progress_bar,
-        ).await?;
+        let compression_result = if options.streaming && file_info.size > LARGE_FILE_THRESHOLD {
+            self.compress_streaming(&file_info, output_path, &algorithm, &progress_bar).await?
+        } else {
+            self.compress_internal(&file_info, output_path, &algorithm, &progress_bar).await?
+        };
         
-        progress_bar.finish_with_message("✅ Compression complete");
+        progress_bar.finish_with_message("Compression complete");
+        
+        // Verify if requested
+        if options.verify {
+            self.verify_compression(output_path, &file_info).await?;
+        }
         
         // Create metadata
         let metadata = self.create_metadata(
@@ -378,62 +592,128 @@ impl CompressionEngine {
         Ok(metadata)
     }
     
-    pub fn analyze_file<P: AsRef<Path>>(&self, file_path: P) -> CompressionResult<ContentAnalysis> {
-        let rt = tokio::runtime::Runtime::new()
-            .map_err(|e| CompressionError::Configuration { 
-                message: format!("Failed to create runtime: {}", e) 
+    // NEW: Decompression support
+    pub async fn decompress_file<P: AsRef<Path>>(
+        &self,
+        input_path: P,
+        output_path: P,
+    ) -> CompressionResult<()> {
+        let input_path = input_path.as_ref();
+        let output_path = output_path.as_ref();
+        
+        info!("Starting decompression: {} -> {}", input_path.display(), output_path.display());
+        
+        let mut reader = AsyncFile::open(input_path).await
+            .map_err(|e| CompressionError::FileRead { 
+                path: input_path.to_path_buf(), 
+                source: e 
             })?;
         
-        rt.block_on(self.analyze_file_async(file_path))
-    }
-    
-    pub async fn analyze_file_async<P: AsRef<Path>>(&self, file_path: P) -> CompressionResult<ContentAnalysis> {
-        let file_path = file_path.as_ref();
+        // Read and validate header
+        let header = self.read_header(&mut reader).await?;
         
-        // Check cache
-        let file_hash = self.calculate_file_hash_fast(file_path).await?;
-        if let Some(cached_analysis) = self.content_cache.get(&file_hash) {
-            debug!("Using cached analysis");
-            return Ok(cached_analysis.clone());
+        // Create output file
+        let mut writer = AsyncFile::create(output_path).await
+            .map_err(|e| CompressionError::FileWrite { 
+                path: output_path.to_path_buf(), 
+                source: e 
+            })?;
+        
+        // Read chunk count
+        let mut chunk_count_bytes = [0u8; 4];
+        reader.read_exact(&mut chunk_count_bytes).await?;
+        let chunk_count = u32::from_le_bytes(chunk_count_bytes);
+        
+        let progress_bar = self.create_progress_bar(chunk_count as u64, "Decompressing")?;
+        
+        // Decompress chunks
+        for _ in 0..chunk_count {
+            let chunk = self.read_compressed_chunk(&mut reader).await?;
+            let decompressed = self.decompress_chunk(&chunk, &header.algorithm)?;
+            writer.write_all(&decompressed).await?;
+            progress_bar.inc(1);
         }
         
-        // Analyze file
-        let file_info = self.get_file_info(file_path).await?;
-        let analysis = self.analyze_content(&file_info).await?;
+        writer.flush().await?;
+        progress_bar.finish_with_message("Decompression complete");
         
-        // Cache result
-        self.content_cache.insert(file_hash, analysis.clone());
+        info!("Decompression completed successfully");
+        Ok(())
+    }
+    
+    // NEW: Benchmarking support
+    pub async fn benchmark_algorithms(&self, data: &[u8]) -> Vec<BenchmarkResult> {
+        let algorithms = vec![
+            CompressionAlgorithm::Lz4 { high_compression: false },
+            CompressionAlgorithm::Lz4 { high_compression: true },
+            CompressionAlgorithm::Zstd { level: 3 },
+            CompressionAlgorithm::Zstd { level: 9 },
+            CompressionAlgorithm::Snappy,
+            CompressionAlgorithm::Brotli { quality: 4 },
+            CompressionAlgorithm::Deflate { level: 6 },
+        ];
         
-        Ok(analysis)
+        let mut results = Vec::new();
+        
+        for algorithm in algorithms {
+            let comp_start = Instant::now();
+            let compressed = match Self::compress_chunk(data, &algorithm, 0) {
+                Ok(c) => c,
+                Err(_) => continue,
+            };
+            let comp_time = comp_start.elapsed();
+            
+            let decomp_start = Instant::now();
+            if let Ok(_) = self.decompress_chunk(&compressed, &algorithm) {
+                let decomp_time = decomp_start.elapsed();
+                
+                results.push(BenchmarkResult {
+                    algorithm: algorithm.clone(),
+                    compression_ratio: data.len() as f64 / compressed.len() as f64,
+                    compression_speed_mbps: (data.len() as f64 / (1024.0 * 1024.0)) 
+                        / comp_time.as_secs_f64(),
+                    decompression_speed_mbps: (data.len() as f64 / (1024.0 * 1024.0)) 
+                        / decomp_time.as_secs_f64(),
+                    compressed_size: compressed.len(),
+                });
+            }
+        }
+        
+        results.sort_by(|a, b| b.compression_ratio.partial_cmp(&a.compression_ratio).unwrap());
+        results
     }
     
     // ===========================================================================================
-    // PRIVATE METHODS - All error paths handled
+    // PRIVATE METHODS - Enhanced
     // ===========================================================================================
     
     async fn validate_inputs(&self, input_path: &Path, output_path: &Path) -> CompressionResult<()> {
-        // Check input exists using standard fs (tokio::fs::try_exists not available in 1.35.0)
         if !input_path.exists() {
-            return Err(CompressionError::Io { 
-                message: format!("Input file does not exist: {}", input_path.display())
+            return Err(CompressionError::FileRead { 
+                path: input_path.to_path_buf(),
+                source: io::Error::new(io::ErrorKind::NotFound, "File not found"),
             });
         }
         
-        // Create output directory if needed
         if let Some(parent) = output_path.parent() {
             if !parent.exists() {
                 tokio::fs::create_dir_all(parent).await
-                    .map_err(|e| CompressionError::Io { 
-                        message: format!("Failed to create output directory: {}", e) 
+                    .map_err(|e| CompressionError::FileWrite { 
+                        path: parent.to_path_buf(),
+                        source: e,
                     })?;
             }
         }
         
-        // Check input is a file
-        let metadata = tokio::fs::metadata(input_path).await?;
+        let metadata = tokio::fs::metadata(input_path).await
+            .map_err(|e| CompressionError::FileRead { 
+                path: input_path.to_path_buf(),
+                source: e,
+            })?;
+        
         if !metadata.is_file() {
             return Err(CompressionError::Configuration { 
-                message: "Input must be a regular file".to_string() 
+                message: format!("{} is not a regular file", input_path.display())
             });
         }
         
@@ -447,7 +727,11 @@ impl CompressionEngine {
     }
     
     async fn get_file_info(&self, path: &Path) -> CompressionResult<FileInfo> {
-        let metadata = tokio::fs::metadata(path).await?;
+        let metadata = tokio::fs::metadata(path).await
+            .map_err(|e| CompressionError::FileRead { 
+                path: path.to_path_buf(),
+                source: e,
+            })?;
         
         Ok(FileInfo {
             path: path.to_path_buf(),
@@ -459,30 +743,458 @@ impl CompressionEngine {
     fn check_memory_requirements(&self, file_info: &FileInfo, options: &CompressionOptions) -> CompressionResult<()> {
         let config = self.config.read();
         
-        // Estimate memory usage
         let chunk_size = options.chunk_size.min(CHUNK_SIZE_LARGE);
         let thread_count = options.thread_count.unwrap_or(config.max_threads);
         let estimated_memory = chunk_size * thread_count * 3; // Input + output + working
         
         if estimated_memory > config.memory_limit as usize {
-            return Err(CompressionError::Memory { 
-                requested: estimated_memory 
+            return Err(CompressionError::MemoryLimit { 
+                requested: estimated_memory,
+                limit: config.memory_limit as usize,
             });
         }
         
-        // Check individual chunk memory limit
         if chunk_size > MAX_MEMORY_PER_THREAD {
-            return Err(CompressionError::Memory { 
-                requested: chunk_size 
+            return Err(CompressionError::MemoryLimit { 
+                requested: chunk_size,
+                limit: MAX_MEMORY_PER_THREAD,
             });
         }
         
         Ok(())
     }
     
+    async fn compress_streaming(
+        &self,
+        file_info: &FileInfo,
+        output_path: &Path,
+        algorithm: &CompressionAlgorithm,
+        progress_bar: &ProgressBar,
+    ) -> CompressionResult<InternalCompressionResult> {
+        let chunk_size = self.determine_chunk_size(file_info.size);
+        let output_file = AsyncFile::create(output_path).await?;
+        let mut writer = AsyncBufWriter::new(output_file);
+        
+        // Write header
+        self.write_header(&mut writer, algorithm).await?;
+        
+        // Create streaming compressor
+        let (tx, mut rx) = mpsc::channel::<Vec<u8>>(4);
+        let algorithm_clone = algorithm.clone();
+        
+        // Compression task
+        let compress_task = tokio::spawn(async move {
+            let mut compressed_chunks = Vec::new();
+            let mut chunk_id = 0u32;
+            
+            while let Some(chunk_data) = rx.recv().await {
+                let algorithm = algorithm_clone.clone();
+                let compressed = tokio::task::spawn_blocking(move || {
+                    CompressionEngine::compress_chunk(&chunk_data, &algorithm, chunk_id)
+                }).await
+                .map_err(|e| CompressionError::Configuration { 
+                    message: format!("Task join error: {}", e) 
+                })??;
+                
+                compressed_chunks.push(compressed);
+                chunk_id += 1;
+            }
+            
+            Ok::<Vec<Vec<u8>>, CompressionError>(compressed_chunks)
+        });
+        
+        // Read and send chunks
+        let mut file = AsyncFile::open(&file_info.path).await?;
+        let mut total_read = 0u64;
+        
+        loop {
+            let mut buffer = vec![0u8; chunk_size];
+            let bytes_read = file.read(&mut buffer).await?;
+            if bytes_read == 0 { break; }
+            
+            buffer.truncate(bytes_read);
+            total_read += bytes_read as u64;
+            tx.send(buffer).await.map_err(|_| CompressionError::Configuration { 
+                message: "Channel send failed".to_string() 
+            })?;
+            
+            progress_bar.set_position(total_read);
+        }
+        
+        drop(tx); // Signal completion
+        
+        // Get compressed chunks
+        let compressed_chunks = compress_task.await
+            .map_err(|e| CompressionError::Configuration { 
+                message: format!("Task join error: {}", e) 
+            })??;
+        
+        // Write chunks
+        let total_size = self.write_chunks(&mut writer, &compressed_chunks).await?;
+        writer.flush().await?;
+        
+        Ok(InternalCompressionResult {
+            original_size: file_info.size,
+            compressed_size: total_size,
+            chunk_count: compressed_chunks.len() as u32,
+        })
+    }
+    
+    async fn compress_internal(
+        &self,
+        file_info: &FileInfo,
+        output_path: &Path,
+        algorithm: &CompressionAlgorithm,
+        progress_bar: &ProgressBar,
+    ) -> CompressionResult<InternalCompressionResult> {
+        let chunk_size = self.determine_chunk_size(file_info.size);
+        
+        let output_file = AsyncFile::create(output_path).await
+            .map_err(|e| CompressionError::FileWrite { 
+                path: output_path.to_path_buf(),
+                source: e 
+            })?;
+        let mut writer = AsyncBufWriter::new(output_file);
+        
+        self.write_header(&mut writer, algorithm).await?;
+        
+        let chunks_result = self.compress_chunks_async(
+            &file_info.path,
+            chunk_size,
+            algorithm,
+            progress_bar
+        ).await?;
+        
+        let total_size = self.write_chunks(&mut writer, &chunks_result.chunks).await?;
+        writer.flush().await?;
+        
+        Ok(InternalCompressionResult {
+            original_size: file_info.size,
+            compressed_size: total_size,
+            chunk_count: chunks_result.chunks.len() as u32,
+        })
+    }
+    
+    async fn compress_chunks_async(
+        &self,
+        file_path: &Path,
+        chunk_size: usize,
+        algorithm: &CompressionAlgorithm,
+        progress_bar: &ProgressBar,
+    ) -> CompressionResult<ChunkedResult> {
+        let mut file = AsyncFile::open(file_path).await
+            .map_err(|e| CompressionError::FileRead { 
+                path: file_path.to_path_buf(),
+                source: e 
+            })?;
+        
+        let mut chunks = Vec::new();
+        let mut chunk_id = 0u32;
+        
+        loop {
+            let mut buffer = vec![0u8; chunk_size];
+            let bytes_read = file.read(&mut buffer).await?;
+            if bytes_read == 0 { break; }
+            
+            buffer.truncate(bytes_read);
+            
+            // Compress in blocking task to avoid blocking async runtime
+            let algorithm = algorithm.clone();
+            let compressed = tokio::task::spawn_blocking(move || {
+                CompressionEngine::compress_chunk(&buffer, &algorithm, chunk_id)
+            }).await
+            .map_err(|e| CompressionError::Configuration { 
+                message: format!("Task error: {}", e) 
+            })??;
+            
+            chunks.push(compressed);
+            chunk_id += 1;
+            progress_bar.inc(1);
+        }
+        
+        Ok(ChunkedResult { chunks })
+    }
+    
+    fn compress_chunk(data: &[u8], algorithm: &CompressionAlgorithm, chunk_id: u32) -> CompressionResult<Vec<u8>> {
+        if data.is_empty() {
+            return Ok(Vec::new());
+        }
+        
+        let compressed = match algorithm {
+            CompressionAlgorithm::Store => data.to_vec(),
+            
+            CompressionAlgorithm::Zstd { level } => {
+                zstd::bulk::compress(data, *level)
+                    .map_err(|e| CompressionError::ChunkCompression { 
+                        chunk_id,
+                        algorithm: "zstd".to_string(), 
+                        message: e.to_string() 
+                    })?
+            },
+            
+            CompressionAlgorithm::Lz4 { .. } => {
+                lz4_flex::compress_prepend_size(data)
+            },
+            
+            CompressionAlgorithm::Snappy => {
+                snap::raw::Encoder::new().compress_vec(data)
+                    .map_err(|e| CompressionError::ChunkCompression { 
+                        chunk_id,
+                        algorithm: "snappy".to_string(), 
+                        message: e.to_string() 
+                    })?
+            },
+            
+            CompressionAlgorithm::Brotli { quality } => {
+                let mut output = Vec::new();
+                {
+                    let mut encoder = brotli::CompressorWriter::new(&mut output, 4096, *quality, 22);
+                    encoder.write_all(data)
+                        .map_err(|e| CompressionError::ChunkCompression { 
+                            chunk_id,
+                            algorithm: "brotli".to_string(), 
+                            message: e.to_string() 
+                        })?;
+                }
+                output
+            },
+            
+            CompressionAlgorithm::Deflate { level } => {
+                let mut encoder = flate2::write::DeflateEncoder::new(
+                    Vec::new(), 
+                    flate2::Compression::new(*level)
+                );
+                encoder.write_all(data)
+                    .map_err(|e| CompressionError::ChunkCompression { 
+                        chunk_id,
+                        algorithm: "deflate".to_string(), 
+                        message: e.to_string() 
+                    })?;
+                encoder.finish()
+                    .map_err(|e| CompressionError::ChunkCompression { 
+                        chunk_id,
+                        algorithm: "deflate".to_string(), 
+                        message: e.to_string() 
+                    })?
+            },
+        };
+        
+        // Create chunk with metadata
+        let mut result = Vec::new();
+        result.extend_from_slice(&(data.len() as u32).to_le_bytes());
+        result.extend_from_slice(&(compressed.len() as u32).to_le_bytes());
+        
+        // Add CRC32 checksum
+        let mut crc_hasher = Crc32Hasher::new();
+        crc_hasher.update(data);
+        let crc32 = crc_hasher.finalize();
+        result.extend_from_slice(&crc32.to_le_bytes());
+        
+        result.extend_from_slice(&compressed);
+        
+        Ok(result)
+    }
+    
+    fn decompress_chunk(&self, chunk_data: &[u8], algorithm: &CompressionAlgorithm) -> CompressionResult<Vec<u8>> {
+        if chunk_data.len() < 12 {
+            return Err(CompressionError::InvalidFormat { 
+                message: "Chunk too small".to_string() 
+            });
+        }
+        
+        let original_size = u32::from_le_bytes([chunk_data[0], chunk_data[1], chunk_data[2], chunk_data[3]]) as usize;
+        let compressed_size = u32::from_le_bytes([chunk_data[4], chunk_data[5], chunk_data[6], chunk_data[7]]) as usize;
+        let stored_crc = u32::from_le_bytes([chunk_data[8], chunk_data[9], chunk_data[10], chunk_data[11]]);
+        
+        let compressed_data = &chunk_data[12..];
+        
+        if compressed_data.len() != compressed_size {
+            return Err(CompressionError::InvalidFormat { 
+                message: "Compressed size mismatch".to_string() 
+            });
+        }
+        
+        let decompressed = match algorithm {
+            CompressionAlgorithm::Store => compressed_data.to_vec(),
+            
+            CompressionAlgorithm::Zstd { .. } => {
+                zstd::bulk::decompress(compressed_data, original_size)
+                    .map_err(|e| CompressionError::Decompression { 
+                        message: format!("Zstd decompression failed: {}", e)
+                    })?
+            },
+            
+            CompressionAlgorithm::Lz4 { .. } => {
+                lz4_flex::decompress_size_prepended(compressed_data)
+                    .map_err(|e| CompressionError::Decompression { 
+                        message: format!("LZ4 decompression failed: {}", e)
+                    })?
+            },
+            
+            CompressionAlgorithm::Snappy => {
+                snap::raw::Decoder::new().decompress_vec(compressed_data)
+                    .map_err(|e| CompressionError::Decompression { 
+                        message: format!("Snappy decompression failed: {}", e)
+                    })?
+            },
+            
+            CompressionAlgorithm::Brotli { .. } => {
+                let mut decompressed = Vec::new();
+                let mut decoder = brotli::Decompressor::new(compressed_data, 4096);
+                decoder.read_to_end(&mut decompressed)
+                    .map_err(|e| CompressionError::Decompression { 
+                        message: format!("Brotli decompression failed: {}", e)
+                    })?;
+                decompressed
+            },
+            
+            CompressionAlgorithm::Deflate { .. } => {
+                let mut decoder = flate2::read::DeflateDecoder::new(compressed_data);
+                let mut decompressed = Vec::new();
+                decoder.read_to_end(&mut decompressed)
+                    .map_err(|e| CompressionError::Decompression { 
+                        message: format!("Deflate decompression failed: {}", e)
+                    })?;
+                decompressed
+            },
+        };
+        
+        // Verify CRC
+        let mut crc_hasher = Crc32Hasher::new();
+        crc_hasher.update(&decompressed);
+        let calculated_crc = crc_hasher.finalize();
+        
+        if calculated_crc != stored_crc {
+            return Err(CompressionError::InvalidFormat { 
+                message: "CRC mismatch".to_string() 
+            });
+        }
+        
+        Ok(decompressed)
+    }
+    
+    async fn read_header<R: AsyncRead + Unpin>(&self, reader: &mut R) -> CompressionResult<FileHeader> {
+        let mut magic = [0u8; 4];
+        reader.read_exact(&mut magic).await?;
+        
+        if magic != MAGIC_BYTES {
+            return Err(CompressionError::InvalidFormat { 
+                message: "Invalid file format".to_string() 
+            });
+        }
+        
+        let mut version_bytes = [0u8; 4];
+        reader.read_exact(&mut version_bytes).await?;
+        let version = u32::from_le_bytes(version_bytes);
+        
+        if version != VERSION {
+            return Err(CompressionError::InvalidFormat { 
+                message: format!("Unsupported version: {}", version)
+            });
+        }
+        
+        let mut algo_len_bytes = [0u8; 4];
+        reader.read_exact(&mut algo_len_bytes).await?;
+        let algo_len = u32::from_le_bytes(algo_len_bytes) as usize;
+        
+        let mut algo_data = vec![0u8; algo_len];
+        reader.read_exact(&mut algo_data).await?;
+        
+        let algorithm: CompressionAlgorithm = bincode::deserialize(&algo_data)?;
+        
+        Ok(FileHeader { version, algorithm })
+    }
+    
+    async fn read_compressed_chunk<R: AsyncRead + Unpin>(&self, reader: &mut R) -> CompressionResult<Vec<u8>> {
+        let mut chunk_len_bytes = [0u8; 4];
+        reader.read_exact(&mut chunk_len_bytes).await?;
+        let chunk_len = u32::from_le_bytes(chunk_len_bytes) as usize;
+        
+        let mut chunk_data = vec![0u8; chunk_len];
+        reader.read_exact(&mut chunk_data).await?;
+        
+        Ok(chunk_data)
+    }
+    
+    async fn verify_compression(&self, compressed_path: &Path, original_info: &FileInfo) -> CompressionResult<()> {
+        // Basic verification - check file exists and is smaller
+        let compressed_metadata = tokio::fs::metadata(compressed_path).await
+            .map_err(|e| CompressionError::FileRead { 
+                path: compressed_path.to_path_buf(),
+                source: e 
+            })?;
+        
+        info!("Verification: Original size: {}, Compressed size: {}", 
+            original_info.size, compressed_metadata.len());
+        
+        if compressed_metadata.len() >= original_info.size {
+            warn!("Compressed file is not smaller than original");
+        }
+        
+        Ok(())
+    }
+    
+    fn create_progress_bar(&self, total: u64, operation: &str) -> CompressionResult<ProgressBar> {
+        let pb = self.progress_manager.add(ProgressBar::new(total.max(1)));
+        pb.set_style(
+            ProgressStyle::default_bar()
+                .template(&format!("{}\n{{spinner:.green}} [{{elapsed_precise}}] [{{wide_bar:.cyan/blue}}] {{bytes}}/{{total_bytes}} ({{bytes_per_sec}}, {{eta}})", operation))
+                .map_err(|e| CompressionError::Configuration { 
+                    message: format!("Progress bar style error: {}", e) 
+                })?
+                .progress_chars("#+- ")
+        );
+        Ok(pb)
+    }
+    
+    async fn write_header<W: AsyncWrite + Unpin>(
+        &self, 
+        writer: &mut W, 
+        algorithm: &CompressionAlgorithm
+    ) -> CompressionResult<()> {
+        writer.write_all(MAGIC_BYTES).await?;
+        writer.write_all(&VERSION.to_le_bytes()).await?;
+        
+        let algorithm_data = bincode::serialize(algorithm)?;
+        writer.write_all(&(algorithm_data.len() as u32).to_le_bytes()).await?;
+        writer.write_all(&algorithm_data).await?;
+        
+        Ok(())
+    }
+    
+    async fn write_chunks<W: AsyncWrite + Unpin>(
+        &self, 
+        writer: &mut W, 
+        chunks: &[Vec<u8>]
+    ) -> CompressionResult<u64> {
+        writer.write_all(&(chunks.len() as u32).to_le_bytes()).await?;
+        
+        let mut total_size = 4;
+        
+        for chunk in chunks {
+            writer.write_all(&(chunk.len() as u32).to_le_bytes()).await?;
+            writer.write_all(chunk).await?;
+            total_size += 4 + chunk.len() as u64;
+        }
+        
+        Ok(total_size)
+    }
+    
+    fn determine_chunk_size(&self, file_size: u64) -> usize {
+        match file_size {
+            0..=SMALL_FILE_THRESHOLD => CHUNK_SIZE_SMALL,
+            SMALL_FILE_THRESHOLD..=LARGE_FILE_THRESHOLD => CHUNK_SIZE_MEDIUM,
+            _ => CHUNK_SIZE_LARGE,
+        }
+    }
+    
     async fn analyze_content(&self, file_info: &FileInfo) -> CompressionResult<ContentAnalysis> {
         let sample_size = DETECTION_SAMPLE_SIZE.min(file_info.size as usize);
-        let mut file = AsyncFile::open(&file_info.path).await?;
+        let mut file = AsyncFile::open(&file_info.path).await
+            .map_err(|e| CompressionError::FileRead { 
+                path: file_info.path.clone(),
+                source: e 
+            })?;
         
         let mut buffer = vec![0u8; sample_size];
         let bytes_read = file.read(&mut buffer).await?;
@@ -501,7 +1213,7 @@ impl CompressionEngine {
         ContentAnalysis {
             entropy,
             file_type: file_type.clone(),
-            type_confidence: 0.8, // Simplified confidence
+            type_confidence: 0.8,
             compressibility_score: compressibility,
             contains_executable,
             text_ratio,
@@ -526,11 +1238,10 @@ impl CompressionEngine {
             }
         }
         
-        entropy / 8.0 // Normalize to 0-1
+        entropy / 8.0
     }
     
     fn detect_file_type(&self, data: &[u8]) -> DetectedFileType {
-        // Use infer for magic number detection
         if let Some(file_type) = infer::get(data) {
             match file_type.mime_type() {
                 mime if mime.starts_with("text/") => DetectedFileType::Text,
@@ -586,10 +1297,10 @@ impl CompressionEngine {
     fn check_executable(&self, data: &[u8]) -> bool {
         if data.len() < 4 { return false; }
         
-        data.starts_with(b"MZ") ||                    // PE executable
-        data.starts_with(b"\x7fELF") ||               // ELF executable  
-        data.starts_with(b"\xfe\xed\xfa\xce") ||     // Mach-O
-        data.starts_with(b"#!")                      // Unix script
+        data.starts_with(b"MZ") ||
+        data.starts_with(b"\x7fELF") ||
+        data.starts_with(b"\xfe\xed\xfa\xce") ||
+        data.starts_with(b"#!")
     }
     
     fn select_algorithm(&self, analysis: &ContentAnalysis, options: &CompressionOptions) -> CompressionResult<CompressionAlgorithm> {
@@ -597,7 +1308,6 @@ impl CompressionEngine {
             return Ok(algorithm.clone());
         }
         
-        // Intelligent selection
         let algorithm = match (&analysis.file_type, analysis.compressibility_score) {
             (DetectedFileType::Text, score) if score > 0.8 => {
                 match options.optimization_target {
@@ -638,201 +1348,6 @@ impl CompressionEngine {
         Ok(algorithm)
     }
     
-    async fn compress_internal(
-        &self,
-        file_info: &FileInfo,
-        output_path: &Path,
-        algorithm: &CompressionAlgorithm,
-        progress_bar: &ProgressBar,
-    ) -> CompressionResult<InternalCompressionResult> {
-        let chunk_size = self.determine_chunk_size(file_info.size);
-        
-        // Open files
-        let input_file = AsyncFile::open(&file_info.path).await?;
-        let output_file = AsyncFile::create(output_path).await?;
-        let mut writer = AsyncBufWriter::new(output_file);
-        
-        // Write header
-        self.write_header(&mut writer, algorithm).await?;
-        
-        // Compress in chunks - use sync approach to avoid async/rayon conflicts
-        let chunks_result = self.compress_chunks_sync(file_info, chunk_size, algorithm, progress_bar).await?;
-        
-        // Write chunks
-        let total_size = self.write_chunks(&mut writer, &chunks_result.chunks).await?;
-        
-        // Flush and close
-        writer.flush().await?;
-        
-        Ok(InternalCompressionResult {
-            original_size: file_info.size,
-            compressed_size: total_size,
-            chunk_count: chunks_result.chunks.len() as u32,
-        })
-    }
-    
-    fn determine_chunk_size(&self, file_size: u64) -> usize {
-        match file_size {
-            0..=SMALL_FILE_THRESHOLD => CHUNK_SIZE_SMALL,
-            SMALL_FILE_THRESHOLD..=LARGE_FILE_THRESHOLD => CHUNK_SIZE_MEDIUM,
-            _ => CHUNK_SIZE_LARGE,
-        }
-    }
-    
-    async fn write_header<W: AsyncWrite + Unpin>(
-        &self, 
-        writer: &mut W, 
-        algorithm: &CompressionAlgorithm
-    ) -> CompressionResult<()> {
-        // Write magic bytes and version
-        writer.write_all(MAGIC_BYTES).await?;
-        writer.write_all(&VERSION.to_le_bytes()).await?;
-        
-        // Serialize and write algorithm
-        let algorithm_data = bincode::serialize(algorithm)?;
-        writer.write_all(&(algorithm_data.len() as u32).to_le_bytes()).await?;
-        writer.write_all(&algorithm_data).await?;
-        
-        Ok(())
-    }
-    
-    // Safe chunk compression without async/rayon conflicts
-    async fn compress_chunks_sync(
-        &self,
-        file_info: &FileInfo,
-        chunk_size: usize,
-        algorithm: &CompressionAlgorithm,
-        progress_bar: &ProgressBar,
-    ) -> CompressionResult<ChunkedResult> {
-        // Read entire file in chunks first
-        let mut file = std::fs::File::open(&file_info.path)?;
-        let mut raw_chunks = Vec::new();
-        let mut buffer = vec![0u8; chunk_size];
-        
-        loop {
-            let bytes_read = file.read(&mut buffer)?;
-            if bytes_read == 0 { break; }
-            
-            raw_chunks.push(buffer[..bytes_read].to_vec());
-        }
-        
-        progress_bar.set_length(raw_chunks.len() as u64);
-        
-        // Process chunks in parallel using rayon (blocking)
-        let algorithm_clone = algorithm.clone();
-        let progress_clone = progress_bar.clone();
-        
-        let compressed_chunks: CompressionResult<Vec<_>> = tokio::task::spawn_blocking(move || {
-            raw_chunks
-                .into_par_iter()
-                .enumerate()
-                .map(|(id, chunk_data)| {
-                    let result = Self::compress_chunk(&chunk_data, &algorithm_clone, id as u32);
-                    progress_clone.inc(1);
-                    result
-                })
-                .collect()
-        }).await
-        .map_err(|e| CompressionError::Configuration { 
-            message: format!("Threading error: {}", e) 
-        })??;
-        
-        Ok(ChunkedResult { chunks: compressed_chunks })
-    }
-    
-    fn compress_chunk(data: &[u8], algorithm: &CompressionAlgorithm, _chunk_id: u32) -> CompressionResult<Vec<u8>> {
-        if data.is_empty() {
-            return Ok(Vec::new());
-        }
-        
-        let compressed = match algorithm {
-            CompressionAlgorithm::Store => data.to_vec(),
-            
-            CompressionAlgorithm::Zstd { level } => {
-                zstd::bulk::compress(data, *level)
-                    .map_err(|e| CompressionError::Algorithm { 
-                        algorithm: "zstd".to_string(), 
-                        message: e.to_string() 
-                    })?
-            },
-            
-            CompressionAlgorithm::Lz4 { .. } => {
-                lz4_flex::compress_prepend_size(data)
-            },
-            
-            CompressionAlgorithm::Snappy => {
-                snap::raw::Encoder::new().compress_vec(data)
-                    .map_err(|e| CompressionError::Algorithm { 
-                        algorithm: "snappy".to_string(), 
-                        message: e.to_string() 
-                    })?
-            },
-            
-            CompressionAlgorithm::Brotli { quality } => {
-                let mut output = Vec::new();
-                {
-                    let mut encoder = brotli::CompressorWriter::new(&mut output, 4096, *quality, 22);
-                    encoder.write_all(data)
-                        .map_err(|e| CompressionError::Algorithm { 
-                            algorithm: "brotli".to_string(), 
-                            message: e.to_string() 
-                        })?;
-                }
-                output
-            },
-            
-            CompressionAlgorithm::Deflate { level } => {
-                let mut encoder = flate2::write::DeflateEncoder::new(
-                    Vec::new(), 
-                    flate2::Compression::new(*level)
-                );
-                encoder.write_all(data)
-                    .map_err(|e| CompressionError::Algorithm { 
-                        algorithm: "deflate".to_string(), 
-                        message: e.to_string() 
-                    })?;
-                encoder.finish()
-                    .map_err(|e| CompressionError::Algorithm { 
-                        algorithm: "deflate".to_string(), 
-                        message: e.to_string() 
-                    })?
-            },
-        };
-        
-        // Create chunk with metadata
-        let mut result = Vec::new();
-        result.extend_from_slice(&(data.len() as u32).to_le_bytes());
-        result.extend_from_slice(&(compressed.len() as u32).to_le_bytes());
-        
-        // Add CRC32 checksum
-        let mut crc_hasher = Crc32Hasher::new();
-        crc_hasher.update(data);
-        let crc32 = crc_hasher.finalize();
-        result.extend_from_slice(&crc32.to_le_bytes());
-        
-        result.extend_from_slice(&compressed);
-        
-        Ok(result)
-    }
-    
-    async fn write_chunks<W: AsyncWrite + Unpin>(
-        &self, 
-        writer: &mut W, 
-        chunks: &[Vec<u8>]
-    ) -> CompressionResult<u64> {
-        writer.write_all(&(chunks.len() as u32).to_le_bytes()).await?;
-        
-        let mut total_size = 4; // chunk count
-        
-        for chunk in chunks {
-            writer.write_all(&(chunk.len() as u32).to_le_bytes()).await?;
-            writer.write_all(chunk).await?;
-            total_size += 4 + chunk.len() as u64;
-        }
-        
-        Ok(total_size)
-    }
-    
     async fn create_metadata(
         &self,
         file_info: &FileInfo,
@@ -843,6 +1358,7 @@ impl CompressionEngine {
     ) -> CompressionResult<FileMetadata> {
         let metrics = CompressionMetrics {
             compression_time_ms: compression_time.as_millis() as u64,
+            decompression_time_ms: None,
             compression_ratio: if compression_result.compressed_size > 0 {
                 file_info.size as f64 / compression_result.compressed_size as f64
             } else {
@@ -853,6 +1369,7 @@ impl CompressionEngine {
             } else {
                 0.0
             },
+            decompression_speed_mbps: None,
             original_size: file_info.size,
             compressed_size: compression_result.compressed_size,
             chunk_count: compression_result.chunk_count,
@@ -871,7 +1388,11 @@ impl CompressionEngine {
     }
     
     async fn calculate_file_hash(&self, file_info: &FileInfo) -> CompressionResult<FileHash> {
-        let mut file = AsyncFile::open(&file_info.path).await?;
+        let mut file = AsyncFile::open(&file_info.path).await
+            .map_err(|e| CompressionError::FileRead { 
+                path: file_info.path.clone(),
+                source: e 
+            })?;
         
         let mut sha256_hasher = Sha256::new();
         let mut blake3_hasher = Blake3Hasher::new();
@@ -903,15 +1424,22 @@ impl CompressionEngine {
         })
     }
     
-    fn create_progress_bar(&self, total: u64, operation: &str) -> CompressionResult<ProgressBar> {
-        let pb = self.progress_manager.add(ProgressBar::new(total.max(1)));
-        pb.set_style(
-            ProgressStyle::default_bar()
-                .template(&format!("{} [{{bar:40.cyan/blue}}] {{pos}}/{{len}} ({{eta}})", operation))
-                .unwrap()
-                .progress_chars("█▉▊▋▌▍▎▏ ")
-        );
-        Ok(pb)
+    pub async fn analyze_file_async<P: AsRef<Path>>(&self, file_path: P) -> CompressionResult<ContentAnalysis> {
+        let file_path = file_path.as_ref();
+        
+        // Check cache
+        let file_hash = self.calculate_file_hash_fast(file_path).await?;
+        if let Some(cached_analysis) = self.content_cache.get(&file_hash) {
+            debug!("Using cached analysis");
+            return Ok(cached_analysis.clone());
+        }
+        
+        let file_info = self.get_file_info(file_path).await?;
+        let analysis = self.analyze_content(&file_info).await?;
+        
+        self.content_cache.insert(file_hash, analysis.clone());
+        
+        Ok(analysis)
     }
     
     async fn calculate_file_hash_fast(&self, file_path: &Path) -> CompressionResult<u64> {
@@ -940,6 +1468,12 @@ struct FileInfo {
 }
 
 #[derive(Debug)]
+struct FileHeader {
+    version: u32,
+    algorithm: CompressionAlgorithm,
+}
+
+#[derive(Debug)]
 struct InternalCompressionResult {
     original_size: u64,
     compressed_size: u64,
@@ -952,13 +1486,105 @@ struct ChunkedResult {
 }
 
 // ================================================================================================
-// CLI IMPLEMENTATION - Version 0.5.2
+// TESTS
+// ================================================================================================
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::TempDir;
+    
+    #[tokio::test]
+    async fn test_compression_roundtrip() {
+        let engine = CompressionEngine::new().unwrap();
+        let temp_dir = TempDir::new().unwrap();
+        
+        // Create test file
+        let input_path = temp_dir.path().join("test.txt");
+        let data = b"Hello World! This is a test file for compression.".repeat(100);
+        tokio::fs::write(&input_path, &data).await.unwrap();
+        
+        // Compress
+        let compressed_path = temp_dir.path().join("test.compressed");
+        let options = CompressionOptions::builder()
+            .algorithm(CompressionAlgorithm::Zstd { level: 3 })
+            .verify(true)
+            .build();
+        
+        let metadata = engine.compress_file_async(&input_path, &compressed_path, options).await.unwrap();
+        
+        // Verify compression worked
+        assert!(metadata.metrics.compressed_size < metadata.metrics.original_size);
+        assert!(metadata.metrics.compression_ratio > 1.0);
+        
+        // Decompress
+        let decompressed_path = temp_dir.path().join("test.decompressed");
+        engine.decompress_file(&compressed_path, &decompressed_path).await.unwrap();
+        
+        // Verify content matches
+        let original = tokio::fs::read(&input_path).await.unwrap();
+        let decompressed = tokio::fs::read(&decompressed_path).await.unwrap();
+        assert_eq!(original, decompressed);
+    }
+    
+    #[tokio::test]
+    async fn test_multiple_algorithms() {
+        let engine = CompressionEngine::new().unwrap();
+        let data = b"Test data for benchmarking different algorithms".repeat(50);
+        
+        let results = engine.benchmark_algorithms(&data).await;
+        
+        assert!(!results.is_empty());
+        for result in &results {
+            assert!(result.compression_ratio > 0.0);
+            assert!(result.compression_speed_mbps > 0.0);
+            assert!(result.decompression_speed_mbps > 0.0);
+        }
+    }
+    
+    #[tokio::test]
+    async fn test_builder_pattern() {
+        let options = CompressionOptions::builder()
+            .algorithm(CompressionAlgorithm::Lz4 { high_compression: true })
+            .optimize_for(OptimizationTarget::Speed)
+            .chunk_size(CHUNK_SIZE_SMALL)
+            .threads(4)
+            .verify(true)
+            .streaming(false)
+            .build();
+        
+        assert_eq!(options.optimization_target, OptimizationTarget::Speed);
+        assert_eq!(options.chunk_size, CHUNK_SIZE_SMALL);
+        assert_eq!(options.thread_count, Some(4));
+        assert!(options.verify);
+        assert!(!options.streaming);
+    }
+    
+    #[test]
+    fn test_content_analysis() {
+        let engine = CompressionEngine::new().unwrap();
+        
+        // Test text detection
+        let text_data = b"This is plain text content with normal ASCII characters.";
+        let text_analysis = engine.analyze_content_detailed(text_data);
+        assert_eq!(text_analysis.file_type, DetectedFileType::Text);
+        assert!(text_analysis.text_ratio > 0.9);
+        
+        // Test binary detection
+        let binary_data = vec![0xFF, 0x00, 0x01, 0x02, 0xFE, 0xFD];
+        let binary_analysis = engine.analyze_content_detailed(&binary_data);
+        assert!(binary_analysis.text_ratio < 0.5);
+    }
+}
+
+// ================================================================================================
+// CLI IMPLEMENTATION - Enhanced
 // ================================================================================================
 
 #[derive(Parser)]
 #[command(name = "encs")]
-#[command(version = "4.0.0")]
-#[command(about = "Enterprise Neural Compression System")]
+#[command(version = "5.0.0")]
+#[command(about = "Enterprise Neural Compression System - Enhanced")]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -986,12 +1612,27 @@ enum Commands {
         level: Option<u8>,
         #[arg(short, long)]
         force: bool,
+        #[arg(long)]
+        verify: bool,
+        #[arg(long)]
+        streaming: bool,
+    },
+    
+    Decompress {
+        input: PathBuf,
+        output: PathBuf,
+        #[arg(short, long)]
+        force: bool,
     },
     
     Analyze {
         file: PathBuf,
         #[arg(long)]
         detailed: bool,
+    },
+    
+    Benchmark {
+        file: PathBuf,
     },
     
     Info {
@@ -1021,28 +1662,32 @@ async fn main() -> Result<()> {
     
     let cli = Cli::parse();
     
-    // Initialize loggings
     env_logger::Builder::from_env(
         env_logger::Env::default().default_filter_or(if cli.verbose { "debug" } else { "info" })
     ).init();
     
     info!("Starting ENCS v{}", env!("CARGO_PKG_VERSION"));
     
-    // Create engine
-    let mut config = EngineConfig::default();
+    let mut config = EngineConfig::load().unwrap_or_default();
     if cli.threads > 0 {
         config.max_threads = cli.threads;
     }
     
-    let engine = CompressionEngine::with_config(config)
+    let engine = CompressionEngine::with_config(config.clone())
         .map_err(|e| anyhow!("Failed to create engine: {}", e))?;
     
     match cli.command {
-        Commands::Compress { input, output, algorithm, optimization, level, force } => {
-            handle_compress_command(&engine, input, output, algorithm, optimization, level, force, &cli).await
+        Commands::Compress { input, output, algorithm, optimization, level, force, verify, streaming } => {
+            handle_compress_command(&engine, input, output, algorithm, optimization, level, force, verify, streaming, &cli).await
+        },
+        Commands::Decompress { input, output, force } => {
+            handle_decompress_command(&engine, input, output, force).await
         },
         Commands::Analyze { file, detailed } => {
             handle_analyze_command(&engine, file, detailed, &cli).await
+        },
+        Commands::Benchmark { file } => {
+            handle_benchmark_command(&engine, file).await
         },
         Commands::Info { all } => {
             handle_info_command(all).await
@@ -1058,6 +1703,8 @@ async fn handle_compress_command(
     optimization: CliOptimization,
     level: Option<u8>,
     force: bool,
+    verify: bool,
+    streaming: bool,
     cli: &Cli,
 ) -> Result<()> {
     if output.exists() && !force {
@@ -1069,18 +1716,19 @@ async fn handle_compress_command(
         }
     }
     
-    let options = CompressionOptions {
-        algorithm: algorithm.map(|a| convert_cli_algorithm(a, level)),
-        optimization_target: convert_cli_optimization(optimization),
-        thread_count: if cli.threads > 0 { Some(cli.threads) } else { None },
-        ..Default::default()
-    };
+    let options = CompressionOptions::builder()
+        .algorithm(algorithm.map(|a| convert_cli_algorithm(a, level)).unwrap_or(CompressionAlgorithm::Zstd { level: 3 }))
+        .optimize_for(convert_cli_optimization(optimization))
+        .threads(cli.threads)
+        .verify(verify)
+        .streaming(streaming)
+        .build();
     
-    println!("🚀 Starting compression...");
+    println!("Starting compression...");
     println!("   Input: {}", input.display());
     println!("   Output: {}", output.display());
     
-    let metadata = engine.compress_file(&input, &output, options)
+    let metadata = engine.compress_file_async(&input, &output, options).await
         .map_err(|e| anyhow!("Compression failed: {}", e))?;
     
     match cli.output_format {
@@ -1091,15 +1739,42 @@ async fn handle_compress_command(
     Ok(())
 }
 
+async fn handle_decompress_command(
+    engine: &CompressionEngine,
+    input: PathBuf,
+    output: PathBuf,
+    force: bool,
+) -> Result<()> {
+    if output.exists() && !force {
+        if !Confirm::new()
+            .with_prompt(format!("Overwrite {}?", output.display()))
+            .interact()? 
+        {
+            return Ok(());
+        }
+    }
+    
+    println!("Starting decompression...");
+    println!("   Input: {}", input.display());
+    println!("   Output: {}", output.display());
+    
+    engine.decompress_file(&input, &output).await
+        .map_err(|e| anyhow!("Decompression failed: {}", e))?;
+    
+    println!("Decompression complete!");
+    
+    Ok(())
+}
+
 async fn handle_analyze_command(
     engine: &CompressionEngine,
     file: PathBuf,
     detailed: bool,
     cli: &Cli,
 ) -> Result<()> {
-    println!("🔍 Analyzing: {}", file.display());
+    println!("Analyzing: {}", file.display());
     
-    let analysis = engine.analyze_file(&file)
+    let analysis = engine.analyze_file_async(&file).await
         .map_err(|e| anyhow!("Analysis failed: {}", e))?;
     
     match cli.output_format {
@@ -1110,8 +1785,34 @@ async fn handle_analyze_command(
     Ok(())
 }
 
+async fn handle_benchmark_command(
+    engine: &CompressionEngine,
+    file: PathBuf,
+) -> Result<()> {
+    println!("Benchmarking algorithms on: {}", file.display());
+    
+    let data = tokio::fs::read(&file).await?;
+    let results = engine.benchmark_algorithms(&data).await;
+    
+    println!("\nBenchmark Results:");
+    println!("   Algorithm           Ratio    Comp Speed   Decomp Speed   Size");
+    println!("   -----------------------------------------------------------------");
+    
+    for result in results {
+        println!("   {:<18} {:.2}:1   {:>8.1} MB/s   {:>8.1} MB/s   {} bytes",
+            format!("{:?}", result.algorithm),
+            result.compression_ratio,
+            result.compression_speed_mbps,
+            result.decompression_speed_mbps,
+            result.compressed_size
+        );
+    }
+    
+    Ok(())
+}
+
 async fn handle_info_command(all: bool) -> Result<()> {
-    println!("📊 ENCS System Information:");
+    println!("ENCS System Information:");
     println!("   Version: {}", env!("CARGO_PKG_VERSION"));
     
     let mut system = System::new_all();
@@ -1120,13 +1821,12 @@ async fn handle_info_command(all: bool) -> Result<()> {
     println!("   CPU cores: {}", num_cpus::get());
     println!("   Memory: {:.1} GB total", system.total_memory() as f64 / (1024.0 * 1024.0 * 1024.0));
     
-    println!("\n🔧 Available Algorithms:");
-    println!("   • Store, LZ4, LZ4-HC, Snappy, Deflate, Zstd, Brotli");
+    println!("\nAvailable Algorithms:");
+    println!("   - Store, LZ4, LZ4-HC, Snappy, Deflate, Zstd, Brotli");
     
     if all {
-        // Quick algorithm test
         let test_data = b"Hello, World!".repeat(100);
-        println!("\n🧪 Algorithm Test ({}B input):", test_data.len());
+        println!("\nAlgorithm Test ({}B input):", test_data.len());
         
         let algorithms = [
             ("Store", CompressionAlgorithm::Store),
@@ -1139,9 +1839,9 @@ async fn handle_info_command(all: bool) -> Result<()> {
             match CompressionEngine::compress_chunk(&test_data, &algo, 0) {
                 Ok(compressed) => {
                     let ratio = test_data.len() as f64 / compressed.len() as f64;
-                    println!("   ✅ {}: {:.2}:1", name, ratio);
+                    println!("   [OK] {}: {:.2}:1", name, ratio);
                 },
-                Err(_) => println!("   ❌ {}: failed", name),
+                Err(_) => println!("   [FAIL] {}: failed", name),
             }
         }
     }
@@ -1171,7 +1871,7 @@ fn convert_cli_optimization(optimization: CliOptimization) -> OptimizationTarget
 }
 
 fn print_compression_results_human(metadata: &FileMetadata) {
-    println!("\n📊 Results:");
+    println!("\nResults:");
     println!("   Original:  {} bytes ({:.2} MB)", 
         metadata.metrics.original_size, 
         metadata.metrics.original_size as f64 / (1024.0 * 1024.0));
@@ -1189,58 +1889,24 @@ fn print_compression_results_human(metadata: &FileMetadata) {
 }
 
 fn print_analysis_results_human(analysis: &ContentAnalysis, detailed: bool) {
-    println!("\n📋 Analysis:");
+    println!("\nAnalysis:");
     println!("   Type:           {:?}", analysis.file_type);
     println!("   Entropy:        {:.3}", analysis.entropy);
     println!("   Compressibility: {:.1}%", analysis.compressibility_score * 100.0);
     println!("   Text ratio:     {:.1}%", analysis.text_ratio * 100.0);
     
     if analysis.contains_executable {
-        println!("   ⚠️  Executable detected");
+        println!("   [WARNING] Executable detected");
     }
     
     if detailed {
-        println!("\n💡 Recommendations:");
+        println!("\nRecommendations:");
         if analysis.compressibility_score > 0.8 {
-            println!("   🥇 Zstd (excellent compression expected)");
+            println!("   Best: Zstd (excellent compression expected)");
         } else if analysis.compressibility_score > 0.5 {
-            println!("   🥇 Zstd/LZ4 (good compression expected)");
+            println!("   Best: Zstd/LZ4 (good compression expected)");
         } else {
-            println!("   🥇 Store/LZ4 (minimal compression expected)");
+            println!("   Best: Store/LZ4 (minimal compression expected)");
         }
     }
 }
-
-// ================================================================================================
-// ISSUES THAT CANNOT BE FIXED (kill me)
-// ================================================================================================
-
-/*
-REMAINING LIMITATIONS (Cannot be fixed without major changes):
-
-1. **Memory-mapped I/O**: 
-   - Current implementation reads entire file into memory for large files
-   - Cannot be fixed without implementing custom memory-mapped chunk processing
-   - Workaround: File size limits and chunk-based processing implemented
-
-2. **GPU Acceleration**: 
-   - No GPU compression libraries available in pure Rust ecosystem
-   - Cannot be fixed without C/CUDA bindings
-   - Workaround: CPU parallelization with rayon provides good performance
-
-3. **Real-time Dictionary Training**:
-   - Zstd dictionary training requires full file scan
-   - Cannot be fixed due to algorithmic limitations
-   - Workaround: Dictionary training disabled by default
-
-4. **Cross-platform Path Handling**:
-   - Some edge cases with Windows path handling in async contexts
-   - Cannot be fully fixed due to tokio/std::fs differences
-   - Workaround: Input validation and error handling implemented
-
-5. **Progress Bar Thread Safety**:
-   - Indicatif progress bars have some thread safety limitations
-   - Cannot be fully fixed without custom progress implementation
-   - Workaround: Atomic counters and careful synchronization
-
-*/
