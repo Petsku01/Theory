@@ -1,403 +1,568 @@
+#!/usr/bin/env python3
+"""
+Server Backup Tool - GUI Interface
+Provides graphic interface for backup configuration and management
+"""
+
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import os
-from backup_tool import BackupTool
+import sys
 import threading
-import configparser
 import re
-import logging
+from pathlib import Path
+
+# Check for required packages
+try:
+    import schedule
+    import time
+except ImportError:
+    messagebox.showerror("Missing Dependencies", 
+                        "Required packages missing.\nInstall with: pip install schedule")
+    sys.exit(1)
+
+# Import backup tool
+try:
+    from backup_tool import BackupTool
+except ImportError:
+    messagebox.showerror("Error", "backup_tool.py not found in current directory")
+    sys.exit(1)
+
 
 class BackupGUI:
     def __init__(self, root):
+        """Initialize GUI application"""
         self.root = root
         self.root.title("Server Backup Tool")
+        self.root.geometry("800x600")
+        
+        # State variables
         self.backup_running = False
-        self.scheduling = False
-        self.schedule_event = threading.Event()
-        self.archive_lock = threading.Lock()
+        self.schedule_running = False
+        self.schedule_thread = None
+        self.status_messages = []
+        
+        # Initialize backup tool
         try:
             self.backup_tool = BackupTool(progress_callback=self.update_status)
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to initialize: {str(e)}")
-            raise
-        self.status_lines = []
-        self.max_status_lines = 1000
-        self.email_enabled_var = tk.BooleanVar(value=self.backup_tool.email_enabled)
-        self.sort_column = 'Path'
-        self.sort_reverse = False
-        self.logger = self.backup_tool.logger  # Use same logger as backup_tool
+            messagebox.showerror("Initialization Error", f"Failed to initialize: {e}")
+            sys.exit(1)
+        
+        # Create GUI
         self.create_widgets()
-        self.root.columnconfigure(0, weight=1)
-        self.root.rowconfigure(0, weight=1)
+        
+        # Handle window close
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
-
-    def create_widgets(self):
-        """Create GUI widgets"""
-        self.notebook = ttk.Notebook(self.root)
-        self.notebook.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), padx=10, pady=10)
-
-        # Main Settings Tab
-        self.main_frame = ttk.Frame(self.notebook)
-        self.notebook.add(self.main_frame, text="Main Settings")
-
-        # Source Directories
-        ttk.Label(self.main_frame, text="Source Directories (comma-separated):").grid(row=0, column=0, sticky=tk.W, pady=2)
-        self.source_dirs = ttk.Entry(self.main_frame, width=50)
-        self.source_dirs.insert(0, ','.join(self.backup_tool.source_dirs))
-        self.source_dirs.grid(row=0, column=1, sticky=(tk.W, tk.E), pady=2)
-        self.browse_source_btn = ttk.Button(self.main_frame, text="Browse", command=self.browse_source)
-        self.browse_source_btn.grid(row=0, column=2, padx=5)
-
-        # Backup Directory
-        ttk.Label(self.main_frame, text="Backup Directory:").grid(row=1, column=0, sticky=tk.W, pady=2)
-        self.backup_dir = ttk.Entry(self.main_frame, width=50)
-        self.backup_dir.insert(0, self.backup_tool.backup_dir)
-        self.backup_dir.grid(row=1, column=1, sticky=(tk.W, tk.E), pady=2)
-        self.browse_backup_btn = ttk.Button(self.main_frame, text="Browse", command=self.browse_backup)
-        self.browse_backup_btn.grid(row=1, column=2, padx=5)
-
-        # Backup Type
-        ttk.Label(self.main_frame, text="Backup Type:").grid(row=2, column=0, sticky=tk.W, pady=2)
-        self.backup_type = ttk.Combobox(self.main_frame, values=["incremental", "full"], state="readonly")
-        self.backup_type.set(self.backup_tool.backup_type)
-        self.backup_type.grid(row=2, column=1, sticky=tk.W, pady=2)
-
-        # Max Backups
-        ttk.Label(self.main_frame, text="Max Backups:").grid(row=3, column=0, sticky=tk.W, pady=2)
-        self.max_backups = ttk.Entry(self.main_frame, width=10)
-        self.max_backups.insert(0, str(self.backup_tool.max_backups))
-        self.max_backups.grid(row=3, column=1, sticky=tk.W, pady=2)
-
-        # Exclude Patterns
-        ttk.Label(self.main_frame, text="Exclude Patterns (comma-separated):").grid(row=4, column=0, sticky=tk.W, pady=2)
-        self.exclude_patterns = ttk.Entry(self.main_frame, width=50)
-        self.exclude_patterns.insert(0, ','.join(self.backup_tool.exclude_patterns))
-        self.exclude_patterns.grid(row=4, column=1, sticky=(tk.W, tk.E), pady=2)
-
-        # Schedule Time
-        ttk.Label(self.main_frame, text="Schedule Time (HH:MM):").grid(row=5, column=0, sticky=tk.W, pady=2)
-        self.schedule_time = ttk.Entry(self.main_frame, width=10)
-        self.schedule_time.insert(0, self.backup_tool.schedule_time)
-        self.schedule_time.grid(row=5, column=1, sticky=tk.W, pady=2)
-
-        # Email Settings Tab
-        self.email_frame = ttk.Frame(self.notebook)
-        self.notebook.add(self.email_frame, text="Email Settings")
-
-        ttk.Label(self.email_frame, text="Enable Email:").grid(row=0, column=0, sticky=tk.W, pady=2)
-        self.email_enabled = ttk.Checkbutton(self.email_frame, variable=self.email_enabled_var)
-        self.email_enabled.grid(row=0, column=1, sticky=tk.W, pady=2)
-
-        ttk.Label(self.email_frame, text="SMTP Server:").grid(row=1, column=0, sticky=tk.W, pady=2)
-        self.smtp_server = ttk.Entry(self.email_frame, width=50)
-        self.smtp_server.insert(0, self.backup_tool.smtp_server)
-        self.smtp_server.grid(row=1, column=1, sticky=(tk.W, tk.E), pady=2)
-
-        ttk.Label(self.email_frame, text="SMTP Port:").grid(row=2, column=0, sticky=tk.W, pady=2)
-        self.smtp_port = ttk.Entry(self.email_frame, width=10)
-        self.smtp_port.insert(0, str(self.backup_tool.smtp_port))
-        self.smtp_port.grid(row=2, column=1, sticky=tk.W, pady=2)
-
-        ttk.Label(self.email_frame, text="SMTP User:").grid(row=3, column=0, sticky=tk.W, pady=2)
-        self.smtp_user = ttk.Entry(self.email_frame, width=50)
-        self.smtp_user.insert(0, self.backup_tool.smtp_user)
-        self.smtp_user.grid(row=3, column=1, sticky=(tk.W, tk.E), pady=2)
-
-        ttk.Label(self.email_frame, text="SMTP Password:").grid(row=4, column=0, sticky=tk.W, pady=2)
-        self.smtp_password = ttk.Entry(self.email_frame, width=50, show="*")
-        self.smtp_password.insert(0, self.backup_tool.smtp_password)
-        self.smtp_password.grid(row=4, column=1, sticky=(tk.W, tk.E), pady=2)
-
-        ttk.Label(self.email_frame, text="Email To:").grid(row=5, column=0, sticky=tk.W, pady=2)
-        self.email_to = ttk.Entry(self.email_frame, width=50)
-        self.email_to.insert(0, self.backup_tool.email_to)
-        self.email_to.grid(row=5, column=1, sticky=(tk.W, tk.E), pady=2)
-
-        ttk.Label(self.email_frame, text="Email Timezone:").grid(row=6, column=0, sticky=tk.W, pady=2)
-        self.email_timezone = ttk.Entry(self.email_frame, width=50)
-        self.email_timezone.insert(0, self.backup_tool.email_timezone)
-        self.email_timezone.grid(row=6, column=1, sticky=(tk.W, tk.E), pady=2)
-
-        # Archive Viewer Tab
-        self.archive_frame = ttk.Frame(self.notebook)
-        self.notebook.add(self.archive_frame, text="Archive Viewer")
-
-        ttk.Label(self.archive_frame, text="Select Backup Archive:").grid(row=0, column=0, sticky=tk.W, pady=2)
-        self.archive_select = ttk.Combobox(self.archive_frame, width=50, state="readonly")
-        self.archive_select.grid(row=0, column=1, sticky=(tk.W, tk.E), pady=2)
-        self.archive_select.bind('<<ComboboxSelected>>', self.view_archive)
-        self.refresh_archive_btn = ttk.Button(self.archive_frame, text="Refresh", command=self.refresh_archives)
-        self.refresh_archive_btn.grid(row=0, column=2, padx=5)
-
-        self.archive_tree = ttk.Treeview(self.archive_frame, columns=('Path', 'Size', 'Modified'), show='headings')
-        self.archive_tree.heading('Path', text='File Path', command=lambda: self.sort_treeview('Path'))
-        self.archive_tree.heading('Size', text='Size (Bytes)', command=lambda: self.sort_treeview('Size'))
-        self.archive_tree.heading('Modified', text='Modified Time', command=lambda: self.sort_treeview('Modified'))
-        self.archive_tree.column('Path', width=400)
-        self.archive_tree.column('Size', width=100)
-        self.archive_tree.column('Modified', width=150)
-        self.archive_tree.grid(row=1, column=0, columnspan=3, sticky=(tk.W, tk.E, tk.N, tk.S), pady=2)
-        self.archive_scroll = ttk.Scrollbar(self.archive_frame, orient=tk.VERTICAL, command=self.archive_tree.yview)
-        self.archive_tree.configure(yscrollcommand=self.archive_scroll.set)
-        self.archive_scroll.grid(row=1, column=3, sticky=(tk.N, tk.S))
+        
+        # Initial refresh
         self.refresh_archives()
 
-        # Status Display
-        ttk.Label(self.main_frame, text="Status:").grid(row=6, column=0, sticky=tk.W, pady=2)
-        self.status_text = tk.Text(self.main_frame, height=10, width=60)
-        self.status_text.grid(row=6, column=1, columnspan=2, sticky=(tk.W, tk.E, tk.N, tk.S), pady=2)
-        self.status_scroll = ttk.Scrollbar(self.main_frame, orient=tk.VERTICAL, command=self.status_text.yview)
-        self.status_text.config(yscrollcommand=self.status_scroll.set)
-        self.status_scroll.grid(row=6, column=3, sticky=(tk.N, tk.S))
+    def create_widgets(self):
+        """Create all GUI widgets"""
+        # Create notebook for tabs
+        self.notebook = ttk.Notebook(self.root)
+        self.notebook.pack(fill='both', expand=True, padx=5, pady=5)
+        
+        # Create tabs
+        self.create_main_tab()
+        self.create_email_tab()
+        self.create_archive_tab()
+        
+        # Status bar at bottom
+        self.status_bar = ttk.Label(self.root, text="Ready", relief=tk.SUNKEN)
+        self.status_bar.pack(side='bottom', fill='x')
 
-        # Buttons
-        self.save_btn = ttk.Button(self.main_frame, text="Save Config", command=self.save_config)
-        self.save_btn.grid(row=7, column=0, pady=5)
-        self.run_btn = ttk.Button(self.main_frame, text="Run Backup", command=self.run_backup)
-        self.run_btn.grid(row=7, column=1, pady=5)
-        self.log_btn = ttk.Button(self.main_frame, text="View Log", command=self.view_log)
-        self.log_btn.grid(row=7, column=2, pady=5)
-        self.schedule_button = ttk.Button(self.main_frame, text="Start Schedule", command=self.toggle_schedule)
-        self.schedule_button.grid(row=8, column=1, pady=5)
+    def create_main_tab(self):
+        """Create main settings tab"""
+        main_frame = ttk.Frame(self.notebook)
+        self.notebook.add(main_frame, text="Settings")
+        
+        # Create grid
+        settings_frame = ttk.LabelFrame(main_frame, text="Backup Settings", padding=10)
+        settings_frame.pack(fill='both', expand=True, padx=10, pady=10)
+        
+        # Source directories
+        row = 0
+        ttk.Label(settings_frame, text="Source Directories:").grid(row=row, column=0, sticky='w', pady=5)
+        
+        source_frame = ttk.Frame(settings_frame)
+        source_frame.grid(row=row, column=1, columnspan=2, sticky='ew', pady=5)
+        
+        self.source_text = tk.Text(source_frame, height=3, width=50)
+        self.source_text.pack(side='left', fill='both', expand=True)
+        self.source_text.insert('1.0', '\n'.join(self.backup_tool.source_dirs))
+        
+        source_scroll = ttk.Scrollbar(source_frame, command=self.source_text.yview)
+        source_scroll.pack(side='right', fill='y')
+        self.source_text.config(yscrollcommand=source_scroll.set)
+        
+        ttk.Button(settings_frame, text="Add Directory", 
+                  command=self.add_source_dir).grid(row=row, column=3, padx=5)
+        
+        # Backup directory
+        row += 1
+        ttk.Label(settings_frame, text="Backup Directory:").grid(row=row, column=0, sticky='w', pady=5)
+        self.backup_dir_var = tk.StringVar(value=self.backup_tool.backup_dir)
+        ttk.Entry(settings_frame, textvariable=self.backup_dir_var, 
+                 width=50).grid(row=row, column=1, columnspan=2, pady=5)
+        ttk.Button(settings_frame, text="Browse", 
+                  command=self.browse_backup_dir).grid(row=row, column=3, padx=5)
+        
+        # Backup type
+        row += 1
+        ttk.Label(settings_frame, text="Backup Type:").grid(row=row, column=0, sticky='w', pady=5)
+        self.backup_type_var = tk.StringVar(value=self.backup_tool.backup_type)
+        backup_combo = ttk.Combobox(settings_frame, textvariable=self.backup_type_var,
+                                    values=['incremental', 'full'], state='readonly', width=20)
+        backup_combo.grid(row=row, column=1, sticky='w', pady=5)
+        
+        # Max backups
+        row += 1
+        ttk.Label(settings_frame, text="Max Backups:").grid(row=row, column=0, sticky='w', pady=5)
+        self.max_backups_var = tk.StringVar(value=str(self.backup_tool.max_backups))
+        ttk.Spinbox(settings_frame, textvariable=self.max_backups_var,
+                   from_=1, to=100, width=10).grid(row=row, column=1, sticky='w', pady=5)
+        
+        # Exclude patterns
+        row += 1
+        ttk.Label(settings_frame, text="Exclude Patterns:").grid(row=row, column=0, sticky='w', pady=5)
+        self.exclude_var = tk.StringVar(value=','.join(self.backup_tool.exclude_patterns))
+        ttk.Entry(settings_frame, textvariable=self.exclude_var,
+                 width=50).grid(row=row, column=1, columnspan=2, pady=5)
+        
+        # Schedule time
+        row += 1
+        ttk.Label(settings_frame, text="Schedule Time (HH:MM):").grid(row=row, column=0, sticky='w', pady=5)
+        self.schedule_var = tk.StringVar(value=self.backup_tool.schedule_time)
+        ttk.Entry(settings_frame, textvariable=self.schedule_var,
+                 width=10).grid(row=row, column=1, sticky='w', pady=5)
+        
+        # Configure column weights
+        settings_frame.columnconfigure(1, weight=1)
+        
+        # Control buttons
+        button_frame = ttk.Frame(main_frame)
+        button_frame.pack(fill='x', padx=10, pady=5)
+        
+        ttk.Button(button_frame, text="Save Configuration",
+                  command=self.save_config).pack(side='left', padx=5)
+        
+        self.backup_btn = ttk.Button(button_frame, text="Run Backup Now",
+                                     command=self.run_backup)
+        self.backup_btn.pack(side='left', padx=5)
+        
+        self.schedule_btn = ttk.Button(button_frame, text="Start Schedule",
+                                       command=self.toggle_schedule)
+        self.schedule_btn.pack(side='left', padx=5)
+        
+        ttk.Button(button_frame, text="View Log",
+                  command=self.view_log).pack(side='left', padx=5)
+        
+        # Status display
+        status_frame = ttk.LabelFrame(main_frame, text="Status", padding=10)
+        status_frame.pack(fill='both', expand=True, padx=10, pady=5)
+        
+        self.status_text = tk.Text(status_frame, height=8, width=70)
+        self.status_text.pack(side='left', fill='both', expand=True)
+        
+        status_scroll = ttk.Scrollbar(status_frame, command=self.status_text.yview)
+        status_scroll.pack(side='right', fill='y')
+        self.status_text.config(yscrollcommand=status_scroll.set)
 
-        # Configure grid weights
-        self.main_frame.columnconfigure(1, weight=1)
-        self.main_frame.rowconfigure(6, weight=1)
-        self.email_frame.columnconfigure(1, weight=1)
-        self.archive_frame.columnconfigure(1, weight=1)
-        self.archive_frame.rowconfigure(1, weight=1)
+    def create_email_tab(self):
+        """Create email settings tab"""
+        email_frame = ttk.Frame(self.notebook)
+        self.notebook.add(email_frame, text="Email")
+        
+        settings_frame = ttk.LabelFrame(email_frame, text="Email Settings", padding=10)
+        settings_frame.pack(fill='both', expand=True, padx=10, pady=10)
+        
+        # Email enabled checkbox
+        self.email_enabled_var = tk.BooleanVar(value=self.backup_tool.email_enabled)
+        ttk.Checkbutton(settings_frame, text="Enable Email Notifications",
+                       variable=self.email_enabled_var,
+                       command=self.toggle_email_fields).grid(row=0, column=0, columnspan=2, pady=10)
+        
+        # Email fields
+        self.email_widgets = {}
+        
+        fields = [
+            ('SMTP Server:', 'smtp_server', self.backup_tool.smtp_server, False),
+            ('SMTP Port:', 'smtp_port', str(self.backup_tool.smtp_port), False),
+            ('Email From:', 'smtp_user', self.backup_tool.smtp_user, False),
+            ('Password:', 'smtp_password', self.backup_tool.smtp_password, True),
+            ('Email To:', 'email_to', self.backup_tool.email_to, False),
+        ]
+        
+        for i, (label, key, default, is_password) in enumerate(fields, 1):
+            ttk.Label(settings_frame, text=label).grid(row=i, column=0, sticky='w', pady=5)
+            
+            var = tk.StringVar(value=default)
+            entry = ttk.Entry(settings_frame, textvariable=var, width=40,
+                            show='*' if is_password else '')
+            entry.grid(row=i, column=1, pady=5, padx=5)
+            
+            self.email_widgets[key] = {'widget': entry, 'var': var}
+        
+        # Test email button
+        self.test_email_btn = ttk.Button(settings_frame, text="Send Test Email",
+                                         command=self.send_test_email)
+        self.test_email_btn.grid(row=len(fields)+1, column=1, pady=10)
+        
+        # Configure column weight
+        settings_frame.columnconfigure(1, weight=1)
+        
+        # Enable/disable fields based on checkbox
+        self.toggle_email_fields()
 
-    def browse_source(self):
-        """Browse for source directories"""
-        try:
-            # Check Tkinter version for multiple directory support (Tk 8.6.10+)
-            if tk.TkVersion >= 8.6:
-                dirs = filedialog.askdirectory(multiple=True)
-                if dirs:
-                    self.source_dirs.delete(0, tk.END)
-                    self.source_dirs.insert(0, ','.join(dirs))
-            else:
-                raise AttributeError("Multiple directory selection not supported")
-        except (AttributeError, Exception):
-            directory = filedialog.askdirectory()
-            if directory:
-                current = self.source_dirs.get()
-                new_dirs = [d.strip() for d in current.split(',') if d.strip()] + [directory]
-                new_dirs = list(dict.fromkeys(new_dirs))  # Remove duplicates
-                self.source_dirs.delete(0, tk.END)
-                self.source_dirs.insert(0, ','.join(new_dirs))
+    def create_archive_tab(self):
+        """Create archive viewer tab"""
+        archive_frame = ttk.Frame(self.notebook)
+        self.notebook.add(archive_frame, text="Archives")
+        
+        # Archive selection
+        select_frame = ttk.Frame(archive_frame)
+        select_frame.pack(fill='x', padx=10, pady=10)
+        
+        ttk.Label(select_frame, text="Select Archive:").pack(side='left', padx=5)
+        
+        self.archive_var = tk.StringVar()
+        self.archive_combo = ttk.Combobox(select_frame, textvariable=self.archive_var,
+                                         state='readonly', width=50)
+        self.archive_combo.pack(side='left', padx=5)
+        self.archive_combo.bind('<<ComboboxSelected>>', self.view_archive)
+        
+        ttk.Button(select_frame, text="Refresh",
+                  command=self.refresh_archives).pack(side='left', padx=5)
+        
+        ttk.Button(select_frame, text="Delete Selected",
+                  command=self.delete_archive).pack(side='left', padx=5)
+        
+        # Archive contents tree
+        tree_frame = ttk.LabelFrame(archive_frame, text="Archive Contents", padding=10)
+        tree_frame.pack(fill='both', expand=True, padx=10, pady=5)
+        
+        # Create treeview with scrollbars
+        tree_container = ttk.Frame(tree_frame)
+        tree_container.pack(fill='both', expand=True)
+        
+        self.archive_tree = ttk.Treeview(tree_container, 
+                                        columns=('Size', 'Modified'),
+                                        show='tree headings',
+                                        height=15)
+        
+        self.archive_tree.heading('#0', text='File Path')
+        self.archive_tree.heading('Size', text='Size')
+        self.archive_tree.heading('Modified', text='Modified')
+        
+        self.archive_tree.column('#0', width=400)
+        self.archive_tree.column('Size', width=100)
+        self.archive_tree.column('Modified', width=150)
+        
+        # Scrollbars
+        vsb = ttk.Scrollbar(tree_container, orient='vertical', command=self.archive_tree.yview)
+        hsb = ttk.Scrollbar(tree_container, orient='horizontal', command=self.archive_tree.xview)
+        self.archive_tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
+        
+        # Grid layout
+        self.archive_tree.grid(row=0, column=0, sticky='nsew')
+        vsb.grid(row=0, column=1, sticky='ns')
+        hsb.grid(row=1, column=0, sticky='ew')
+        
+        tree_container.grid_rowconfigure(0, weight=1)
+        tree_container.grid_columnconfigure(0, weight=1)
 
-    def browse_backup(self):
-        """Browse for backup directory"""
-        directory = filedialog.askdirectory()
+    def add_source_dir(self):
+        """Add source directory"""
+        directory = filedialog.askdirectory(title="Select Source Directory")
         if directory:
-            self.backup_dir.delete(0, tk.END)
-            self.backup_dir.insert(0, directory)
+            current = self.source_text.get('1.0', 'end-1c')
+            if current and not current.endswith('\n'):
+                current += '\n'
+            self.source_text.insert('end', directory + '\n')
+            self.update_status(f"Added source: {directory}")
 
-    def update_status(self, message):
-        """Update status text area with buffer limit"""
-        self.status_lines.append(message)
-        if len(self.status_lines) > self.max_status_lines:
-            self.status_lines.pop(0)
-        self.status_text.delete(1.0, tk.END)
-        self.status_text.insert(tk.END, '\n'.join(self.status_lines) + '\n')
-        self.status_text.see(tk.END)
-        self.root.update()
+    def browse_backup_dir(self):
+        """Browse for backup directory"""
+        directory = filedialog.askdirectory(title="Select Backup Directory")
+        if directory:
+            self.backup_dir_var.set(directory)
 
-    def refresh_archives(self):
-        """Refresh the list of available backup archives"""
-        with self.archive_lock:
-            if self.backup_running:
-                self.update_status("Cannot refresh archives during backup")
-                return
-            try:
-                backups = sorted([f for f in os.listdir(self.backup_tool.backup_dir) if f.endswith('.zip')])
-                self.archive_select['values'] = backups
-                if backups:
-                    self.archive_select.current(0)
-                else:
-                    self.archive_select.set('')
-                    self.archive_select.config(state='disabled')
-                    self.archive_tree.delete(*self.archive_tree.get_children())
-            except Exception as e:
-                self.update_status(f"Error refreshing archives: {str(e)}")
-                return
-        if backups:  # Call view_archive outside lock
-            self.view_archive(None)
+    def toggle_email_fields(self):
+        """Enable/disable email fields based on checkbox"""
+        state = 'normal' if self.email_enabled_var.get() else 'disabled'
+        for widget_info in self.email_widgets.values():
+            widget_info['widget'].config(state=state)
+        self.test_email_btn.config(state=state)
 
-    def sort_treeview(self, column):
-        """Sort the archive treeview by the specified column"""
-        if column == self.sort_column:
-            self.sort_reverse = not self.sort_reverse
-        else:
-            self.sort_column = column
-            self.sort_reverse = False
-
-        items = [(self.archive_tree.set(item, column), item) for item in self.archive_tree.get_children('')]
-        if column == 'Size':
-            def size_key(x):
-                try:
-                    return int(x[0])
-                except ValueError:
-                    self.logger.warning(f"Non-numeric size in archive: {x[0]}")
-                    self.update_status(f"Warning: Non-numeric size detected in archive: {x[0]}")
-                    return 0
-            items.sort(key=size_key, reverse=self.sort_reverse)
-        else:
-            items.sort(key=lambda x: x[0].lower(), reverse=self.sort_reverse)
-
-        for index, (value, item) in enumerate(items):
-            self.archive_tree.move(item, '', index)
-
-    def view_archive(self, event):
-        """Display the contents of the selected archive"""
-        self.notebook.select(self.archive_frame)
-        selected = self.archive_select.get()
-        if not selected:
-            return
-        zip_path = os.path.join(self.backup_tool.backup_dir, selected)
-        contents = self.backup_tool.list_archive_contents(zip_path)
-        self.archive_tree.delete(*self.archive_tree.get_children())
-        for item in contents:
-            self.archive_tree.insert('', 'end', values=(item['path'], item['size'], item['mtime']))
-        self.sort_treeview(self.sort_column)
+    def send_test_email(self):
+        """Send test email"""
+        try:
+            # Update backup tool with current email settings
+            self.backup_tool.email_enabled = True
+            self.backup_tool.smtp_server = self.email_widgets['smtp_server']['var'].get()
+            self.backup_tool.smtp_port = int(self.email_widgets['smtp_port']['var'].get())
+            self.backup_tool.smtp_user = self.email_widgets['smtp_user']['var'].get()
+            self.backup_tool.smtp_password = self.email_widgets['smtp_password']['var'].get()
+            self.backup_tool.email_to = self.email_widgets['email_to']['var'].get()
+            
+            # Send test email
+            self.backup_tool.send_email("Test Email", "This is a test email from Backup Tool")
+            messagebox.showinfo("Success", "Test email sent successfully")
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to send test email: {e}")
 
     def save_config(self):
-        """Save configuration to file with validation"""
+        """Save configuration"""
         try:
-            max_backups = self.max_backups.get()
-            try:
-                max_backups = int(max_backups)
-                if max_backups <= 0:
-                    raise ValueError("Max Backups must be positive")
-            except ValueError:
-                raise ValueError("Max Backups must be a positive integer")
-            schedule_time = self.schedule_time.get()
-            datetime.datetime.strptime(schedule_time, '%H:%M')
-            smtp_port = self.smtp_port.get()
-            try:
-                smtp_port = int(smtp_port)
-                if smtp_port <= 0:
-                    raise ValueError("SMTP Port must be positive")
-            except ValueError:
-                raise ValueError("SMTP Port must be a positive integer")
-            email_to = self.email_to.get()
-            if self.email_enabled_var.get() and email_to and not re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', email_to):
-                raise ValueError("Invalid Email To format")
-            smtp_server = self.smtp_server.get()
-            if self.email_enabled_var.get() and smtp_server and not re.match(r'^(localhost|[\w\.-]+\.[a-zA-Z]{2,}|\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$', smtp_server):
-                raise ValueError("Invalid SMTP Server format (use hostname, localhost, or IP address)")
+            # Get source directories
+            sources = self.source_text.get('1.0', 'end-1c')
+            source_dirs = [s.strip() for s in sources.split('\n') if s.strip()]
+            
+            if not source_dirs:
+                raise ValueError("At least one source directory is required")
+            
+            # Validate max backups
+            max_backups = int(self.max_backups_var.get())
+            if max_backups < 1:
+                raise ValueError("Max backups must be at least 1")
+            
+            # Validate schedule time
+            schedule_time = self.schedule_var.get()
+            time.strptime(schedule_time, '%H:%M')
+            
+            # Build config dictionary
             config_data = {
-                'SourceDirs': self.source_dirs.get(),
-                'BackupDir': self.backup_dir.get(),
-                'BackupType': self.backup_type.get(),
+                'SourceDirs': ','.join(source_dirs),
+                'BackupDir': self.backup_dir_var.get(),
+                'BackupType': self.backup_type_var.get(),
                 'MaxBackups': str(max_backups),
-                'ExcludePatterns': self.exclude_patterns.get(),
+                'ExcludePatterns': self.exclude_var.get(),
                 'ScheduleTime': schedule_time,
                 'EmailEnabled': str(self.email_enabled_var.get()),
-                'SMTPServer': smtp_server,
-                'SMTPPort': str(smtp_port),
-                'SMTPUser': self.smtp_user.get(),
-                'SMTPPassword': self.smtp_password.get(),
-                'EmailTo': email_to,
-                'UseProgressBar': str(self.backup_tool.use_progress_bar),
-                'EmailTimezone': self.email_timezone.get()
+                'SMTPServer': self.email_widgets['smtp_server']['var'].get(),
+                'SMTPPort': self.email_widgets['smtp_port']['var'].get(),
+                'SMTPUser': self.email_widgets['smtp_user']['var'].get(),
+                'SMTPPassword': self.email_widgets['smtp_password']['var'].get(),
+                'EmailTo': self.email_widgets['email_to']['var'].get(),
+                'EmailTimezone': 'UTC'
             }
+            
+            # Save configuration
             self.backup_tool.save_config('backup_config.ini', config_data)
+            
             self.update_status("Configuration saved successfully")
-            self.refresh_archives()
+            messagebox.showinfo("Success", "Configuration saved successfully")
+            
         except ValueError as e:
-            self.update_status(f"Invalid input: {str(e)}")
+            messagebox.showerror("Validation Error", str(e))
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to save config: {str(e)}")
-            self.update_status(f"Error saving config: {str(e)}")
+            messagebox.showerror("Error", f"Failed to save configuration: {e}")
 
     def run_backup(self):
-        """Run backup in a separate thread"""
+        """Run backup in separate thread"""
         if self.backup_running:
-            self.update_status("Backup is already running")
+            messagebox.showwarning("Backup Running", "A backup is already in progress")
             return
+        
         self.backup_running = True
-        self.set_buttons_state('disabled')
+        self.backup_btn.config(state='disabled')
+        self.status_bar.config(text="Backup running...")
+        
         def backup_thread():
             try:
                 self.backup_tool.run_backup()
-                self.refresh_archives()
+                self.root.after(0, self.refresh_archives)
+                self.root.after(0, lambda: self.status_bar.config(text="Backup completed"))
             except Exception as e:
-                self.update_status(f"Backup failed: {str(e)}")
-                messagebox.showerror("Error", f"Backup failed: {str(e)}")
+                self.root.after(0, lambda: messagebox.showerror("Backup Error", str(e)))
+                self.root.after(0, lambda: self.status_bar.config(text="Backup failed"))
             finally:
                 self.backup_running = False
-                self.set_buttons_state('normal')
-        threading.Thread(target=backup_thread, daemon=True).start()
-
-    def set_buttons_state(self, state):
-        """Enable or disable buttons"""
-        self.save_btn.config(state=state)
-        self.run_btn.config(state=state)
-        self.log_btn.config(state=state)
-        self.browse_source_btn.config(state=state)
-        self.browse_backup_btn.config(state=state)
-        self.schedule_button.config(state=state)
-        self.refresh_archive_btn.config(state=state)
-        self.archive_select.config(state='readonly' if state == 'normal' and self.archive_select['values'] else 'disabled')
-
-    def view_log(self):
-        """Display the latest 1000 lines of log file"""
-        log_file = os.path.join('logs', 'backup.log')
-        try:
-            with open(log_file, 'r') as f:
-                lines = f.readlines()[-1000:]
-            self.status_text.delete(1.0, tk.END)
-            self.status_text.insert(tk.END, ''.join(lines))
-            self.status_text.see(tk.END)
-        except Exception as e:
-            self.update_status(f"Error reading log: {str(e)}")
+                self.root.after(0, lambda: self.backup_btn.config(state='normal'))
+        
+        thread = threading.Thread(target=backup_thread, daemon=True)
+        thread.start()
 
     def toggle_schedule(self):
         """Toggle scheduled backups"""
-        if self.scheduling:
-            self.schedule_event.clear()
+        if self.schedule_running:
+            # Stop schedule
+            self.schedule_running = False
             self.backup_tool.schedule_backup(False)
-            self.schedule_button.config(text="Start Schedule")
-            self.scheduling = False
+            self.schedule_btn.config(text="Start Schedule")
             self.update_status("Schedule stopped")
+            self.status_bar.config(text="Schedule stopped")
         else:
+            # Start schedule
             try:
                 self.backup_tool.schedule_backup(True)
-                self.schedule_event.set()
-                self.schedule_button.config(text="Stop Schedule")
-                self.scheduling = True
-                threading.Thread(target=self.schedule_loop, daemon=True).start()
+                self.schedule_running = True
+                self.schedule_btn.config(text="Stop Schedule")
+                self.update_status(f"Schedule started at {self.backup_tool.schedule_time}")
+                self.status_bar.config(text=f"Scheduled at {self.backup_tool.schedule_time}")
+                
+                # Start schedule thread
+                def schedule_loop():
+                    while self.schedule_running:
+                        schedule.run_pending()
+                        time.sleep(60)
+                
+                self.schedule_thread = threading.Thread(target=schedule_loop, daemon=True)
+                self.schedule_thread.start()
+                
             except Exception as e:
-                self.update_status(f"Failed to start schedule: {str(e)}")
-                messagebox.showerror("Error", f"Failed to start schedule: {str(e)}")
+                messagebox.showerror("Schedule Error", str(e))
+                self.schedule_running = False
 
-    def schedule_loop(self):
-        """Run schedule in a separate thread"""
-        while self.schedule_event.is_set():
-            try:
-                schedule.run_pending()
-                time.sleep(60)
-            except Exception as e:
-                self.update_status(f"Schedule error: {str(e)}")
-                messagebox.showerror("Error", f"Schedule error: {str(e)}")
-                self.schedule_event.clear()
-                self.scheduling = False
-                self.schedule_button.config(text="Start Schedule")
-                break
+    def view_log(self):
+        """View backup log in new window"""
+        try:
+            log_path = Path('logs') / 'backup.log'
+            
+            if not log_path.exists():
+                messagebox.showinfo("No Log", "No log file found")
+                return
+            
+            # Create log window
+            log_window = tk.Toplevel(self.root)
+            log_window.title("Backup Log")
+            log_window.geometry("800x600")
+            
+            # Create text widget with scrollbar
+            text_frame = ttk.Frame(log_window)
+            text_frame.pack(fill='both', expand=True, padx=5, pady=5)
+            
+            log_text = tk.Text(text_frame, wrap='none')
+            log_text.pack(side='left', fill='both', expand=True)
+            
+            vsb = ttk.Scrollbar(text_frame, orient='vertical', command=log_text.yview)
+            vsb.pack(side='right', fill='y')
+            
+            hsb = ttk.Scrollbar(log_window, orient='horizontal', command=log_text.xview)
+            hsb.pack(side='bottom', fill='x')
+            
+            log_text.config(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
+            
+            # Read and display log
+            with open(log_path, 'r') as f:
+                log_text.insert('1.0', f.read())
+            
+            log_text.config(state='disabled')
+            
+            # Add close button
+            ttk.Button(log_window, text="Close", 
+                      command=log_window.destroy).pack(pady=5)
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to open log: {e}")
+
+    def refresh_archives(self):
+        """Refresh archive list"""
+        try:
+            backup_dir = Path(self.backup_tool.backup_dir)
+            
+            if not backup_dir.exists():
+                self.archive_combo['values'] = []
+                return
+            
+            # Get all backup files
+            backups = sorted([f.name for f in backup_dir.glob('backup_*.zip')], reverse=True)
+            
+            self.archive_combo['values'] = backups
+            
+            if backups and not self.archive_var.get():
+                self.archive_combo.current(0)
+                self.view_archive(None)
+                
+        except Exception as e:
+            self.update_status(f"Failed to refresh archives: {e}")
+
+    def view_archive(self, event):
+        """View selected archive contents"""
+        # Clear tree
+        self.archive_tree.delete(*self.archive_tree.get_children())
+        
+        selected = self.archive_var.get()
+        if not selected:
+            return
+        
+        try:
+            zip_path = Path(self.backup_tool.backup_dir) / selected
+            contents = self.backup_tool.list_archive_contents(str(zip_path))
+            
+            # Add items to tree
+            for item in contents:
+                # Format size
+                size = item['size']
+                if size < 1024:
+                    size_str = f"{size} B"
+                elif size < 1024*1024:
+                    size_str = f"{size/1024:.1f} KB"
+                else:
+                    size_str = f"{size/(1024*1024):.1f} MB"
+                
+                self.archive_tree.insert('', 'end', text=item['path'],
+                                       values=(size_str, item['mtime']))
+                
+        except Exception as e:
+            self.update_status(f"Failed to view archive: {e}")
+
+    def delete_archive(self):
+        """Delete selected archive"""
+        selected = self.archive_var.get()
+        if not selected:
+            messagebox.showwarning("No Selection", "Please select an archive to delete")
+            return
+        
+        if not messagebox.askyesno("Confirm Delete", f"Delete archive: {selected}?"):
+            return
+        
+        try:
+            archive_path = Path(self.backup_tool.backup_dir) / selected
+            archive_path.unlink()
+            self.update_status(f"Deleted: {selected}")
+            self.refresh_archives()
+            
+        except Exception as e:
+            messagebox.showerror("Delete Error", f"Failed to delete: {e}")
+
+    def update_status(self, message):
+        """Update status display"""
+        timestamp = time.strftime('%H:%M:%S')
+        self.status_text.insert('end', f"[{timestamp}] {message}\n")
+        self.status_text.see('end')
+        
+        # Keep only last 100 messages
+        lines = self.status_text.get('1.0', 'end').split('\n')
+        if len(lines) > 100:
+            self.status_text.delete('1.0', f"{len(lines)-100}.0")
 
     def on_closing(self):
         """Handle window close event"""
         if self.backup_running:
-            if not messagebox.askokcancel("Quit", "Backup is running. Quit anyway?"):
+            if not messagebox.askyesno("Confirm Exit", 
+                                       "A backup is running. Exit anyway?"):
                 return
-        self.schedule_event.clear()
-        self.backup_tool.schedule_backup(False)
+        
+        # Stop schedule
+        self.schedule_running = False
+        
+        # Release lock
         self.backup_tool.release_lock()
+        
+        # Destroy window
         self.root.destroy()
 
-if __name__ == "__main__":
+
+def main():
+    """Main entry point"""
     root = tk.Tk()
     app = BackupGUI(root)
     root.mainloop()
+
+
+if __name__ == "__main__":
+    main()
