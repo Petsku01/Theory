@@ -1,519 +1,603 @@
+#!/usr/bin/env python3
+"""
+Server Backup Tool - Core backup functionality
+
+"""
+
 import os
-import shutil
+import sys
 import zipfile
 import datetime
 import logging
 import logging.handlers
 import configparser
 import platform
-import schedule
 import time
-import smtplib
-import sys
-import fcntl  # Unix only
-import msvcrt  # Windows only
 import signal
-import socket
-from email.mime.text import MIMEText
-from pathlib import Path
 import fnmatch
-from tqdm import tqdm
-import pytz
+from pathlib import Path
 
+# Check for required packages
+required_packages = []
 try:
     import schedule
-    import tqdm
+except ImportError:
+    required_packages.append('schedule')
+
+try:
     import pytz
-except ImportError as e:
-    print(f"Missing required package: {str(e)}. Install with 'pip install configparser schedule tqdm pytz'")
+except ImportError:
+    required_packages.append('pytz')
+
+if required_packages:
+    print(f"Missing required packages: {', '.join(required_packages)}")
+    print(f"Install with: pip install {' '.join(required_packages)}")
     sys.exit(1)
 
+# Platform-specific imports for file locking
+if platform.system() == 'Windows':
+    try:
+        import msvcrt
+    except ImportError:
+        msvcrt = None
+else:
+    try:
+        import fcntl
+    except ImportError:
+        fcntl = None
+
+
 class BackupTool:
-    def __init__(self, config_file='backup_config.ini', progress_callback=None, progress_interval=100):
-        self.progress_callback = progress_callback  # Note: Called from multiple threads, relies on Tkinter's thread safety
-        self.progress_interval = progress_interval  # Files processed before callback
+    def __init__(self, config_file='backup_config.ini', progress_callback=None):
+        """Initialize backup tool with configuration"""
+        self.progress_callback = progress_callback
+        self.system = platform.system().lower()
+        self.lock_fd = None
+        self.config_file = config_file
+        
+        # Setup logging first
         self.setup_logging()
-        self.lock_file = 'backup_tool.lock'
-        self.lock_acquired = False
-        self.acquire_lock()
+        
+        # Initialize with defaults
+        self.set_defaults()
+        
+        # Try to acquire lock (skip for GUI)
+        if not progress_callback:
+            self.acquire_lock()
+        
+        # Load configuration
         try:
             self.load_config(config_file)
-            self.system = platform.system().lower()
-            self.interactive = sys.stdout.isatty()
-            if self.system == 'windows':
-                self.enable_long_paths()
         except Exception as e:
-            self.release_lock()
+            self.logger.error(f"Config load failed: {e}")
+            if not progress_callback:
+                self.release_lock()
             raise
+
+    def set_defaults(self):
+        """Set default values for all attributes"""
+        self.source_dirs = []
+        self.backup_dir = './backups'
+        self.backup_type = 'incremental'
+        self.max_backups = 5
+        self.exclude_patterns = []
+        self.schedule_time = '02:00'
+        self.email_enabled = False
+        self.smtp_server = ''
+        self.smtp_port = 587
+        self.smtp_user = ''
+        self.smtp_password = ''
+        self.email_to = ''
+        self.tz = pytz.UTC
 
     def setup_logging(self):
         """Configure logging with rotation"""
-        log_dir = 'logs'
-        os.makedirs(log_dir, exist_ok=True)
-        if not os.access(log_dir, os.W_OK):
-            raise PermissionError(f"No write permission for log directory: {log_dir}")
-        log_file = os.path.join(log_dir, 'backup.log')
-        handler = logging.handlers.RotatingFileHandler(log_file, maxBytes=10*1024*1024, backupCount=5)
-        logging.basicConfig(
-            handlers=[handler],
-            level=logging.INFO,
-            format='%(asctime)s - %(levelname)s - %(message)s'
-        )
-        self.logger = logging.getLogger(__name__)
+        log_dir = Path('logs')
+        log_dir.mkdir(exist_ok=True)
+        
+        log_file = log_dir / 'backup.log'
+        
+        # Create formatter
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        
+        # Setup rotating file handler
+        try:
+            handler = logging.handlers.RotatingFileHandler(
+                str(log_file), maxBytes=10*1024*1024, backupCount=5
+            )
+            handler.setFormatter(formatter)
+            
+            # Setup logger
+            self.logger = logging.getLogger('BackupTool')
+            self.logger.setLevel(logging.INFO)
+            self.logger.addHandler(handler)
+            
+        except Exception as e:
+            # Fallback to console logging if file logging fails
+            self.logger = logging.getLogger('BackupTool')
+            self.logger.setLevel(logging.INFO)
+            console_handler = logging.StreamHandler()
+            console_handler.setFormatter(formatter)
+            self.logger.addHandler(console_handler)
+            self.logger.warning(f"File logging failed, using console: {e}")
 
     def acquire_lock(self):
-        """Acquire a file lock to prevent concurrent runs (optional for GUI)"""
-        if self.progress_callback:  # Skip lock for GUI
-            return
-        if self.system == 'linux':
-            try:
-                self.lock_fd = os.open(self.lock_file, os.O_CREAT | os.O_WRONLY | os.O_EXCL, 0o600)
-                fcntl.flock(self.lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-                self.lock_acquired = True
-            except (IOError, OSError) as e:
-                if hasattr(self, 'lock_fd'):
-                    os.close(self.lock_fd)
-                    try:
-                        os.remove(self.lock_file)
-                    except OSError:
-                        pass
-                self.logger.error(f"Another backup instance is running: {str(e)}")
-                sys.exit(1)
-        elif self.system == 'windows':
-            try:
-                self.lock_fd = os.open(self.lock_file, os.O_CREAT | os.O_WRONLY | os.O_EXCL | os.O_BINARY)
+        """Prevent concurrent runs using file lock"""
+        lock_file = Path('backup.lock')
+        
+        try:
+            # Try to create lock file exclusively
+            self.lock_fd = os.open(str(lock_file), os.O_CREAT | os.O_WRONLY | os.O_EXCL, 0o600)
+            
+            # Platform-specific locking
+            if self.system == 'windows' and msvcrt:
                 msvcrt.locking(self.lock_fd, msvcrt.LK_NBLCK, 1)
-                self.lock_acquired = True
-            except (IOError, OSError) as e:
-                if hasattr(self, 'lock_fd'):
+            elif fcntl:
+                fcntl.flock(self.lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                
+        except (IOError, OSError) as e:
+            if self.lock_fd:
+                try:
                     os.close(self.lock_fd)
-                    try:
-                        os.remove(self.lock_file)
-                    except OSError:
-                        pass
-                self.logger.error(f"Another backup instance is running: {str(e)}")
-                sys.exit(1)
+                except:
+                    pass
+            self.logger.error("Another backup instance is already running")
+            sys.exit(1)
 
     def release_lock(self):
-        """Release the file lock"""
-        if not self.lock_acquired:
+        """Release file lock"""
+        if not self.lock_fd:
             return
-        if self.system == 'linux':
-            fcntl.flock(self.lock_fd, fcntl.LOCK_UN)
-            os.close(self.lock_fd)
-        elif self.system == 'windows':
-            try:
-                os.lseek(self.lock_fd, 0, os.SEEK_SET)
-                msvcrt.locking(self.lock_fd, msvcrt.LK_UNLCK, 1)
-            except OSError:
-                pass
-            finally:
-                os.close(self.lock_fd)
+            
         try:
-            os.remove(self.lock_file)
-        except OSError:
-            pass
-        self.lock_acquired = False
-
-    def enable_long_paths(self):
-        """Enable long path support on Windows"""
-        if self.system == 'windows':
+            # Release lock
+            if self.system == 'windows' and msvcrt:
+                try:
+                    os.lseek(self.lock_fd, 0, os.SEEK_SET)
+                    msvcrt.locking(self.lock_fd, msvcrt.LK_UNLCK, 1)
+                except:
+                    pass
+            elif fcntl:
+                try:
+                    fcntl.flock(self.lock_fd, fcntl.LOCK_UN)
+                except:
+                    pass
+            
+            # Close and remove lock file
+            os.close(self.lock_fd)
             try:
-                import ctypes
-                kernel32 = ctypes.WinDLL('kernel32')
-                kernel32.SetErrorMode(0x8000)
-            except Exception as e:
-                self.logger.warning(f"Could not enable long path support: {str(e)}")
+                os.remove('backup.lock')
+            except:
+                pass
+                
+        except Exception:
+            pass
+        
+        self.lock_fd = None
 
     def load_config(self, config_file):
-        """Load and validate configuration from INI file"""
-        config = configparser.ConfigParser()
-        if not os.path.exists(config_file):
+        """Load configuration from INI file"""
+        config_path = Path(config_file)
+        
+        # Create default config if doesn't exist
+        if not config_path.exists():
             self.create_default_config(config_file)
-        config.read(config_file)
         
-        self.source_dirs = [d.strip() for d in config['DEFAULT']['SourceDirs'].split(',')]
-        self.backup_dir = config['DEFAULT']['BackupDir']
-        self.backup_type = config['DEFAULT']['BackupType'].lower()
-        self.max_backups = int(config['DEFAULT']['MaxBackups'])
-        self.exclude_patterns = [p.strip() for p in config['DEFAULT'].get('ExcludePatterns', '').split(',') if p.strip()]
-        self.schedule_time = config['DEFAULT'].get('ScheduleTime', '02:00')
-        self.email_enabled = config['DEFAULT'].getboolean('EmailEnabled', False)
-        self.smtp_server = config['DEFAULT'].get('SMTPServer', '')
-        self.smtp_port = config['DEFAULT'].getint('SMTPPort', 587)
-        self.smtp_user = config['DEFAULT'].get('SMTPUser', '')
-        self.smtp_password = config['DEFAULT'].get('SMTPPassword', '')
-        self.email_to = config['DEFAULT'].get('EmailTo', '')
-        self.use_progress_bar = config['DEFAULT'].getboolean('UseProgressBar', True)
-        self.email_timezone = config['DEFAULT'].get('EmailTimezone', 'UTC')
+        # Read configuration
+        config = configparser.ConfigParser()
+        config.read(str(config_path))
         
-        # Create backup directory
-        os.makedirs(self.backup_dir, exist_ok=True)
-        if not os.access(self.backup_dir, os.W_OK | os.X_OK):
-            raise PermissionError(f"No write permission for backup directory: {self.backup_dir}")
+        # Load and validate settings
+        try:
+            # Source directories
+            source_str = config['DEFAULT'].get('SourceDirs', '')
+            self.source_dirs = [d.strip() for d in source_str.split(',') if d.strip()]
+            
+            # Backup directory
+            self.backup_dir = config['DEFAULT'].get('BackupDir', './backups')
+            Path(self.backup_dir).mkdir(parents=True, exist_ok=True)
+            
+            # Backup settings
+            self.backup_type = config['DEFAULT'].get('BackupType', 'incremental').lower()
+            if self.backup_type not in ['incremental', 'full']:
+                self.backup_type = 'incremental'
+            
+            self.max_backups = max(1, config['DEFAULT'].getint('MaxBackups', 5))
+            
+            # Exclude patterns
+            exclude_str = config['DEFAULT'].get('ExcludePatterns', '')
+            self.exclude_patterns = [p.strip() for p in exclude_str.split(',') if p.strip()]
+            
+            # Schedule
+            self.schedule_time = config['DEFAULT'].get('ScheduleTime', '02:00')
+            
+            # Email settings
+            self.email_enabled = config['DEFAULT'].getboolean('EmailEnabled', False)
+            
+            if self.email_enabled:
+                self.smtp_server = config['DEFAULT'].get('SMTPServer', '')
+                self.smtp_port = config['DEFAULT'].getint('SMTPPort', 587)
+                self.smtp_user = config['DEFAULT'].get('SMTPUser', '')
+                self.smtp_password = config['DEFAULT'].get('SMTPPassword', '')
+                self.email_to = config['DEFAULT'].get('EmailTo', '')
+            
+            # Timezone
+            tz_name = config['DEFAULT'].get('EmailTimezone', 'UTC')
+            try:
+                self.tz = pytz.timezone(tz_name)
+            except:
+                self.tz = pytz.UTC
+            
+        except Exception as e:
+            self.logger.error(f"Config parsing error: {e}")
+            # Continue with defaults
         
         # Validate source directories
-        valid_source_dirs = []
-        for source_dir in self.source_dirs:
-            if os.path.exists(source_dir) and os.access(source_dir, os.R_OK):
-                if self.system == 'windows' and len(source_dir) > 260:
-                    self.logger.warning(f"Source path exceeds 260 characters but may work with long path support enabled: {source_dir}")
-                valid_source_dirs.append(source_dir)
+        valid_dirs = []
+        for src_dir in self.source_dirs:
+            src_path = Path(src_dir)
+            if src_path.exists() and src_path.is_dir():
+                valid_dirs.append(str(src_path))
             else:
-                self.logger.warning(f"Skipping invalid or inaccessible source directory: {source_dir}")
-        if not valid_source_dirs:
-            raise ValueError("No valid source directories specified")
-        self.source_dirs = valid_source_dirs
+                self.logger.warning(f"Invalid source directory: {src_dir}")
         
-        # Validates the email configuration
-        if self.email_enabled:
-            if not all([self.smtp_server, self.smtp_user, self.smtp_password, self.email_to]):
-                self.logger.warning("Incomplete email configuration; disabling email notifications")
-                self.email_enabled = False
+        self.source_dirs = valid_dirs
         
-        # Validates schedule times
-        try:
-            datetime.datetime.strptime(self.schedule_time, '%H:%M')
-        except ValueError:
-            self.logger.warning(f"Invalid ScheduleTime format: {self.schedule_time}. Using default '02:00'")
-            self.schedule_time = '02:00'
-        
-        # Validate email timezone
-        try:
-            self.tz = pytz.timezone(self.email_timezone)
-            self.email_timezone = self.tz.zone  # Ensure consistency
-        except pytz.exceptions.UnknownTimeZoneError:
-            self.logger.warning(f"Invalid EmailTimezone: {self.email_timezone}. Using UTC")
-            self.email_timezone = 'UTC'
-            self.tz = pytz.UTC
-        
-        self.logger.info(f"Loaded config: Source={self.source_dirs}, Destination={self.backup_dir}")
+        if not self.source_dirs:
+            self.logger.warning("No valid source directories configured")
 
     def save_config(self, config_file, config_data):
         """Save configuration to INI file"""
         config = configparser.ConfigParser()
         config['DEFAULT'] = config_data
-        with open(config_file, 'w') as f:
-            config.write(f)
-        self.logger.info(f"Saved config to {config_file}")
-        self.load_config(config_file)
+        
+        try:
+            with open(config_file, 'w') as f:
+                config.write(f)
+            self.logger.info(f"Configuration saved to {config_file}")
+            
+            # Reload configuration
+            self.load_config(config_file)
+            
+        except Exception as e:
+            self.logger.error(f"Failed to save config: {e}")
+            raise
 
     def create_default_config(self, config_file):
-        """Create a default configuration file"""
+        """Create default configuration file"""
+        is_windows = self.system == 'windows'
+        
         config = configparser.ConfigParser()
         config['DEFAULT'] = {
-            'SourceDirs': '/home/user/data,/var/www' if self.system == 'linux' else 'C:\\Users\\user\\Documents,D:\\Data',
-            'BackupDir': '/backups' if self.system == 'linux' else 'D:\\Backups',
+            'SourceDirs': 'C:\\Users\\Documents' if is_windows else '/home/user/documents',
+            'BackupDir': 'C:\\Backups' if is_windows else './backups',
             'BackupType': 'incremental',
             'MaxBackups': '5',
-            'ExcludePatterns': '*.log,*.tmp,*.bak',
+            'ExcludePatterns': '*.tmp,*.log,*.cache,thumbs.db,.DS_Store',
             'ScheduleTime': '02:00',
             'EmailEnabled': 'False',
             'SMTPServer': 'smtp.gmail.com',
             'SMTPPort': '587',
-            'SMTPUser': 'your.email@gmail.com',
-            'SMTPPassword': 'your_password',
-            'EmailTo': 'admin@domain.com',
-            'UseProgressBar': 'True',
+            'SMTPUser': '',
+            'SMTPPassword': '',
+            'EmailTo': '',
             'EmailTimezone': 'UTC'
         }
-        with open(config_file, 'w') as f:
-            config.write(f)
-        self.logger.info(f"Created default config at {config_file}")
-
-    def create_zip(self, files, backup_name):
-        """Create a zip archive of specified files with batched progress updates"""
-        if not files:
-            self.logger.info("No files to include in zip")
-            if self.progress_callback:
-                self.progress_callback("No files to backup")
-            return None
-        zip_path = os.path.join(self.backup_dir, f"{backup_name}.zip")
-        file_count = len(files)
-        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-            iterable = tqdm(files, desc="Compressing files") if self.use_progress_bar and self.interactive else files
-            for i, file in enumerate(iterable):
-                if os.path.exists(file):
-                    try:
-                        rel_path = file
-                        try:
-                            common_path = os.path.dirname(os.path.commonpath([file]))
-                            rel_path = os.path.relpath(file, common_path)
-                        except ValueError:
-                            pass
-                        zipf.write(file, rel_path)
-                        self.logger.info(f"Added {file} to backup")
-                        if self.progress_callback and (i % self.progress_interval == 0 or i == file_count - 1):
-                            self.progress_callback(f"Processed {i + 1}/{file_count} files")
-                    except PermissionError as e:
-                        self.logger.error(f"Permission denied for file {file}: {str(e)}")
-                        if self.progress_callback:
-                            self.progress_callback(f"Error: Permission denied for {file}")
-                    except OSError as e:
-                        self.logger.error(f"Failed to add file {file} to backup: {str(e)}")
-                        if self.progress_callback:
-                            self.progress_callback(f"Error: Failed to add {file}")
-        return zip_path
-
-    def verify_backup(self, zip_path, files):
-        """Verify backup integrity and contents"""
-        if not zip_path or not os.path.exists(zip_path):
-            return False
+        
         try:
-            with zipfile.ZipFile(zip_path, 'r') as zipf:
-                if zipf.testzip() is not None:
-                    self.logger.error(f"Backup integrity check failed for {zip_path}")
-                    if self.progress_callback:
-                        self.progress_callback(f"Backup integrity check failed for {zip_path}")
-                    return False
-                zip_files = {os.path.normpath(f) for f in zipf.namelist()}
-                expected_files = set()
-                for f in files:
-                    try:
-                        common_path = os.path.dirname(os.path.commonpath([f]))
-                        expected_files.add(os.path.normpath(os.path.relpath(f, common_path)))
-                    except ValueError:
-                        expected_files.add(os.path.normpath(f))
-                missing_files = expected_files - zip_files
-                if missing_files:
-                    self.logger.error(f"Missing files in backup {zip_path}: {missing_files}")
-                    if self.progress_callback:
-                        self.progress_callback(f"Missing files in {zip_path}: {missing_files}")
-                    return False
-                self.logger.info(f"Backup verification successful for {zip_path}")
-                if self.progress_callback:
-                    self.progress_callback(f"Backup verification successful for {zip_path}")
-                return True
-        except zipfile.BadZipFile as e:
-            self.logger.error(f"Invalid zip file {zip_path}: {str(e)}")
-            if self.progress_callback:
-                self.progress_callback(f"Invalid zip file: {zip_path}")
-            return False
+            with open(config_file, 'w') as f:
+                config.write(f)
+            self.logger.info(f"Created default config: {config_file}")
         except Exception as e:
-            self.logger.error(f"Backup verification error for {zip_path}: {str(e)}")
-            if self.progress_callback:
-                self.progress_callback(f"Verification error for {zip_path}: {str(e)}")
-            return False
-
-    def should_exclude(self, file_path):
-        """Check if file should be excluded based on patterns (case-insensitive)"""
-        file_name = os.path.basename(file_path).lower()
-        return any(fnmatch.fnmatch(file_name, pattern.strip().lower(), flags=fnmatch.FNM_CASEFOLD) 
-                  for pattern in self.exclude_patterns if pattern.strip())
+            self.logger.error(f"Failed to create default config: {e}")
 
     def get_files_to_backup(self, source_dir, last_backup_time=None):
-        """Get list of files to backup with batched progress updates"""
-        files_to_backup = []
-        file_count = 0
-        found_files = False
-        for root, _, files in os.walk(source_dir):
-            found_files = True
-            for file in files:
-                file_path = os.path.join(root, file)
-                if self.should_exclude(file_path):
+        """Get list of files to backup from source directory"""
+        files = []
+        source_path = Path(source_dir)
+        
+        if not source_path.exists():
+            return files
+        
+        # Convert patterns to lowercase for case-insensitive matching
+        exclude_patterns = [p.lower() for p in self.exclude_patterns]
+        
+        try:
+            for item in source_path.rglob('*'):
+                if not item.is_file():
                     continue
-                try:
-                    if self.backup_type == 'incremental' and last_backup_time:
-                        file_mtime = datetime.datetime.fromtimestamp(os.path.getmtime(file_path), tz=pytz.UTC)
-                        if file_mtime > last_backup_time:
-                            files_to_backup.append(file_path)
-                    else:
-                        files_to_backup.append(file_path)
-                    file_count += 1
-                    if self.progress_callback and file_count % self.progress_interval == 0:
-                        self.progress_callback(f"Scanned {file_count} files in {source_dir}")
-                except (PermissionError, OSError) as e:
-                    self.logger.error(f"Cannot access file {file_path}: {str(e)}")
-                    if self.progress_callback:
-                        self.progress_callback(f"Error: Cannot access {file_path}")
-        if not found_files:
-            self.logger.info(f"No files found in source directory: {source_dir}")
+                
+                # Check exclusions
+                item_name = item.name.lower()
+                if any(fnmatch.fnmatch(item_name, pattern) for pattern in exclude_patterns):
+                    continue
+                
+                # Check modification time for incremental backup
+                if self.backup_type == 'incremental' and last_backup_time:
+                    try:
+                        mtime = datetime.datetime.fromtimestamp(item.stat().st_mtime, tz=pytz.UTC)
+                        if mtime <= last_backup_time:
+                            continue
+                    except:
+                        continue
+                
+                files.append(str(item))
+                
+        except Exception as e:
+            self.logger.error(f"Error scanning {source_dir}: {e}")
+        
+        return files
+
+    def create_zip(self, files, backup_name):
+        """Create zip archive of files"""
+        if not files:
+            self.logger.info("No files to backup")
+            return None
+        
+        zip_path = Path(self.backup_dir) / f"{backup_name}.zip"
+        
+        try:
+            with zipfile.ZipFile(str(zip_path), 'w', zipfile.ZIP_DEFLATED) as zf:
+                for i, file_path in enumerate(files):
+                    try:
+                        # Create archive name preserving directory structure
+                        file_obj = Path(file_path)
+                        
+                        # Find which source dir this file belongs to
+                        archive_name = file_obj.name
+                        for src_dir in self.source_dirs:
+                            src_path = Path(src_dir)
+                            try:
+                                archive_name = str(file_obj.relative_to(src_path.parent))
+                                break
+                            except ValueError:
+                                continue
+                        
+                        zf.write(file_path, archive_name)
+                        
+                        # Progress callback every 100 files
+                        if self.progress_callback and (i + 1) % 100 == 0:
+                            self.progress_callback(f"Archived {i + 1}/{len(files)} files")
+                            
+                    except Exception as e:
+                        self.logger.error(f"Failed to add {file_path}: {e}")
+            
+            # Final progress
             if self.progress_callback:
-                self.progress_callback(f"No files found in {source_dir}")
-        return files_to_backup
+                self.progress_callback(f"Created backup: {backup_name}.zip ({len(files)} files)")
+            
+            self.logger.info(f"Created backup: {zip_path}")
+            return str(zip_path)
+            
+        except Exception as e:
+            self.logger.error(f"Failed to create zip: {e}")
+            return None
 
     def cleanup_old_backups(self):
-        """Remove old backups if exceeding max_backups limit"""
-        backups = sorted([f for f in os.listdir(self.backup_dir) if f.endswith('.zip')])
-        while len(backups) > self.max_backups:
-            oldest_backup = backups.pop(0)
-            backup_path = os.path.join(self.backup_dir, oldest_backup)
-            try:
-                os.remove(backup_path)
-                self.logger.info(f"Removed old backup: {oldest_backup}")
-                if self.progress_callback:
-                    self.progress_callback(f"Removed old backup: {oldest_backup}")
-            except Exception as e:
-                self.logger.error(f"Failed to remove old backup {oldest_backup}: {str(e)}")
-                if self.progress_callback:
-                    self.progress_callback(f"Error: Failed to remove {oldest_backup}")
+        """Remove old backups exceeding max_backups limit"""
+        try:
+            backup_dir = Path(self.backup_dir)
+            backups = sorted([f for f in backup_dir.glob('backup_*.zip')])
+            
+            while len(backups) > self.max_backups:
+                old_backup = backups.pop(0)
+                try:
+                    old_backup.unlink()
+                    self.logger.info(f"Removed old backup: {old_backup.name}")
+                except Exception as e:
+                    self.logger.error(f"Failed to remove {old_backup}: {e}")
+                    
+        except Exception as e:
+            self.logger.error(f"Cleanup failed: {e}")
 
-    def send_email_notification(self, status, message):
-        """Send email notification about backup status"""
+    def send_email(self, subject, message):
+        """Send email notification"""
         if not self.email_enabled:
             return
+        
+        # Check required fields
+        if not all([self.smtp_server, self.smtp_user, self.smtp_password, self.email_to]):
+            self.logger.warning("Email configuration incomplete")
+            return
+        
         try:
-            timestamp = datetime.datetime.now(self.tz).strftime('%Y-%m-%d %H:%M:%S %Z')
+            import smtplib
+            from email.mime.text import MIMEText
+            
             msg = MIMEText(message)
-            msg['Subject'] = f"Backup {status} - {timestamp}"
+            msg['Subject'] = subject
             msg['From'] = self.smtp_user
             msg['To'] = self.email_to
-
-            # Set socket timeout for all SMTP operations
-            socket.setdefaulttimeout(10)
-            try:
-                with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
-                    server.starttls()
-                    server.login(self.smtp_user, self.smtp_password)
-                    server.send_message(msg)
-                self.logger.info(f"Sent {status} email notification")
-                if self.progress_callback:
-                    self.progress_callback(f"Sent {status} email notification")
-            finally:
-                socket.setdefaulttimeout(None)
+            
+            with smtplib.SMTP(self.smtp_server, self.smtp_port, timeout=10) as server:
+                server.starttls()
+                server.login(self.smtp_user, self.smtp_password)
+                server.send_message(msg)
+                
+            self.logger.info(f"Email sent: {subject}")
+            
         except Exception as e:
-            self.logger.error(f"Email notification failed: {str(e)}")
-            if self.progress_callback:
-                self.progress_callback(f"Email notification failed: {str(e)}")
+            self.logger.error(f"Email failed: {e}")
 
     def list_archive_contents(self, zip_path):
-        """List contents of a backup zip archive"""
+        """List contents of backup archive"""
+        contents = []
+        
         try:
-            with zipfile.ZipFile(zip_path, 'r') as zipf:
-                contents = []
-                for info in zipf.infolist():
+            with zipfile.ZipFile(zip_path, 'r') as zf:
+                for info in zf.infolist():
                     if not info.is_dir():
-                        # Sanitize filename to prevent path traversal
-                        safe_path = os.path.normpath(info.filename).lstrip(os.sep).lstrip(os.pardir)
-                        if '..' in safe_path or safe_path.startswith(os.sep) or safe_path.startswith(os.pardir):
-                            self.logger.warning(f"Suspicious path in archive {zip_path}: {info.filename}")
-                            continue
-                        size = info.file_size
-                        date_time = datetime.datetime(*info.date_time, tzinfo=pytz.UTC).astimezone(self.tz)
                         contents.append({
-                            'path': safe_path,
-                            'size': size,
-                            'mtime': date_time.strftime('%Y-%m-%d %H:%M:%S %Z')
+                            'path': info.filename,
+                            'size': info.file_size,
+                            'mtime': datetime.datetime(*info.date_time).strftime('%Y-%m-%d %H:%M:%S')
                         })
-                return contents
-        except zipfile.BadZipFile as e:
-            self.logger.error(f"Invalid zip file {zip_path}: {str(e)}")
-            if self.progress_callback:
-                self.progress_callback(f"Invalid zip file: {zip_path}")
-            return []
         except Exception as e:
-            self.logger.error(f"Failed to read archive {zip_path}: {str(e)}")
-            if self.progress_callback:
-                self.progress_callback(f"Error reading archive {zip_path}: {str(e)}")
-            return []
+            self.logger.error(f"Failed to read archive {zip_path}: {e}")
+        
+        return contents
 
     def run_backup(self):
-        """Execute the backup process"""
+        """Execute backup process"""
+        start_time = datetime.datetime.now(tz=self.tz)
+        
         try:
-            if self.progress_callback:
-                self.progress_callback("Starting backup...")
-            timestamp = datetime.datetime.now(tz=pytz.UTC).strftime("%Y%m%d_%H%M%S")
-            last_backup_time = None
-            
-            if self.backup_type == 'incremental':
-                backups = [f for f in os.listdir(self.backup_dir) if f.endswith('.zip')]
-                if backups:
-                    latest_backup = max(backups)
-                    last_backup_time = datetime.datetime.fromtimestamp(
-                        os.path.getmtime(os.path.join(self.backup_dir, latest_backup)), tz=pytz.UTC)
-
-            all_files = []
-            for source_dir in self.source_dirs:
-                files = self.get_files_to_backup(source_dir, last_backup_time)
-                all_files.extend(files)
-
-            if not all_files:
-                self.logger.info("No files to backup across all source directories")
-                self.send_email_notification("Info", "No files needed backup")
+            # Check if we have source directories
+            if not self.source_dirs:
+                error_msg = "No valid source directories configured"
+                self.logger.error(error_msg)
                 if self.progress_callback:
-                    self.progress_callback("No files to backup")
+                    self.progress_callback(error_msg)
                 return
-
+            
+            # Progress update
+            if self.progress_callback:
+                self.progress_callback(f"Starting backup at {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+            
+            # Get last backup time for incremental
+            last_backup_time = None
+            if self.backup_type == 'incremental':
+                try:
+                    backup_dir = Path(self.backup_dir)
+                    backups = sorted(backup_dir.glob('backup_*.zip'))
+                    if backups:
+                        latest = backups[-1]
+                        last_backup_time = datetime.datetime.fromtimestamp(
+                            latest.stat().st_mtime, tz=pytz.UTC
+                        )
+                        self.logger.info(f"Last backup: {latest.name}")
+                except Exception as e:
+                    self.logger.warning(f"Could not determine last backup time: {e}")
+            
+            # Collect files from all sources
+            all_files = []
+            for src_dir in self.source_dirs:
+                if self.progress_callback:
+                    self.progress_callback(f"Scanning {src_dir}...")
+                    
+                files = self.get_files_to_backup(src_dir, last_backup_time)
+                all_files.extend(files)
+                
+                self.logger.info(f"Found {len(files)} files in {src_dir}")
+            
+            # Check if there are files to backup
+            if not all_files:
+                msg = "No new files to backup" if self.backup_type == 'incremental' else "No files to backup"
+                self.logger.info(msg)
+                if self.progress_callback:
+                    self.progress_callback(msg)
+                return
+            
+            # Create backup
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             backup_name = f"backup_{timestamp}"
+            
+            if self.progress_callback:
+                self.progress_callback(f"Creating backup with {len(all_files)} files...")
+            
             zip_path = self.create_zip(all_files, backup_name)
             
-            if zip_path and self.verify_backup(zip_path, all_files):
-                self.logger.info(f"Created and verified backup: {zip_path}")
+            if zip_path:
+                # Cleanup old backups
                 self.cleanup_old_backups()
-                self.send_email_notification("Success", f"Backup completed: {zip_path}")
-            else:
-                self.send_email_notification("Failure", f"Backup verification failed: {zip_path}")
+                
+                # Calculate duration
+                duration = (datetime.datetime.now(tz=self.tz) - start_time).total_seconds()
+                
+                # Success message
+                success_msg = f"Backup completed: {backup_name}.zip ({len(all_files)} files, {duration:.1f}s)"
+                self.logger.info(success_msg)
+                
                 if self.progress_callback:
-                    self.progress_callback(f"Backup failed: Verification error for {zip_path}")
-                raise Exception("Backup verification failed")
-
-            self.logger.info("Backup completed successfully")
-            if self.progress_callback:
-                self.progress_callback("Backup completed successfully")
-
+                    self.progress_callback(success_msg)
+                
+                # Send email notification
+                self.send_email(
+                    f"Backup Success - {backup_name}",
+                    f"Backup completed successfully\n\n"
+                    f"Files: {len(all_files)}\n"
+                    f"Duration: {duration:.1f} seconds\n"
+                    f"Location: {zip_path}"
+                )
+            else:
+                raise Exception("Failed to create backup archive")
+                
         except Exception as e:
-            self.logger.error(f"Backup failed: {str(e)}")
-            self.send_email_notification("Failure", f"Backup failed: {str(e)}")
+            error_msg = f"Backup failed: {e}"
+            self.logger.error(error_msg)
+            
             if self.progress_callback:
-                self.progress_callback(f"Backup failed: {str(e)}")
-            raise
+                self.progress_callback(error_msg)
+            
+            self.send_email("Backup Failed", str(e))
+            
         finally:
+            # Always release lock
             self.release_lock()
 
     def schedule_backup(self, enable=True):
         """Enable or disable scheduled backup"""
+        schedule.clear()
+        
         if enable:
-            schedule.every().day.at(self.schedule_time).do(self.run_backup)
-            self.logger.info(f"Scheduled daily backup at {self.schedule_time}")
-            if self.progress_callback:
-                self.progress_callback(f"Scheduled backup at {self.schedule_time}")
-        else:
-            schedule.clear()
-            self.logger.info("Scheduled backup disabled")
-            if self.progress_callback:
-                self.progress_callback("Scheduled backup disabled")
-
-    def run_scheduled_backup(self):
-        """Run a single scheduled backup for external schedulers"""
-        try:
-            self.run_backup()
-        except Exception as e:
-            self.logger.error(f"Scheduled backup failed: {str(e)}")
-            if self.progress_callback:
-                self.progress_callback(f"Scheduled backup failed: {str(e)}")
-            raise
-
-    def handle_signal(self, signum, frame):
-        """Handle termination signals"""
-        self.logger.info(f"Received signal {signum}, shutting down")
-        # Close logging handlers
-        for handler in self.logger.handlers:
             try:
-                handler.close()
-            except Exception:
-                pass
-        self.release_lock()
+                # Validate time format
+                time.strptime(self.schedule_time, '%H:%M')
+                
+                # Schedule daily backup
+                schedule.every().day.at(self.schedule_time).do(self.run_backup)
+                self.logger.info(f"Scheduled daily backup at {self.schedule_time}")
+                
+                if self.progress_callback:
+                    self.progress_callback(f"Scheduled backup at {self.schedule_time}")
+                    
+            except ValueError:
+                self.logger.error(f"Invalid schedule time format: {self.schedule_time}")
+                raise
+        else:
+            self.logger.info("Schedule cleared")
+            if self.progress_callback:
+                self.progress_callback("Schedule stopped")
+
+
+def main():
+    """Main entry point for command-line usage"""
+    # Setup signal handlers
+    def signal_handler(signum, frame):
+        print("\nShutdown signal received")
         sys.exit(0)
+    
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+    
+    # Parse command line arguments
+    if len(sys.argv) > 1 and sys.argv[1] == '--schedule':
+        # Run in schedule mode
+        try:
+            backup = BackupTool()
+            backup.schedule_backup(True)
+            
+            print(f"Backup scheduled at {backup.schedule_time}")
+            print("Press Ctrl+C to stop")
+            
+            while True:
+                schedule.run_pending()
+                time.sleep(60)
+                
+        except KeyboardInterrupt:
+            print("\nSchedule stopped")
+        except Exception as e:
+            print(f"Error: {e}")
+            sys.exit(1)
+    else:
+        # Run single backup
+        try:
+            backup = BackupTool()
+            backup.run_backup()
+        except Exception as e:
+            print(f"Backup failed: {e}")
+            sys.exit(1)
+
 
 if __name__ == "__main__":
-    try:
-        backup = BackupTool()
-        # Register signal handlers
-        signal.signal(signal.SIGINT, backup.handle_signal)
-        signal.signal(signal.SIGTERM, backup.handle_signal)
-        if len(sys.argv) > 1 and sys.argv[1] == '--schedule':
-            backup.schedule_backup()
-            while True:
-                try:
-                    schedule.run_pending()
-                    time.sleep(60)
-                except Exception as e:
-                    logging.error(f"Schedule error: {str(e)}")
-                    time.sleep(60)
-        elif len(sys.argv) > 1 and sys.argv[1] == '--single-schedule':
-            backup.run_scheduled_backup()
-        else:
-            backup.run_backup()
-    except Exception as e:
-        logging.error(f"Startup failed: {str(e)}")
-        sys.exit(1)
+    main()
