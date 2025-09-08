@@ -1,0 +1,1296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Design Tool</title>
+    <style>
+        /* CSS Variables for consistent theming */
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #1a1a1a;
+            --bg-tertiary: #222;
+            --bg-canvas: #0f0f0f;
+            --border-color: #333;
+            --border-hover: #444;
+            --text-primary: #fff;
+            --text-secondary: #ccc;
+            --text-muted: #999;
+            --text-dim: #666;
+            --grid-color: #1a1a1a;
+            --connection-color: #444;
+            --radius-sm: 6px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --transition: 0.2s ease;
+        }
+
+        /* Reset */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Base */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg-primary);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: var(--text-primary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Container */
+        .container {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border-color);
+            width: 100%;
+            max-width: 1200px;
+            overflow: hidden;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
+            padding: 24px;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 300;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
+        .header p {
+            font-size: 13px;
+            color: var(--text-secondary);
+            opacity: 0.8;
+        }
+
+        /* Toolbar */
+        .toolbar {
+            background: var(--bg-tertiary);
+            padding: 16px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 8px 16px;
+            border: 1px solid var(--border-hover);
+            border-radius: var(--radius-sm);
+            background: #2a2a2a;
+            color: var(--text-primary);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition);
+            white-space: nowrap;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(255, 255, 255, 0.08);
+        }
+
+        .btn:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: #2563eb;
+            border-color: #1d4ed8;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #1d4ed8;
+        }
+
+        .btn-success {
+            background: #059669;
+            border-color: #047857;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            background: #047857;
+        }
+
+        .btn-danger {
+            background: #dc2626;
+            border-color: #b91c1c;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: #b91c1c;
+        }
+
+        .btn-warning {
+            background: #d97706;
+            border-color: #b45309;
+        }
+
+        .btn-warning:hover:not(:disabled) {
+            background: #b45309;
+        }
+
+        .btn.active {
+            background: #3b82f6;
+            border-color: #60a5fa;
+        }
+
+        /* File input */
+        input[type="file"] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        /* Canvas container */
+        .canvas-container {
+            background: var(--bg-canvas);
+            border: 1px solid var(--border-color);
+            margin: 20px;
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            position: relative;
+        }
+
+        canvas {
+            display: block;
+            cursor: default;
+        }
+
+        /* Info panel */
+        .info-panel {
+            background: var(--bg-tertiary);
+            padding: 16px 20px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            font-size: 13px;
+        }
+
+        .info-item {
+            color: var(--text-muted);
+        }
+
+        .info-item strong {
+            color: var(--text-primary);
+            margin-right: 6px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+            margin-right: 6px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity var(--transition), visibility var(--transition);
+        }
+
+        .modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            padding: 28px;
+            border-radius: var(--radius-lg);
+            width: 90%;
+            max-width: 420px;
+            border: 1px solid var(--border-hover);
+            transform: scale(0.95);
+            transition: transform var(--transition);
+        }
+
+        .modal.active .modal-content {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .modal-header h2 {
+            font-size: 20px;
+            font-weight: 400;
+        }
+
+        .close {
+            font-size: 24px;
+            line-height: 1;
+            cursor: pointer;
+            color: var(--text-muted);
+            background: none;
+            border: none;
+            padding: 4px;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--radius-sm);
+            transition: all var(--transition);
+        }
+
+        .close:hover {
+            background: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        /* Form */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-hover);
+            border-radius: var(--radius-sm);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 14px;
+            transition: border-color var(--transition), background var(--transition);
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            background: #0f0f0f;
+        }
+
+        .form-group input::placeholder {
+            color: var(--text-dim);
+        }
+
+        .form-error {
+            color: #ef4444;
+            font-size: 12px;
+            margin-top: 4px;
+            display: none;
+        }
+
+        .form-error.show {
+            display: block;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                padding: 20px;
+            }
+            
+            .toolbar {
+                justify-content: center;
+            }
+            
+            .info-panel {
+                justify-content: center;
+                text-align: center;
+            }
+            
+            .modal-content {
+                padding: 20px;
+            }
+        }
+
+        /* Accessibility */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Network Design Tool</h1>
+            <p>Professional network topology designer with export capabilities</p>
+        </div>
+
+        <div class="toolbar">
+            <button class="btn btn-primary" id="addRouter" data-node-type="router">Add Router</button>
+            <button class="btn btn-primary" id="addSwitch" data-node-type="switch">Add Switch</button>
+            <button class="btn btn-primary" id="addComputer" data-node-type="computer">Add Computer</button>
+            <button class="btn btn-primary" id="addServer" data-node-type="server">Add Server</button>
+            <button class="btn" id="modeSelect" data-mode="select">Select</button>
+            <button class="btn btn-warning" id="modeConnect" data-mode="connect">Connect</button>
+            <button class="btn btn-danger" id="modeDelete" data-mode="delete">Delete</button>
+            <button class="btn btn-danger" id="clearAll">Clear All</button>
+            <button class="btn btn-success" id="saveBtn">Save</button>
+            <label for="fileInput" class="btn btn-success">Load</label>
+            <input type="file" id="fileInput" accept=".json">
+        </div>
+
+        <div class="canvas-container">
+            <canvas id="canvas"></canvas>
+        </div>
+
+        <div class="info-panel">
+            <div class="info-item">
+                <span class="status-indicator"></span>
+                <strong>Status:</strong>
+                <span id="statusText">Ready</span>
+            </div>
+            <div class="info-item">
+                <strong>Mode:</strong>
+                <span id="modeText">Select</span>
+            </div>
+            <div class="info-item">
+                <strong>Nodes:</strong>
+                <span id="nodeCount">0</span>
+            </div>
+            <div class="info-item">
+                <strong>Connections:</strong>
+                <span id="connCount">0</span>
+            </div>
+            <div class="info-item">
+                <strong>Shortcuts:</strong>
+                ESC: Cancel • DEL: Delete • Right-click: Properties
+            </div>
+        </div>
+    </div>
+
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Node Properties</h2>
+                <button class="close" id="closeModal">&times;</button>
+            </div>
+            <form id="nodeForm">
+                <div class="form-group">
+                    <label for="nodeType">Type</label>
+                    <select id="nodeType" disabled>
+                        <option value="router">Router</option>
+                        <option value="switch">Switch</option>
+                        <option value="computer">Computer</option>
+                        <option value="server">Server</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="nodeName">Name</label>
+                    <input type="text" id="nodeName" maxlength="50" required>
+                    <div class="form-error" id="nameError">Name is required</div>
+                </div>
+                <div class="form-group">
+                    <label for="nodeIP">IP Address</label>
+                    <input type="text" id="nodeIP" placeholder="192.168.1.1" maxlength="15">
+                    <div class="form-error" id="ipError">Invalid IP address format</div>
+                </div>
+                <div class="form-group">
+                    <label for="nodeDesc">Description (Optional)</label>
+                    <input type="text" id="nodeDesc" maxlength="100" placeholder="Additional notes...">
+                </div>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        'use strict';
+
+        /**
+         * Network Design Tool Application
+         * A professional network topology designer with full error handling
+         */
+        class NetworkDesignApp {
+            constructor() {
+                // DOM Elements
+                this.canvas = null;
+                this.ctx = null;
+                this.modal = null;
+                this.form = null;
+                
+                // State Management
+                this.state = {
+                    nodes: new Map(),
+                    connections: new Map(),
+                    mode: 'select',
+                    selectedNode: null,
+                    hoveredNode: null,
+                    connectStart: null,
+                    tempLine: null,
+                    isDragging: false,
+                    dragOffset: { x: 0, y: 0 },
+                    editingNode: null,
+                    lastNodeId: 0,
+                    lastConnId: 0,
+                    needsRedraw: true,
+                    mousePos: { x: 0, y: 0 }
+                };
+                
+                // Configuration
+                this.config = {
+                    gridSize: 20,
+                    nodeRadius: 30,
+                    minNodeDistance: 80,
+                    canvasPadding: 40,
+                    connectionWidth: 2,
+                    hoverScale: 1.1,
+                    colors: {
+                        router: '#3b82f6',
+                        switch: '#10b981',
+                        computer: '#8b5cf6',
+                        server: '#f59e0b'
+                    },
+                    icons: {
+                        router: 'R',
+                        switch: 'S',
+                        computer: 'C',
+                        server: 'SV'
+                    }
+                };
+                
+                // Performance
+                this.animationFrame = null;
+                this.dpr = window.devicePixelRatio || 1;
+                
+                this.init();
+            }
+            
+            init() {
+                if (!this.initDOM()) return;
+                this.setupCanvas();
+                this.bindEvents();
+                this.startRenderLoop();
+                this.updateUI();
+            }
+            
+            initDOM() {
+                // Get DOM elements
+                this.canvas = document.getElementById('canvas');
+                this.modal = document.getElementById('modal');
+                this.form = document.getElementById('nodeForm');
+                
+                if (!this.canvas) {
+                    console.error('Canvas element not found');
+                    return false;
+                }
+                
+                this.ctx = this.canvas.getContext('2d');
+                if (!this.ctx) {
+                    console.error('Canvas context not available');
+                    return false;
+                }
+                
+                return true;
+            }
+            
+            setupCanvas() {
+                const container = this.canvas.parentElement;
+                const rect = container.getBoundingClientRect();
+                
+                // Set display size
+                const width = Math.floor(rect.width) - 2;
+                const height = 500;
+                
+                // Set actual size with device pixel ratio for sharp rendering
+                this.canvas.width = width * this.dpr;
+                this.canvas.height = height * this.dpr;
+                
+                // Scale back down using CSS
+                this.canvas.style.width = width + 'px';
+                this.canvas.style.height = height + 'px';
+                
+                // Scale context to match device pixel ratio
+                this.ctx.scale(this.dpr, this.dpr);
+                
+                this.state.needsRedraw = true;
+            }
+            
+            bindEvents() {
+                // Canvas events
+                this.canvas.addEventListener('mousedown', this.onMouseDown.bind(this));
+                this.canvas.addEventListener('mousemove', this.onMouseMove.bind(this));
+                this.canvas.addEventListener('mouseup', this.onMouseUp.bind(this));
+                this.canvas.addEventListener('mouseleave', this.onMouseLeave.bind(this));
+                this.canvas.addEventListener('contextmenu', this.onContextMenu.bind(this));
+                this.canvas.addEventListener('wheel', this.onWheel.bind(this), { passive: true });
+                
+                // Toolbar events
+                document.querySelectorAll('[data-node-type]').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const type = e.target.dataset.nodeType;
+                        if (type) this.addNode(type);
+                    });
+                });
+                
+                document.querySelectorAll('[data-mode]').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const mode = e.target.dataset.mode;
+                        if (mode) this.setMode(mode);
+                    });
+                });
+                
+                document.getElementById('clearAll').addEventListener('click', () => this.clearAll());
+                document.getElementById('saveBtn').addEventListener('click', () => this.saveToFile());
+                document.getElementById('fileInput').addEventListener('change', (e) => this.loadFromFile(e));
+                
+                // Modal events
+                document.getElementById('closeModal').addEventListener('click', () => this.closeModal());
+                this.modal.addEventListener('click', (e) => {
+                    if (e.target === this.modal) this.closeModal();
+                });
+                
+                this.form.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.saveNodeProperties();
+                });
+                
+                // Keyboard events
+                document.addEventListener('keydown', this.onKeyDown.bind(this));
+                document.addEventListener('keyup', this.onKeyUp.bind(this));
+                
+                // Window events
+                window.addEventListener('resize', this.onResize.bind(this));
+                window.addEventListener('beforeunload', this.onBeforeUnload.bind(this));
+            }
+            
+            // Node Management
+            addNode(type) {
+                if (!this.config.colors[type]) return;
+                
+                const position = this.findEmptyPosition();
+                const nodeId = `node_${++this.state.lastNodeId}_${Date.now()}`;
+                
+                const node = {
+                    id: nodeId,
+                    type: type,
+                    x: position.x,
+                    y: position.y,
+                    name: `${type}_${this.state.nodes.size + 1}`,
+                    ip: this.generateValidIP(),
+                    description: '',
+                    created: new Date().toISOString()
+                };
+                
+                this.state.nodes.set(nodeId, node);
+                this.state.needsRedraw = true;
+                this.updateUI();
+                this.setStatus(`Added ${type}`);
+            }
+            
+            findEmptyPosition() {
+                const padding = this.config.canvasPadding;
+                const width = this.canvas.width / this.dpr;
+                const height = this.canvas.height / this.dpr;
+                const minDist = this.config.minNodeDistance;
+                
+                // Try random positions up to 50 times
+                for (let attempts = 0; attempts < 50; attempts++) {
+                    const x = padding + Math.random() * (width - 2 * padding);
+                    const y = padding + Math.random() * (height - 2 * padding);
+                    
+                    // Check distance from other nodes
+                    let valid = true;
+                    for (const node of this.state.nodes.values()) {
+                        const dist = Math.hypot(x - node.x, y - node.y);
+                        if (dist < minDist) {
+                            valid = false;
+                            break;
+                        }
+                    }
+                    
+                    if (valid) return { x, y };
+                }
+                
+                // Fallback to grid position if no random spot found
+                const gridX = (this.state.nodes.size % 5) * 100 + padding;
+                const gridY = Math.floor(this.state.nodes.size / 5) * 100 + padding;
+                return { x: gridX, y: gridY };
+            }
+            
+            deleteNode(node) {
+                if (!node) return;
+                
+                // Remove all connections to this node
+                for (const [connId, conn] of this.state.connections) {
+                    if (conn.from === node.id || conn.to === node.id) {
+                        this.state.connections.delete(connId);
+                    }
+                }
+                
+                // Remove the node
+                this.state.nodes.delete(node.id);
+                
+                // Clear selection if deleted node was selected
+                if (this.state.selectedNode === node) {
+                    this.state.selectedNode = null;
+                }
+                if (this.state.hoveredNode === node) {
+                    this.state.hoveredNode = null;
+                }
+                if (this.state.connectStart === node) {
+                    this.state.connectStart = null;
+                    this.state.tempLine = null;
+                }
+                
+                this.state.needsRedraw = true;
+                this.updateUI();
+                this.setStatus(`Deleted ${node.name}`);
+            }
+            
+            connectNodes(fromNode, toNode) {
+                if (!fromNode || !toNode || fromNode === toNode) return;
+                
+                // Check if connection already exists
+                for (const conn of this.state.connections.values()) {
+                    if ((conn.from === fromNode.id && conn.to === toNode.id) ||
+                        (conn.from === toNode.id && conn.to === fromNode.id)) {
+                        this.setStatus('Connection already exists', 'warning');
+                        return;
+                    }
+                }
+                
+                const connId = `conn_${++this.state.lastConnId}_${Date.now()}`;
+                this.state.connections.set(connId, {
+                    id: connId,
+                    from: fromNode.id,
+                    to: toNode.id,
+                    created: new Date().toISOString()
+                });
+                
+                this.state.needsRedraw = true;
+                this.updateUI();
+                this.setStatus(`Connected ${fromNode.name} to ${toNode.name}`);
+            }
+            
+            // Mode Management
+            setMode(mode) {
+                this.state.mode = mode;
+                this.state.connectStart = null;
+                this.state.tempLine = null;
+                
+                // Update button states
+                document.querySelectorAll('[data-mode]').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.mode === mode);
+                });
+                
+                // Update cursor
+                this.updateCursor();
+                
+                // Update UI
+                document.getElementById('modeText').textContent = 
+                    mode.charAt(0).toUpperCase() + mode.slice(1);
+                
+                this.state.needsRedraw = true;
+                this.setStatus(`Mode: ${mode}`);
+            }
+            
+            updateCursor() {
+                const mode = this.state.mode;
+                const hovered = this.state.hoveredNode;
+                
+                if (mode === 'select') {
+                    this.canvas.style.cursor = hovered ? 'move' : 'default';
+                } else if (mode === 'connect') {
+                    this.canvas.style.cursor = hovered ? 'pointer' : 'crosshair';
+                } else if (mode === 'delete') {
+                    this.canvas.style.cursor = hovered ? 'pointer' : 'not-allowed';
+                } else {
+                    this.canvas.style.cursor = 'default';
+                }
+            }
+            
+            // Event Handlers
+            onMouseDown(e) {
+                const point = this.getMousePos(e);
+                const node = this.getNodeAt(point.x, point.y);
+                
+                if (this.state.mode === 'select' && node) {
+                    this.state.selectedNode = node;
+                    this.state.isDragging = true;
+                    this.state.dragOffset.x = point.x - node.x;
+                    this.state.dragOffset.y = point.y - node.y;
+                } else if (this.state.mode === 'connect' && node) {
+                    if (!this.state.connectStart) {
+                        this.state.connectStart = node;
+                        this.setStatus(`Select target node for connection`);
+                    } else {
+                        this.connectNodes(this.state.connectStart, node);
+                        this.state.connectStart = null;
+                        this.state.tempLine = null;
+                    }
+                } else if (this.state.mode === 'delete' && node) {
+                    this.deleteNode(node);
+                }
+                
+                this.state.needsRedraw = true;
+            }
+            
+            onMouseMove(e) {
+                const point = this.getMousePos(e);
+                this.state.mousePos = point;
+                
+                // Update hovered node
+                const prevHovered = this.state.hoveredNode;
+                this.state.hoveredNode = this.getNodeAt(point.x, point.y);
+                
+                if (prevHovered !== this.state.hoveredNode) {
+                    this.updateCursor();
+                    this.state.needsRedraw = true;
+                }
+                
+                // Handle dragging
+                if (this.state.isDragging && this.state.selectedNode) {
+                    const padding = this.config.nodeRadius;
+                    const width = this.canvas.width / this.dpr;
+                    const height = this.canvas.height / this.dpr;
+                    
+                    this.state.selectedNode.x = Math.max(padding, 
+                        Math.min(width - padding, point.x - this.state.dragOffset.x));
+                    this.state.selectedNode.y = Math.max(padding, 
+                        Math.min(height - padding, point.y - this.state.dragOffset.y));
+                    
+                    this.state.needsRedraw = true;
+                }
+                
+                // Update temp connection line
+                if (this.state.mode === 'connect' && this.state.connectStart) {
+                    this.state.tempLine = point;
+                    this.state.needsRedraw = true;
+                }
+            }
+            
+            onMouseUp(e) {
+                this.state.isDragging = false;
+                this.state.selectedNode = null;
+                this.state.dragOffset = { x: 0, y: 0 };
+            }
+            
+            onMouseLeave(e) {
+                this.state.isDragging = false;
+                this.state.hoveredNode = null;
+                this.state.needsRedraw = true;
+                this.updateCursor();
+            }
+            
+            onContextMenu(e) {
+                e.preventDefault();
+                const point = this.getMousePos(e);
+                const node = this.getNodeAt(point.x, point.y);
+                
+                if (node) {
+                    this.openNodeProperties(node);
+                }
+            }
+            
+            onWheel(e) {
+                // Reserved for future zoom functionality
+            }
+            
+            onKeyDown(e) {
+                if (e.key === 'Escape') {
+                    if (this.modal.classList.contains('active')) {
+                        this.closeModal();
+                    } else {
+                        this.setMode('select');
+                    }
+                } else if (e.key === 'Delete' || e.key === 'Backspace') {
+                    if (!this.modal.classList.contains('active') && this.state.hoveredNode) {
+                        e.preventDefault();
+                        this.deleteNode(this.state.hoveredNode);
+                    }
+                }
+            }
+            
+            onKeyUp(e) {
+                // Reserved for future shortcuts
+            }
+            
+            onResize() {
+                clearTimeout(this.resizeTimeout);
+                this.resizeTimeout = setTimeout(() => {
+                    this.setupCanvas();
+                }, 250);
+            }
+            
+            onBeforeUnload(e) {
+                if (this.state.nodes.size > 0) {
+                    e.preventDefault();
+                    e.returnValue = '';
+                }
+            }
+            
+            // Modal Management
+            openNodeProperties(node) {
+                this.state.editingNode = node;
+                
+                // Populate form
+                document.getElementById('nodeType').value = node.type;
+                document.getElementById('nodeName').value = node.name;
+                document.getElementById('nodeIP').value = node.ip;
+                document.getElementById('nodeDesc').value = node.description || '';
+                
+                // Clear errors
+                document.querySelectorAll('.form-error').forEach(err => {
+                    err.classList.remove('show');
+                });
+                
+                this.modal.classList.add('active');
+            }
+            
+            closeModal() {
+                this.modal.classList.remove('active');
+                this.state.editingNode = null;
+            }
+            
+            saveNodeProperties() {
+                if (!this.state.editingNode) return;
+                
+                const name = document.getElementById('nodeName').value.trim();
+                const ip = document.getElementById('nodeIP').value.trim();
+                const desc = document.getElementById('nodeDesc').value.trim();
+                
+                // Validate
+                let hasError = false;
+                
+                if (!name) {
+                    document.getElementById('nameError').classList.add('show');
+                    hasError = true;
+                } else {
+                    document.getElementById('nameError').classList.remove('show');
+                }
+                
+                if (ip && !this.isValidIP(ip)) {
+                    document.getElementById('ipError').classList.add('show');
+                    hasError = true;
+                } else {
+                    document.getElementById('ipError').classList.remove('show');
+                }
+                
+                if (hasError) return;
+                
+                // Update node
+                this.state.editingNode.name = name;
+                if (ip) this.state.editingNode.ip = ip;
+                this.state.editingNode.description = desc;
+                
+                this.closeModal();
+                this.state.needsRedraw = true;
+                this.setStatus(`Updated ${name}`);
+            }
+            
+            // File Operations
+            saveToFile() {
+                const data = {
+                    version: '2.1',
+                    timestamp: new Date().toISOString(),
+                    canvas: {
+                        width: this.canvas.width / this.dpr,
+                        height: this.canvas.height / this.dpr
+                    },
+                    nodes: Array.from(this.state.nodes.values()),
+                    connections: Array.from(this.state.connections.values())
+                };
+                
+                const json = JSON.stringify(data, null, 2);
+                const blob = new Blob([json], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `network_design_${new Date().getTime()}.json`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                URL.revokeObjectURL(url);
+                this.setStatus('Design saved successfully');
+            }
+            
+            loadFromFile(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                
+                reader.onload = (event) => {
+                    try {
+                        const data = JSON.parse(event.target.result);
+                        
+                        // Validate version
+                        if (!data.version || !data.nodes || !data.connections) {
+                            throw new Error('Invalid file format');
+                        }
+                        
+                        // Clear current state
+                        this.state.nodes.clear();
+                        this.state.connections.clear();
+                        
+                        // Load nodes
+                        if (Array.isArray(data.nodes)) {
+                            data.nodes.forEach(node => {
+                                if (node.id && node.type && node.x && node.y) {
+                                    this.state.nodes.set(node.id, {
+                                        ...node,
+                                        x: Number(node.x),
+                                        y: Number(node.y)
+                                    });
+                                }
+                            });
+                        }
+                        
+                        // Load connections
+                        if (Array.isArray(data.connections)) {
+                            data.connections.forEach(conn => {
+                                if (conn.id && conn.from && conn.to) {
+                                    // Verify nodes exist
+                                    if (this.state.nodes.has(conn.from) && 
+                                        this.state.nodes.has(conn.to)) {
+                                        this.state.connections.set(conn.id, conn);
+                                    }
+                                }
+                            });
+                        }
+                        
+                        // Reset state
+                        this.state.selectedNode = null;
+                        this.state.connectStart = null;
+                        this.state.lastNodeId = this.state.nodes.size;
+                        this.state.lastConnId = this.state.connections.size;
+                        
+                        this.state.needsRedraw = true;
+                        this.updateUI();
+                        this.setStatus('Design loaded successfully');
+                        
+                    } catch (error) {
+                        console.error('Load error:', error);
+                        this.setStatus('Failed to load file: ' + error.message, 'error');
+                    }
+                };
+                
+                reader.onerror = () => {
+                    this.setStatus('Error reading file', 'error');
+                };
+                
+                reader.readAsText(file);
+                e.target.value = ''; // Reset input
+            }
+            
+            clearAll() {
+                if (this.state.nodes.size === 0) {
+                    this.setStatus('Canvas is already empty', 'info');
+                    return;
+                }
+                
+                if (confirm(`Clear all ${this.state.nodes.size} nodes and ${this.state.connections.size} connections?`)) {
+                    this.state.nodes.clear();
+                    this.state.connections.clear();
+                    this.state.selectedNode = null;
+                    this.state.hoveredNode = null;
+                    this.state.connectStart = null;
+                    this.state.tempLine = null;
+                    this.state.lastNodeId = 0;
+                    this.state.lastConnId = 0;
+                    
+                    this.state.needsRedraw = true;
+                    this.updateUI();
+                    this.setStatus('Canvas cleared');
+                }
+            }
+            
+            // Utility Methods
+            getMousePos(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                return {
+                    x: (e.clientX - rect.left) * (this.canvas.width / this.dpr / rect.width),
+                    y: (e.clientY - rect.top) * (this.canvas.height / this.dpr / rect.height)
+                };
+            }
+            
+            getNodeAt(x, y) {
+                // Check nodes in reverse order (top to bottom)
+                const nodes = Array.from(this.state.nodes.values()).reverse();
+                
+                for (const node of nodes) {
+                    const dist = Math.hypot(x - node.x, y - node.y);
+                    if (dist <= this.config.nodeRadius) {
+                        return node;
+                    }
+                }
+                return null;
+            }
+            
+            generateValidIP() {
+                // Generate valid private IP addresses
+                const privateRanges = [
+                    { prefix: '10.', range: [0, 255], subrange: [0, 255] },
+                    { prefix: '172.', range: [16, 31], subrange: [0, 255] },
+                    { prefix: '192.168.', range: [0, 255], subrange: [1, 254] }
+                ];
+                
+                const range = privateRanges[Math.floor(Math.random() * privateRanges.length)];
+                const octet3 = Math.floor(Math.random() * (range.range[1] - range.range[0] + 1)) + range.range[0];
+                const octet4 = Math.floor(Math.random() * (range.subrange[1] - range.subrange[0] + 1)) + range.subrange[0];
+                
+                if (range.prefix === '192.168.') {
+                    return `${range.prefix}${octet3}.${octet4}`;
+                } else {
+                    const octet2 = Math.floor(Math.random() * 256);
+                    return `${range.prefix}${octet3}.${octet2}.${octet4}`;
+                }
+            }
+            
+            isValidIP(ip) {
+                if (!ip) return false;
+                
+                const parts = ip.split('.');
+                if (parts.length !== 4) return false;
+                
+                return parts.every(part => {
+                    // Check for leading zeros
+                    if (part.length > 1 && part[0] === '0') return false;
+                    
+                    const num = parseInt(part, 10);
+                    return !isNaN(num) && num >= 0 && num <= 255 && part === num.toString();
+                });
+            }
+            
+            // UI Updates
+            updateUI() {
+                document.getElementById('nodeCount').textContent = this.state.nodes.size;
+                document.getElementById('connCount').textContent = this.state.connections.size;
+            }
+            
+            setStatus(message, type = 'success') {
+                const statusText = document.getElementById('statusText');
+                statusText.textContent = message;
+                
+                // Clear previous timeout
+                clearTimeout(this.statusTimeout);
+                
+                // Reset status after 3 seconds
+                this.statusTimeout = setTimeout(() => {
+                    statusText.textContent = 'Ready';
+                }, 3000);
+            }
+            
+            // Rendering
+            startRenderLoop() {
+                const render = () => {
+                    if (this.state.needsRedraw) {
+                        this.draw();
+                        this.state.needsRedraw = false;
+                    }
+                    this.animationFrame = requestAnimationFrame(render);
+                };
+                render();
+            }
+            
+            draw() {
+                const ctx = this.ctx;
+                const width = this.canvas.width / this.dpr;
+                const height = this.canvas.height / this.dpr;
+                
+                // Clear canvas
+                ctx.fillStyle = '#0f0f0f';
+                ctx.fillRect(0, 0, width, height);
+                
+                // Draw grid
+                this.drawGrid(ctx, width, height);
+                
+                // Draw connections
+                this.drawConnections(ctx);
+                
+                // Draw temp connection
+                if (this.state.tempLine && this.state.connectStart) {
+                    this.drawTempConnection(ctx);
+                }
+                
+                // Draw nodes
+                this.drawNodes(ctx);
+            }
+            
+            drawGrid(ctx, width, height) {
+                const size = this.config.gridSize;
+                
+                ctx.strokeStyle = '#1a1a1a';
+                ctx.lineWidth = 0.5;
+                ctx.beginPath();
+                
+                // Vertical lines
+                for (let x = 0; x <= width; x += size) {
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, height);
+                }
+                
+                // Horizontal lines
+                for (let y = 0; y <= height; y += size) {
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(width, y);
+                }
+                
+                ctx.stroke();
+            }
+            
+            drawConnections(ctx) {
+                ctx.strokeStyle = '#444';
+                ctx.lineWidth = this.config.connectionWidth;
+                
+                for (const conn of this.state.connections.values()) {
+                    const from = this.state.nodes.get(conn.from);
+                    const to = this.state.nodes.get(conn.to);
+                    
+                    if (from && to) {
+                        ctx.beginPath();
+                        ctx.moveTo(from.x, from.y);
+                        ctx.lineTo(to.x, to.y);
+                        ctx.stroke();
+                    }
+                }
+            }
+            
+            drawTempConnection(ctx) {
+                ctx.strokeStyle = '#666';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                
+                ctx.beginPath();
+                ctx.moveTo(this.state.connectStart.x, this.state.connectStart.y);
+                ctx.lineTo(this.state.tempLine.x, this.state.tempLine.y);
+                ctx.stroke();
+                
+                ctx.setLineDash([]);
+            }
+            
+            drawNodes(ctx) {
+                for (const node of this.state.nodes.values()) {
+                    const isHovered = node === this.state.hoveredNode;
+                    const isConnecting = node === this.state.connectStart;
+                    const radius = this.config.nodeRadius;
+                    
+                    // Shadow for depth
+                    if (isHovered) {
+                        ctx.shadowColor = 'rgba(255, 255, 255, 0.2)';
+                        ctx.shadowBlur = 20;
+                    }
+                    
+                    // Draw node circle
+                    ctx.beginPath();
+                    ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
+                    
+                    // Fill
+                    ctx.fillStyle = this.config.colors[node.type];
+                    ctx.fill();
+                    
+                    // Stroke
+                    ctx.strokeStyle = isConnecting ? '#10b981' : (isHovered ? '#fff' : '#333');
+                    ctx.lineWidth = isConnecting ? 3 : (isHovered ? 2 : 1);
+                    ctx.stroke();
+                    
+                    // Reset shadow
+                    ctx.shadowColor = 'transparent';
+                    ctx.shadowBlur = 0;
+                    
+                    // Draw icon
+                    ctx.fillStyle = '#fff';
+                    ctx.font = `bold ${14 * (isHovered ? 1.1 : 1)}px monospace`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(this.config.icons[node.type], node.x, node.y);
+                    
+                    // Draw name
+                    ctx.fillStyle = '#ccc';
+                    ctx.font = '11px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'top';
+                    ctx.fillText(node.name, node.x, node.y + radius + 5);
+                    
+                    // Draw IP
+                    if (node.ip) {
+                        ctx.fillStyle = '#666';
+                        ctx.font = '10px sans-serif';
+                        ctx.fillText(node.ip, node.x, node.y + radius + 18);
+                    }
+                }
+            }
+            
+            // Cleanup
+            destroy() {
+                // Cancel animation frame
+                if (this.animationFrame) {
+                    cancelAnimationFrame(this.animationFrame);
+                }
+                
+                // Clear timeouts
+                clearTimeout(this.resizeTimeout);
+                clearTimeout(this.statusTimeout);
+                
+                // Remove event listeners (if needed for single-page apps)
+                // This is usually not necessary for standalone pages
+            }
+        }
+        
+        // Initialize application when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                window.app = new NetworkDesignApp();
+            });
+        } else {
+            window.app = new NetworkDesignApp();
+        }
+    </script>
+</body>
+</html>
