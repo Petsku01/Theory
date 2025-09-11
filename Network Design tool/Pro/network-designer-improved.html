@@ -1,0 +1,1464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Designer Pro</title>
+    <style>
+        :root {
+            --bg: #0a0e17;
+            --panel: #111822;
+            --border: #1e2633;
+            --accent: #00d4ff;
+            --success: #00ff88;
+            --warning: #ffaa00;
+            --danger: #ff4466;
+            --text: #e4e6eb;
+            --dim: #6b7280;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: var(--panel);
+            border-bottom: 1px solid var(--border);
+            padding: 10px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .toolbar {
+            background: var(--panel);
+            padding: 8px;
+            display: flex;
+            gap: 8px;
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 6px 12px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .btn:hover {
+            background: #1a2130;
+            border-color: var(--accent);
+        }
+
+        .btn.active {
+            background: var(--accent);
+            color: #000;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .workspace {
+            flex: 1;
+            display: flex;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 260px;
+            background: var(--panel);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tab-bar {
+            display: flex;
+            background: #0d1219;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tab {
+            flex: 1;
+            padding: 8px;
+            text-align: center;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+
+        .tab-content {
+            flex: 1;
+            overflow-y: auto;
+            display: none;
+            padding: 12px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        canvas {
+            background: #050812;
+            display: block;
+        }
+
+        .device-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .device-card {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .device-card:hover {
+            border-color: var(--accent);
+            transform: scale(1.02);
+        }
+
+        .device-icon {
+            font-size: 20px;
+            margin-bottom: 4px;
+        }
+
+        .device-card h4 {
+            font-size: 11px;
+            margin-bottom: 2px;
+        }
+
+        .device-card p {
+            font-size: 10px;
+            color: var(--dim);
+        }
+
+        .field {
+            margin-bottom: 12px;
+        }
+
+        .field label {
+            display: block;
+            font-size: 11px;
+            color: var(--dim);
+            margin-bottom: 4px;
+        }
+
+        .field input, .field select {
+            width: 100%;
+            padding: 6px 8px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            color: var(--text);
+            font-size: 12px;
+        }
+
+        .field input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .status {
+            background: var(--panel);
+            border-top: 1px solid var(--border);
+            padding: 8px 16px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+        }
+
+        .menu {
+            position: fixed;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 4px;
+            display: none;
+            min-width: 160px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+
+        .menu.show {
+            display: block;
+        }
+
+        .menu-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+
+        .menu-item:hover {
+            background: var(--bg);
+        }
+
+        .menu-separator {
+            height: 1px;
+            background: var(--border);
+            margin: 4px 0;
+        }
+
+        .validation-item {
+            padding: 8px;
+            margin-bottom: 4px;
+            border-radius: 4px;
+            font-size: 11px;
+            border-left: 3px solid;
+        }
+
+        .validation-item.error {
+            background: rgba(255,68,102,0.1);
+            border-color: var(--danger);
+        }
+
+        .validation-item.warning {
+            background: rgba(255,170,0,0.1);
+            border-color: var(--warning);
+        }
+
+        .validation-item.success {
+            background: rgba(0,255,136,0.1);
+            border-color: var(--success);
+        }
+
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--panel);
+            border: 1px solid var(--accent);
+            border-radius: 6px;
+            padding: 12px 20px;
+            font-size: 12px;
+            box-shadow: 0 4px 12px rgba(0,212,255,0.2);
+            animation: slideUp 0.3s ease;
+            z-index: 2000;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(20px);
+            }
+        }
+
+        .search-box {
+            position: absolute;
+            top: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(17,24,34,0.95);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            backdrop-filter: blur(10px);
+        }
+
+        .search-box input {
+            background: none;
+            border: none;
+            color: var(--text);
+            outline: none;
+            width: 200px;
+            font-size: 12px;
+        }
+
+        kbd {
+            font-size: 10px;
+            padding: 2px 4px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 2px;
+            margin-left: 4px;
+        }
+
+        .ports-list {
+            font-size: 10px;
+            margin-top: 8px;
+        }
+
+        .port-item {
+            padding: 4px;
+            margin: 2px 0;
+            background: var(--bg);
+            border-radius: 3px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .port-item.connected {
+            background: rgba(0,255,136,0.1);
+            border: 1px solid var(--success);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <span style="font-size: 16px; font-weight: 600;">Network Designer Pro</span>
+        </div>
+        <div style="display: flex; gap: 20px; font-size: 12px;">
+            <span>Devices: <b style="color: var(--accent)" id="devCount">0</b></span>
+            <span>Links: <b style="color: var(--accent)" id="linkCount">0</b></span>
+            <span>VLANs: <b style="color: var(--accent)" id="vlanCount">0</b></span>
+        </div>
+    </div>
+
+    <div class="toolbar">
+        <button class="btn" onclick="app.setMode('select')" data-mode="select">Select<kbd>V</kbd></button>
+        <button class="btn" onclick="app.setMode('connect')" data-mode="connect">Connect<kbd>C</kbd></button>
+        <button class="btn" onclick="app.setMode('delete')" data-mode="delete">Delete<kbd>D</kbd></button>
+        <button class="btn" onclick="app.undo()" id="undoBtn">Undo<kbd>⌘Z</kbd></button>
+        <button class="btn" onclick="app.redo()" id="redoBtn">Redo<kbd>⌘Y</kbd></button>
+        <button class="btn" onclick="app.autoLayout()">Auto Layout</button>
+        <button class="btn" onclick="app.validateNetwork()">Validate</button>
+        <button class="btn" onclick="app.exportJSON()">Save</button>
+        <button class="btn" onclick="app.load()">Load</button>
+        <button class="btn" onclick="app.exportConfig()">Export Config</button>
+        <button class="btn" onclick="app.centerView()">Center View</button>
+    </div>
+
+    <div class="workspace">
+        <div class="sidebar">
+            <div class="tab-bar">
+                <div class="tab active" onclick="app.switchTab('devices', this)">Devices</div>
+                <div class="tab" onclick="app.switchTab('properties', this)">Properties</div>
+                <div class="tab" onclick="app.switchTab('validation', this)">Validation</div>
+            </div>
+            
+            <div class="tab-content active" id="devices-tab">
+                <div class="device-grid">
+                    <div class="device-card" onclick="app.addDevice('router')">
+                        <div class="device-icon">🔀</div>
+                        <h4>Router</h4>
+                        <p>L3 Device</p>
+                    </div>
+                    <div class="device-card" onclick="app.addDevice('switch')">
+                        <div class="device-icon">⚡</div>
+                        <h4>Switch</h4>
+                        <p>L2 Device</p>
+                    </div>
+                    <div class="device-card" onclick="app.addDevice('firewall')">
+                        <div class="device-icon">🛡️</div>
+                        <h4>Firewall</h4>
+                        <p>Security</p>
+                    </div>
+                    <div class="device-card" onclick="app.addDevice('server')">
+                        <div class="device-icon">🖥️</div>
+                        <h4>Server</h4>
+                        <p>Compute</p>
+                    </div>
+                    <div class="device-card" onclick="app.addDevice('pc')">
+                        <div class="device-icon">💻</div>
+                        <h4>Computer</h4>
+                        <p>Endpoint</p>
+                    </div>
+                    <div class="device-card" onclick="app.addDevice('ap')">
+                        <div class="device-icon">📡</div>
+                        <h4>Access Point</h4>
+                        <p>Wireless</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tab-content" id="properties-tab">
+                <p style="text-align:center; color:var(--dim); padding:40px 20px;">
+                    Select a device to view properties
+                </p>
+            </div>
+            
+            <div class="tab-content" id="validation-tab">
+                <p style="text-align:center; color:var(--dim); padding:40px 20px;">
+                    Click Validate to check network
+                </p>
+            </div>
+        </div>
+
+        <div style="flex:1; position:relative;">
+            <canvas id="canvas"></canvas>
+            
+            <div class="search-box">
+                <span style="color: var(--dim);">🔍</span>
+                <input type="text" placeholder="Search devices..." id="search" oninput="app.search(this.value)">
+            </div>
+        </div>
+    </div>
+
+    <div class="status">
+        <div style="display: flex; gap: 16px;">
+            <span id="status">Ready</span>
+            <span id="coords" style="color: var(--dim);">0, 0</span>
+            <span id="zoom" style="color: var(--dim);">100%</span>
+        </div>
+        <div>
+            <span id="selection" style="color: var(--dim);">No selection</span>
+        </div>
+    </div>
+
+    <div class="menu" id="menu">
+        <div class="menu-item" onclick="app.menuAction('duplicate')">Duplicate</div>
+        <div class="menu-item" onclick="app.menuAction('delete')">Delete</div>
+        <div class="menu-separator"></div>
+        <div class="menu-item" onclick="app.menuAction('properties')">Properties</div>
+    </div>
+
+    <input type="file" id="file" style="display:none" accept=".json" onchange="app.loadFile(event)">
+
+    <script>
+        class NetworkDesigner {
+            constructor() {
+                this.canvas = document.getElementById('canvas');
+                this.ctx = this.canvas.getContext('2d');
+                
+                // Data
+                this.devices = new Map();
+                this.links = new Map();
+                this.selected = new Set();
+                
+                // State
+                this.mode = 'select';
+                this.connectFrom = null;
+                this.hovered = null;
+                this.isDragging = false;
+                this.isPanning = false;
+                this.isBoxSelecting = false;
+                this.boxSelectStart = {x: 0, y: 0};
+                this.boxSelectEnd = {x: 0, y: 0};
+                this.dragOffset = {x: 0, y: 0};
+                
+                // View
+                this.pan = {x: 0, y: 0};
+                this.scale = 1;
+                
+                // History
+                this.history = [];
+                this.historyIndex = -1;
+                
+                // IDs
+                this.nextId = 1;
+                
+                // Device configs
+                this.deviceConfigs = {
+                    router: {icon: '🔀', color: '#00d4ff', size: 35, ports: 4},
+                    switch: {icon: '⚡', color: '#00ff88', size: 35, ports: 8},
+                    firewall: {icon: '🛡️', color: '#ff4466', size: 35, ports: 3},
+                    server: {icon: '🖥️', color: '#ffaa00', size: 30, ports: 2},
+                    pc: {icon: '💻', color: '#8888ff', size: 25, ports: 1},
+                    ap: {icon: '📡', color: '#ff00ff', size: 30, ports: 1}
+                };
+                
+                this.init();
+            }
+            
+            init() {
+                this.resize();
+                window.addEventListener('resize', () => this.resize());
+                
+                // Canvas events
+                this.canvas.addEventListener('mousedown', e => this.onMouseDown(e));
+                this.canvas.addEventListener('mousemove', e => this.onMouseMove(e));
+                this.canvas.addEventListener('mouseup', e => this.onMouseUp(e));
+                this.canvas.addEventListener('wheel', e => this.onWheel(e));
+                this.canvas.addEventListener('contextmenu', e => this.onContextMenu(e));
+                this.canvas.addEventListener('dblclick', e => this.onDoubleClick(e));
+                
+                // Keyboard
+                document.addEventListener('keydown', e => this.onKeyDown(e));
+                
+                // Hide menus
+                document.addEventListener('click', e => {
+                    if (!e.target.closest('.menu')) {
+                        document.getElementById('menu').classList.remove('show');
+                    }
+                });
+                
+                this.render();
+            }
+            
+            resize() {
+                const rect = this.canvas.parentElement.getBoundingClientRect();
+                this.canvas.width = rect.width;
+                this.canvas.height = rect.height;
+                this.render();
+            }
+            
+            // Device management
+            addDevice(type) {
+                const config = this.deviceConfigs[type];
+                if (!config) return;
+                
+                const device = {
+                    id: this.nextId++,
+                    type,
+                    name: `${type}${this.devices.size + 1}`,
+                    x: this.canvas.width / 2 / this.scale - this.pan.x / this.scale,
+                    y: this.canvas.height / 2 / this.scale - this.pan.y / this.scale,
+                    ip: this.generateIP(),
+                    subnet: '255.255.255.0',
+                    vlan: 1,
+                    ports: Array.from({length: config.ports}, (_, i) => ({
+                        id: i,
+                        name: `Port${i + 1}`,
+                        connected: null
+                    }))
+                };
+                
+                this.devices.set(device.id, device);
+                this.saveState();
+                this.update();
+                this.render();
+                this.notify(`Added ${type}`);
+            }
+            
+            deleteDevice(device) {
+                // Remove associated links
+                const linksToDelete = [];
+                this.links.forEach((link, id) => {
+                    if (link.from === device.id || link.to === device.id) {
+                        linksToDelete.push(id);
+                        
+                        // Clear port connections
+                        const otherDevice = this.devices.get(link.from === device.id ? link.to : link.from);
+                        if (otherDevice) {
+                            const portIndex = link.from === device.id ? link.toPort : link.fromPort;
+                            if (otherDevice.ports[portIndex]) {
+                                otherDevice.ports[portIndex].connected = null;
+                            }
+                        }
+                    }
+                });
+                
+                linksToDelete.forEach(id => this.links.delete(id));
+                this.devices.delete(device.id);
+                this.selected.delete(device.id);
+                
+                this.saveState();
+                this.update();
+                this.render();
+            }
+            
+            connectDevices(from, to) {
+                // Find available ports
+                const fromPort = from.ports.find(p => !p.connected);
+                const toPort = to.ports.find(p => !p.connected);
+                
+                if (!fromPort || !toPort) {
+                    this.notify('No available ports', 'warning');
+                    return;
+                }
+                
+                const link = {
+                    id: this.nextId++,
+                    from: from.id,
+                    to: to.id,
+                    fromPort: fromPort.id,
+                    toPort: toPort.id
+                };
+                
+                fromPort.connected = link.id;
+                toPort.connected = link.id;
+                
+                this.links.set(link.id, link);
+                this.saveState();
+                this.update();
+                this.render();
+            }
+            
+            // UI Methods
+            setMode(mode) {
+                this.mode = mode;
+                this.connectFrom = null;
+                
+                document.querySelectorAll('[data-mode]').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.mode === mode);
+                });
+                
+                this.render();
+            }
+            
+            switchTab(tab, element) {
+                if (element) {
+                    element.parentElement.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    element.classList.add('active');
+                }
+                
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                const tabContent = document.getElementById(`${tab}-tab`);
+                if (tabContent) tabContent.classList.add('active');
+                
+                if (tab === 'properties' && this.selected.size === 1) {
+                    this.showProperties(this.devices.get(Array.from(this.selected)[0]));
+                }
+            }
+            
+            showProperties(device) {
+                if (!device) return;
+                
+                const props = document.getElementById('properties-tab');
+                props.innerHTML = `
+                    <div class="field">
+                        <label>Name</label>
+                        <input value="${device.name}" onchange="app.updateProp(${device.id}, 'name', this.value)">
+                    </div>
+                    <div class="field">
+                        <label>Type</label>
+                        <input value="${device.type}" disabled>
+                    </div>
+                    <div class="field">
+                        <label>IP Address</label>
+                        <input value="${device.ip}" onchange="app.updateProp(${device.id}, 'ip', this.value)">
+                    </div>
+                    <div class="field">
+                        <label>Subnet Mask</label>
+                        <input value="${device.subnet}" onchange="app.updateProp(${device.id}, 'subnet', this.value)">
+                    </div>
+                    <div class="field">
+                        <label>VLAN</label>
+                        <input type="number" value="${device.vlan}" min="1" max="4094" onchange="app.updateProp(${device.id}, 'vlan', parseInt(this.value))">
+                    </div>
+                    <div class="field">
+                        <label>Ports</label>
+                        <div class="ports-list">
+                            ${device.ports.map(p => `
+                                <div class="port-item ${p.connected ? 'connected' : ''}">
+                                    <span>${p.name}</span>
+                                    <span>${p.connected ? 'Connected' : 'Available'}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            updateProp(id, prop, value) {
+                const device = this.devices.get(id);
+                if (device) {
+                    device[prop] = value;
+                    this.saveState();
+                    this.update();
+                    this.render();
+                }
+            }
+            
+            // Validation
+            validateNetwork() {
+                const issues = [];
+                const ips = new Map();
+                
+                // Check IP conflicts
+                this.devices.forEach(device => {
+                    if (ips.has(device.ip)) {
+                        issues.push({
+                            type: 'error',
+                            msg: `IP conflict: ${device.name} and ${ips.get(device.ip)} both use ${device.ip}`
+                        });
+                    }
+                    ips.set(device.ip, device.name);
+                });
+                
+                // Check isolated devices
+                this.devices.forEach(device => {
+                    const hasConnection = Array.from(this.links.values()).some(
+                        link => link.from === device.id || link.to === device.id
+                    );
+                    
+                    if (!hasConnection) {
+                        issues.push({
+                            type: 'warning',
+                            msg: `${device.name} is not connected to the network`
+                        });
+                    }
+                });
+                
+                // Display results
+                const validationTab = document.getElementById('validation-tab');
+                if (issues.length === 0) {
+                    validationTab.innerHTML = '<div class="validation-item success">✓ Network configuration is valid</div>';
+                } else {
+                    validationTab.innerHTML = issues.map(issue => 
+                        `<div class="validation-item ${issue.type}">${issue.msg}</div>`
+                    ).join('');
+                }
+                
+                this.switchTab('validation');
+            }
+            
+            // Search
+            search(query) {
+                this.selected.clear();
+                
+                if (!query) {
+                    this.render();
+                    return;
+                }
+                
+                query = query.toLowerCase();
+                this.devices.forEach(device => {
+                    if (device.name.toLowerCase().includes(query) ||
+                        device.ip.includes(query) ||
+                        device.type.includes(query)) {
+                        this.selected.add(device.id);
+                    }
+                });
+                
+                if (this.selected.size > 0) {
+                    this.centerOnSelected();
+                }
+                
+                this.render();
+            }
+            
+            // Layout
+            autoLayout() {
+                const devices = Array.from(this.devices.values());
+                const iterations = 50;
+                const k = 150;
+                
+                for (let i = 0; i < iterations; i++) {
+                    // Repulsion
+                    for (let a = 0; a < devices.length; a++) {
+                        for (let b = a + 1; b < devices.length; b++) {
+                            const dx = devices[a].x - devices[b].x;
+                            const dy = devices[a].y - devices[b].y;
+                            const dist = Math.max(1, Math.hypot(dx, dy));
+                            const force = (k * k) / dist / 10;
+                            
+                            devices[a].x += (dx / dist) * force;
+                            devices[a].y += (dy / dist) * force;
+                            devices[b].x -= (dx / dist) * force;
+                            devices[b].y -= (dy / dist) * force;
+                        }
+                    }
+                    
+                    // Attraction along edges
+                    this.links.forEach(link => {
+                        const from = devices.find(d => d.id === link.from);
+                        const to = devices.find(d => d.id === link.to);
+                        
+                        if (from && to) {
+                            const dx = from.x - to.x;
+                            const dy = from.y - to.y;
+                            const dist = Math.hypot(dx, dy);
+                            const force = (dist - k) / 50;
+                            
+                            from.x -= (dx / dist) * force;
+                            from.y -= (dy / dist) * force;
+                            to.x += (dx / dist) * force;
+                            to.y += (dy / dist) * force;
+                        }
+                    });
+                }
+                
+                this.centerView();
+                this.saveState();
+                this.render();
+                this.notify('Layout optimized');
+            }
+            
+            centerView() {
+                if (this.devices.size === 0) return;
+                
+                let minX = Infinity, minY = Infinity;
+                let maxX = -Infinity, maxY = -Infinity;
+                
+                this.devices.forEach(device => {
+                    minX = Math.min(minX, device.x - 50);
+                    minY = Math.min(minY, device.y - 50);
+                    maxX = Math.max(maxX, device.x + 50);
+                    maxY = Math.max(maxY, device.y + 50);
+                });
+                
+                const width = maxX - minX;
+                const height = maxY - minY;
+                
+                this.scale = Math.min(
+                    this.canvas.width / width * 0.8,
+                    this.canvas.height / height * 0.8,
+                    2
+                );
+                
+                this.pan.x = (this.canvas.width - width * this.scale) / 2 - minX * this.scale;
+                this.pan.y = (this.canvas.height - height * this.scale) / 2 - minY * this.scale;
+                
+                this.render();
+            }
+            
+            centerOnSelected() {
+                if (this.selected.size === 0) return;
+                
+                let totalX = 0, totalY = 0;
+                this.selected.forEach(id => {
+                    const device = this.devices.get(id);
+                    if (device) {
+                        totalX += device.x;
+                        totalY += device.y;
+                    }
+                });
+                
+                const centerX = totalX / this.selected.size;
+                const centerY = totalY / this.selected.size;
+                
+                this.pan.x = this.canvas.width / 2 - centerX * this.scale;
+                this.pan.y = this.canvas.height / 2 - centerY * this.scale;
+                
+                this.render();
+            }
+            
+            // History
+            saveState() {
+                const state = {
+                    devices: Array.from(this.devices.entries()),
+                    links: Array.from(this.links.entries())
+                };
+                
+                this.history = this.history.slice(0, this.historyIndex + 1);
+                this.history.push(JSON.stringify(state));
+                
+                if (this.history.length > 50) {
+                    this.history.shift();
+                } else {
+                    this.historyIndex++;
+                }
+                
+                this.updateHistoryButtons();
+            }
+            
+            undo() {
+                if (this.historyIndex > 0) {
+                    this.historyIndex--;
+                    this.loadState(this.history[this.historyIndex]);
+                }
+            }
+            
+            redo() {
+                if (this.historyIndex < this.history.length - 1) {
+                    this.historyIndex++;
+                    this.loadState(this.history[this.historyIndex]);
+                }
+            }
+            
+            loadState(stateStr) {
+                const state = JSON.parse(stateStr);
+                this.devices = new Map(state.devices);
+                this.links = new Map(state.links);
+                this.selected.clear();
+                this.update();
+                this.render();
+                this.updateHistoryButtons();
+            }
+            
+            updateHistoryButtons() {
+                document.getElementById('undoBtn').disabled = this.historyIndex <= 0;
+                document.getElementById('redoBtn').disabled = this.historyIndex >= this.history.length - 1;
+            }
+            
+            // Export/Import
+            exportJSON() {
+                const data = {
+                    version: '1.0',
+                    devices: Array.from(this.devices.values()),
+                    links: Array.from(this.links.values())
+                };
+                
+                const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `network-${Date.now()}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                this.notify('Project saved');
+            }
+            
+            exportConfig() {
+                let config = '! Network Configuration\n';
+                config += `! Generated on ${new Date().toLocaleString()}\n\n`;
+                
+                this.devices.forEach(device => {
+                    config += `! ${device.name} (${device.type})\n`;
+                    config += `hostname ${device.name}\n`;
+                    
+                    if (device.type === 'router' || device.type === 'switch') {
+                        config += `!\n`;
+                        config += `interface Vlan${device.vlan}\n`;
+                        config += ` ip address ${device.ip} ${device.subnet}\n`;
+                        config += ` no shutdown\n`;
+                        config += `!\n`;
+                    }
+                    
+                    config += '\n';
+                });
+                
+                const blob = new Blob([config], {type: 'text/plain'});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'network-config.txt';
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                this.notify('Configuration exported');
+            }
+            
+            load() {
+                document.getElementById('file').click();
+            }
+            
+            loadFile(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = e => {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        
+                        this.devices.clear();
+                        this.links.clear();
+                        
+                        // Load devices
+                        data.devices?.forEach(d => {
+                            // Ensure all required properties exist
+                            if (!d.ports) {
+                                const config = this.deviceConfigs[d.type] || this.deviceConfigs.pc;
+                                d.ports = Array.from({length: config.ports}, (_, i) => ({
+                                    id: i,
+                                    name: `Port${i + 1}`,
+                                    connected: null
+                                }));
+                            }
+                            this.devices.set(d.id, d);
+                            
+                            // Update nextId
+                            if (d.id >= this.nextId) {
+                                this.nextId = d.id + 1;
+                            }
+                        });
+                        
+                        // Load links and update port connections
+                        data.links?.forEach(l => {
+                            this.links.set(l.id, l);
+                            
+                            const fromDevice = this.devices.get(l.from);
+                            const toDevice = this.devices.get(l.to);
+                            
+                            if (fromDevice && fromDevice.ports[l.fromPort]) {
+                                fromDevice.ports[l.fromPort].connected = l.id;
+                            }
+                            if (toDevice && toDevice.ports[l.toPort]) {
+                                toDevice.ports[l.toPort].connected = l.id;
+                            }
+                            
+                            if (l.id >= this.nextId) {
+                                this.nextId = l.id + 1;
+                            }
+                        });
+                        
+                        this.centerView();
+                        this.saveState();
+                        this.update();
+                        this.render();
+                        this.notify('Project loaded');
+                    } catch (err) {
+                        console.error(err);
+                        this.notify('Failed to load file', 'error');
+                    }
+                };
+                reader.readAsText(file);
+            }
+            
+            // Event handlers
+            onMouseDown(e) {
+                const {x, y} = this.getMousePos(e);
+                const device = this.getDeviceAt(x, y);
+                
+                if (e.button === 1 || (e.button === 0 && e.shiftKey)) {
+                    this.isPanning = true;
+                    this.dragOffset = {x: e.clientX - this.pan.x, y: e.clientY - this.pan.y};
+                    e.preventDefault();
+                    return;
+                }
+                
+                if (e.button === 0) {
+                    switch (this.mode) {
+                        case 'select':
+                            if (device) {
+                                if (!e.ctrlKey && !e.metaKey && !this.selected.has(device.id)) {
+                                    this.selected.clear();
+                                }
+                                this.selected.add(device.id);
+                                this.isDragging = true;
+                                this.dragOffset = {x: x - device.x, y: y - device.y};
+                            } else {
+                                if (!e.ctrlKey && !e.metaKey) {
+                                    this.selected.clear();
+                                }
+                                this.isBoxSelecting = true;
+                                this.boxSelectStart = {x, y};
+                                this.boxSelectEnd = {x, y};
+                            }
+                            break;
+                            
+                        case 'connect':
+                            if (device) {
+                                if (!this.connectFrom) {
+                                    this.connectFrom = device;
+                                } else if (this.connectFrom !== device) {
+                                    this.connectDevices(this.connectFrom, device);
+                                    this.connectFrom = null;
+                                }
+                            }
+                            break;
+                            
+                        case 'delete':
+                            if (device) {
+                                this.deleteDevice(device);
+                            }
+                            break;
+                    }
+                }
+                
+                this.updateSelection();
+                this.render();
+            }
+            
+            onMouseMove(e) {
+                const {x, y} = this.getMousePos(e);
+                document.getElementById('coords').textContent = `${Math.round(x)}, ${Math.round(y)}`;
+                
+                if (this.isPanning) {
+                    this.pan.x = e.clientX - this.dragOffset.x;
+                    this.pan.y = e.clientY - this.dragOffset.y;
+                    this.render();
+                    return;
+                }
+                
+                if (this.isBoxSelecting) {
+                    this.boxSelectEnd = {x, y};
+                    this.updateBoxSelection();
+                    this.render();
+                    return;
+                }
+                
+                this.hovered = this.getDeviceAt(x, y);
+                
+                if (this.isDragging && this.selected.size > 0) {
+                    const devices = Array.from(this.selected).map(id => this.devices.get(id)).filter(d => d);
+                    if (devices.length > 0) {
+                        const dx = x - this.dragOffset.x - devices[0].x;
+                        const dy = y - this.dragOffset.y - devices[0].y;
+                        
+                        devices.forEach(device => {
+                            device.x += dx;
+                            device.y += dy;
+                        });
+                    }
+                }
+                
+                this.render();
+            }
+            
+            onMouseUp(e) {
+                if (this.isDragging || this.isBoxSelecting) {
+                    this.saveState();
+                }
+                
+                this.isDragging = false;
+                this.isPanning = false;
+                this.isBoxSelecting = false;
+                this.updateSelection();
+            }
+            
+            onWheel(e) {
+                e.preventDefault();
+                
+                const delta = e.deltaY > 0 ? 0.9 : 1.1;
+                const newScale = Math.max(0.1, Math.min(5, this.scale * delta));
+                
+                const {x, y} = this.getMousePos(e);
+                this.pan.x -= x * (newScale - this.scale);
+                this.pan.y -= y * (newScale - this.scale);
+                this.scale = newScale;
+                
+                document.getElementById('zoom').textContent = Math.round(this.scale * 100) + '%';
+                this.render();
+            }
+            
+            onContextMenu(e) {
+                e.preventDefault();
+                
+                const {x, y} = this.getMousePos(e);
+                const device = this.getDeviceAt(x, y);
+                
+                if (device) {
+                    if (!this.selected.has(device.id)) {
+                        this.selected.clear();
+                        this.selected.add(device.id);
+                        this.render();
+                    }
+                    
+                    const menu = document.getElementById('menu');
+                    menu.style.left = e.clientX + 'px';
+                    menu.style.top = e.clientY + 'px';
+                    menu.classList.add('show');
+                }
+            }
+            
+            onDoubleClick(e) {
+                const {x, y} = this.getMousePos(e);
+                const device = this.getDeviceAt(x, y);
+                
+                if (device) {
+                    this.selected.clear();
+                    this.selected.add(device.id);
+                    this.showProperties(device);
+                    this.switchTab('properties');
+                }
+            }
+            
+            onKeyDown(e) {
+                if (e.key === 'Delete' || e.key === 'Backspace') {
+                    this.selected.forEach(id => {
+                        const device = this.devices.get(id);
+                        if (device) this.deleteDevice(device);
+                    });
+                } else if (e.key === 'Escape') {
+                    this.setMode('select');
+                    this.selected.clear();
+                    this.render();
+                } else if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+                    e.preventDefault();
+                    this.devices.forEach((_, id) => this.selected.add(id));
+                    this.updateSelection();
+                    this.render();
+                } else if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+                    e.preventDefault();
+                    this.undo();
+                } else if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
+                    e.preventDefault();
+                    this.redo();
+                } else if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+                    e.preventDefault();
+                    this.menuAction('duplicate');
+                } else if (e.key === 'v') {
+                    this.setMode('select');
+                } else if (e.key === 'c') {
+                    this.setMode('connect');
+                } else if (e.key === 'd' && !e.ctrlKey && !e.metaKey) {
+                    this.setMode('delete');
+                }
+            }
+            
+            // Menu actions
+            menuAction(action) {
+                switch (action) {
+                    case 'duplicate':
+                        const newDevices = [];
+                        this.selected.forEach(id => {
+                            const device = this.devices.get(id);
+                            if (device) {
+                                const copy = {
+                                    ...device,
+                                    id: this.nextId++,
+                                    x: device.x + 50,
+                                    y: device.y + 50,
+                                    name: device.name + '_copy',
+                                    ports: device.ports.map(p => ({...p, connected: null}))
+                                };
+                                this.devices.set(copy.id, copy);
+                                newDevices.push(copy.id);
+                            }
+                        });
+                        this.selected = new Set(newDevices);
+                        this.saveState();
+                        break;
+                        
+                    case 'delete':
+                        this.selected.forEach(id => {
+                            const device = this.devices.get(id);
+                            if (device) this.deleteDevice(device);
+                        });
+                        break;
+                        
+                    case 'properties':
+                        if (this.selected.size === 1) {
+                            const device = this.devices.get(Array.from(this.selected)[0]);
+                            if (device) {
+                                this.showProperties(device);
+                                this.switchTab('properties');
+                            }
+                        }
+                        break;
+                }
+                
+                document.getElementById('menu').classList.remove('show');
+                this.update();
+                this.render();
+            }
+            
+            // Helper methods
+            getMousePos(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                return {
+                    x: (e.clientX - rect.left - this.pan.x) / this.scale,
+                    y: (e.clientY - rect.top - this.pan.y) / this.scale
+                };
+            }
+            
+            getDeviceAt(x, y) {
+                for (const device of this.devices.values()) {
+                    const config = this.deviceConfigs[device.type];
+                    if (config && Math.hypot(x - device.x, y - device.y) <= config.size) {
+                        return device;
+                    }
+                }
+                return null;
+            }
+            
+            updateBoxSelection() {
+                const minX = Math.min(this.boxSelectStart.x, this.boxSelectEnd.x);
+                const maxX = Math.max(this.boxSelectStart.x, this.boxSelectEnd.x);
+                const minY = Math.min(this.boxSelectStart.y, this.boxSelectEnd.y);
+                const maxY = Math.max(this.boxSelectStart.y, this.boxSelectEnd.y);
+                
+                this.devices.forEach(device => {
+                    if (device.x >= minX && device.x <= maxX &&
+                        device.y >= minY && device.y <= maxY) {
+                        this.selected.add(device.id);
+                    }
+                });
+            }
+            
+            updateSelection() {
+                const count = this.selected.size;
+                const status = count === 0 ? 'No selection' :
+                             count === 1 ? '1 device selected' :
+                             `${count} devices selected`;
+                document.getElementById('selection').textContent = status;
+            }
+            
+            generateIP() {
+                return `192.168.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 254) + 1}`;
+            }
+            
+            update() {
+                document.getElementById('devCount').textContent = this.devices.size;
+                document.getElementById('linkCount').textContent = this.links.size;
+                
+                const vlans = new Set();
+                this.devices.forEach(d => vlans.add(d.vlan));
+                document.getElementById('vlanCount').textContent = vlans.size;
+            }
+            
+            notify(message, type = 'info') {
+                const existing = document.querySelector('.notification');
+                if (existing) existing.remove();
+                
+                const notification = document.createElement('div');
+                notification.className = 'notification';
+                notification.textContent = message;
+                
+                if (type === 'error') {
+                    notification.style.borderColor = 'var(--danger)';
+                } else if (type === 'warning') {
+                    notification.style.borderColor = 'var(--warning)';
+                }
+                
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    notification.remove();
+                }, 3000);
+            }
+            
+            // Rendering
+            render() {
+                const ctx = this.ctx;
+                const w = this.canvas.width;
+                const h = this.canvas.height;
+                
+                ctx.clearRect(0, 0, w, h);
+                
+                ctx.save();
+                ctx.translate(this.pan.x, this.pan.y);
+                ctx.scale(this.scale, this.scale);
+                
+                // Grid
+                if (this.scale > 0.3) {
+                    ctx.strokeStyle = 'rgba(30, 38, 51, 0.3)';
+                    ctx.lineWidth = 1 / this.scale;
+                    
+                    const grid = 50;
+                    const startX = Math.floor(-this.pan.x / this.scale / grid) * grid;
+                    const endX = Math.ceil((w - this.pan.x) / this.scale / grid) * grid;
+                    const startY = Math.floor(-this.pan.y / this.scale / grid) * grid;
+                    const endY = Math.ceil((h - this.pan.y) / this.scale / grid) * grid;
+                    
+                    for (let x = startX; x <= endX; x += grid) {
+                        ctx.beginPath();
+                        ctx.moveTo(x, startY);
+                        ctx.lineTo(x, endY);
+                        ctx.stroke();
+                    }
+                    
+                    for (let y = startY; y <= endY; y += grid) {
+                        ctx.beginPath();
+                        ctx.moveTo(startX, y);
+                        ctx.lineTo(endX, y);
+                        ctx.stroke();
+                    }
+                }
+                
+                // Links
+                ctx.lineWidth = 2 / this.scale;
+                this.links.forEach(link => {
+                    const from = this.devices.get(link.from);
+                    const to = this.devices.get(link.to);
+                    
+                    if (from && to) {
+                        ctx.strokeStyle = '#444';
+                        ctx.beginPath();
+                        ctx.moveTo(from.x, from.y);
+                        ctx.lineTo(to.x, to.y);
+                        ctx.stroke();
+                    }
+                });
+                
+                // Temporary connection line
+                if (this.mode === 'connect' && this.connectFrom && this.hovered && this.connectFrom !== this.hovered) {
+                    ctx.strokeStyle = '#00d4ff';
+                    ctx.lineWidth = 2 / this.scale;
+                    ctx.setLineDash([5 / this.scale, 5 / this.scale]);
+                    ctx.beginPath();
+                    ctx.moveTo(this.connectFrom.x, this.connectFrom.y);
+                    ctx.lineTo(this.hovered.x, this.hovered.y);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+                
+                // Devices
+                this.devices.forEach(device => {
+                    const config = this.deviceConfigs[device.type];
+                    if (!config) return;
+                    
+                    const isSelected = this.selected.has(device.id);
+                    const isHovered = device === this.hovered;
+                    const isConnectFrom = device === this.connectFrom;
+                    
+                    // Shadow
+                    if (isSelected || isHovered) {
+                        ctx.shadowColor = config.color;
+                        ctx.shadowBlur = 20 / this.scale;
+                    }
+                    
+                    // Device circle
+                    ctx.fillStyle = '#111822';
+                    ctx.beginPath();
+                    ctx.arc(device.x, device.y, config.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Border
+                    if (isConnectFrom) {
+                        ctx.strokeStyle = '#00ff88';
+                        ctx.lineWidth = 4 / this.scale;
+                    } else if (isSelected) {
+                        ctx.strokeStyle = '#00d4ff';
+                        ctx.lineWidth = 3 / this.scale;
+                    } else if (isHovered) {
+                        ctx.strokeStyle = config.color;
+                        ctx.lineWidth = 2 / this.scale;
+                    } else {
+                        ctx.strokeStyle = '#1e2633';
+                        ctx.lineWidth = 1 / this.scale;
+                    }
+                    ctx.stroke();
+                    
+                    ctx.shadowBlur = 0;
+                    
+                    // Icon
+                    ctx.font = `${config.size * 0.8}px sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillStyle = config.color;
+                    ctx.fillText(config.icon, device.x, device.y);
+                    
+                    // Labels
+                    if (this.scale > 0.3) {
+                        ctx.fillStyle = '#e4e6eb';
+                        ctx.font = `${12 / this.scale}px sans-serif`;
+                        ctx.fillText(device.name, device.x, device.y + config.size + 15);
+                        
+                        if (this.scale > 0.5) {
+                            ctx.fillStyle = '#6b7280';
+                            ctx.font = `${10 / this.scale}px monospace`;
+                            ctx.fillText(device.ip, device.x, device.y + config.size + 28);
+                            
+                            // VLAN indicator
+                            const vlanColors = ['#ff4466', '#00ff88', '#00d4ff', '#ffaa00', '#ff00ff'];
+                            ctx.fillStyle = vlanColors[(device.vlan - 1) % vlanColors.length];
+                            ctx.fillRect(device.x - 20, device.y + config.size + 35, 40, 3);
+                        }
+                    }
+                });
+                
+                // Box selection
+                if (this.isBoxSelecting) {
+                    ctx.strokeStyle = '#00d4ff';
+                    ctx.lineWidth = 1 / this.scale;
+                    ctx.fillStyle = 'rgba(0, 212, 255, 0.1)';
+                    
+                    const x = Math.min(this.boxSelectStart.x, this.boxSelectEnd.x);
+                    const y = Math.min(this.boxSelectStart.y, this.boxSelectEnd.y);
+                    const width = Math.abs(this.boxSelectEnd.x - this.boxSelectStart.x);
+                    const height = Math.abs(this.boxSelectEnd.y - this.boxSelectStart.y);
+                    
+                    ctx.fillRect(x, y, width, height);
+                    ctx.strokeRect(x, y, width, height);
+                }
+                
+                ctx.restore();
+            }
+        }
+        
+        // Initialize application
+        const app = new NetworkDesigner();
+    </script>
+</body>
+</html>
