@@ -1,4 +1,4 @@
-# VDI Performance Diagnostic Script - V3
+# VDI Performance Diagnostic Script - V3 (Fixed)
 param(
     [string]$OutputPath = "C:\temp\VDI_Diagnostics.txt",
     [switch]$DetailedOutput,
@@ -20,31 +20,41 @@ $cs = Get-WmiObject Win32_ComputerSystem
 $cpu = Get-WmiObject Win32_Processor
 $disks = Get-WmiObject Win32_LogicalDisk -Filter "DriveType=3"
 
+# Initialize variables for later use
+$avgCpu = $null
+$avgQueue = $null
+$availGB = $null
+$memoryGB = $null
+
 # System Resources
 $output += "`n[SYSTEM RESOURCES]"
 
-if ($cs.TotalPhysicalMemory) {
+if ($cs.TotalPhysicalMemory -and $cs.TotalPhysicalMemory -gt 0) {
     $memoryGB = [math]::Round($cs.TotalPhysicalMemory / 1GB, 2)
     $availMem = (Get-Counter "\Memory\Available MBytes" -ErrorAction SilentlyContinue).CounterSamples[0].CookedValue
-    $availGB = if ($availMem) { [math]::Round($availMem / 1024, 2) }
-    $output += "Memory: $memoryGB GB total, $(if($availGB){"$availGB GB"}else{"N/A"}) available"
+    if ($availMem -and $availMem -ge 0) { 
+        $availGB = [math]::Round($availMem / 1024, 2) 
+    }
+    $output += "Memory: $memoryGB GB total, $(if($null -ne $availGB){"$availGB GB"}else{"N/A"}) available"
 }
 
 if ($cpu.Name) {
     $cpuInfo = "$($cpu.Name) ($($cpu.NumberOfCores) cores)"
     $cpuUsage = Get-Counter "\Processor(_Total)\% Processor Time" -SampleInterval 2 -MaxSamples 3 -ErrorAction SilentlyContinue
-    $avgCpu = if ($cpuUsage) {
+    if ($cpuUsage) {
         $validSamples = $cpuUsage.CounterSamples | Where-Object {$_.CookedValue -ge 0}
-        if ($validSamples) { [math]::Round(($validSamples | Measure-Object CookedValue -Average).Average, 2) }
+        if ($validSamples) { 
+            $avgCpu = [math]::Round(($validSamples | Measure-Object CookedValue -Average).Average, 2) 
+        }
     }
-    $output += "CPU: $cpuInfo - Usage: $(if($avgCpu){"$avgCpu%"}else{"N/A"})"
+    $output += "CPU: $cpuInfo - Usage: $(if($null -ne $avgCpu){"$avgCpu%"}else{"N/A"})"
 }
 
 # Disk Performance
 $output += "`n[DISK PERFORMANCE]"
 
 foreach ($disk in $disks) {
-    if ($disk.Size -gt 0) {
+    if ($disk.Size -and $disk.Size -gt 0) {
         $freeGB = [math]::Round($disk.FreeSpace / 1GB, 2)
         $totalGB = [math]::Round($disk.Size / 1GB, 2)
         $pctFree = [math]::Round(($disk.FreeSpace / $disk.Size) * 100, 2)
@@ -65,11 +75,15 @@ if ($diskQueue) {
 $output += "`n[NETWORK]"
 
 Get-WmiObject Win32_NetworkAdapter -Filter "NetConnectionStatus=2 AND AdapterType LIKE '%Ethernet%'" | ForEach-Object {
-    $speed = if ($_.Speed -gt 0) { "$([math]::Round($_.Speed/1000000,0)) Mbps" } else { "Unknown" }
+    $speed = if ($_.Speed -and $_.Speed -gt 0) { 
+        "$([math]::Round($_.Speed/1000000,0)) Mbps" 
+    } else { 
+        "Unknown" 
+    }
     $output += "$($_.Name): $speed"
 }
 
-"8.8.8.8", "1.1.1.1" | ForEach-Object {
+@("8.8.8.8", "1.1.1.1") | ForEach-Object {
     $output += "Ping ${_}: $(if(Test-Connection $_ -Count 1 -Quiet){'OK'}else{'Failed'})"
 }
 
@@ -96,19 +110,21 @@ if ($env:SESSIONNAME) {
 # Windows Performance
 $output += "`n[WINDOWS]"
 
-"Spooler", "BITS", "Windows Search" | ForEach-Object {
+@("Spooler", "BITS", "Windows Search") | ForEach-Object {
     $svc = Get-Service $_ -ErrorAction SilentlyContinue
-    if ($svc) { $output += "${_}: $($svc.Status)" }
+    if ($svc) { 
+        $output += "${_}: $($svc.Status)" 
+    }
 }
 
 $rebootPending = (Test-Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired") -or
                  (Test-Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending") -or
-                 (Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager" -Name PendingFileRenameOperations -ErrorAction SilentlyContinue).PendingFileRenameOperations
+                 ($null -ne (Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager" -Name PendingFileRenameOperations -ErrorAction SilentlyContinue).PendingFileRenameOperations)
 
 $output += "Reboot Pending: $(if($rebootPending){'Yes'}else{'No'})"
 
 $pf = Get-WmiObject Win32_PageFileUsage
-if ($pf.AllocatedBaseSize -gt 0) {
+if ($pf -and $pf.AllocatedBaseSize -and $pf.AllocatedBaseSize -gt 0) {
     $pfUsage = [math]::Round(($pf.CurrentUsage / $pf.AllocatedBaseSize) * 100, 2)
     $output += "Page File: $($pf.CurrentUsage)/$($pf.AllocatedBaseSize) MB ($pfUsage%)"
 }
@@ -128,7 +144,11 @@ if ($DetailedOutput) {
     if ($errors) {
         $output += "`n[RECENT ERRORS]"
         $errors | ForEach-Object {
-            $msg = if($_.Message) { $_.Message.Substring(0, [Math]::Min(80, $_.Message.Length)) } else { "No message" }
+            $msg = if($_.Message) { 
+                $_.Message.Substring(0, [Math]::Min(80, $_.Message.Length)) 
+            } else { 
+                "No message" 
+            }
             $output += "$($_.TimeGenerated.ToString('HH:mm')) $($_.Source): $msg"
         }
     }
@@ -138,16 +158,26 @@ if ($DetailedOutput) {
 $output += "`n[RECOMMENDATIONS]"
 $recs = @()
 
-if ($availGB -and $memoryGB) {
+if ($null -ne $availGB -and $null -ne $memoryGB -and $memoryGB -gt 0) {
     $memUsed = (1 - ($availGB / $memoryGB)) * 100
-    if ($memUsed -gt 80) { $recs += "High memory usage: $([math]::Round($memUsed,1))%" }
+    if ($memUsed -gt 80) { 
+        $recs += "High memory usage: $([math]::Round($memUsed,1))%" 
+    }
 }
 
-if ($avgCpu -gt 80) { $recs += "High CPU usage: $avgCpu%" }
-if ($avgQueue -gt 2) { $recs += "High disk queue: $avgQueue" }
-if ($startupCount -gt 20) { $recs += "Many startup items: $startupCount" }
+if ($null -ne $avgCpu -and $avgCpu -gt 80) { 
+    $recs += "High CPU usage: $avgCpu%" 
+}
 
-if ($recs) {
+if ($null -ne $avgQueue -and $avgQueue -gt 2) { 
+    $recs += "High disk queue: $avgQueue" 
+}
+
+if ($startupCount -gt 20) { 
+    $recs += "Many startup items: $startupCount" 
+}
+
+if ($recs.Count -gt 0) {
     $recs | ForEach-Object { $output += "! $_" }
 } else {
     $output += "No immediate issues detected"
@@ -177,10 +207,12 @@ if ($MonitorPerformance) {
         
         foreach ($counter in $counters) {
             $value = (Get-Counter $counter.Path -ErrorAction SilentlyContinue).CounterSamples[0].CookedValue
-            if ($value -ge 0) { $sample[$counter.Name] = $value }
+            if ($null -ne $value -and $value -ge 0) { 
+                $sample[$counter.Name] = $value 
+            }
         }
         
-        if ($sample.Count) {
+        if ($sample.Count -gt 0) {
             $samples += $sample
             Write-Host "." -NoNewline
         }
@@ -190,26 +222,36 @@ if ($MonitorPerformance) {
     
     Write-Host "`n`nResults:" -ForegroundColor Green
     
-    if (!$samples) {
+    if ($samples.Count -eq 0) {
         Write-Host "No performance data collected" -ForegroundColor Yellow
     } else {
-        @{
-            CPU = @{Field='CPU'; Label='CPU Max'; Threshold=90; Warning='High CPU detected'; Format='{0}%'}
-            Memory = @{Field='MemMB'; Label='Memory Min'; Threshold=500; Warning='Low memory detected'; Format='{0}MB'; UseMin=$true}
-            Queue = @{Field='Queue'; Label='Disk Queue Max'; Threshold=2; Warning='Storage bottleneck detected'; Format='{0}'}
-        }.Values | ForEach-Object {
-            $data = $samples | Where-Object {$_.$($_.Field)} | ForEach-Object {$_.$($_.Field)}
-            if ($data) {
-                $value = if ($_.UseMin) {
-                    ($data | Measure-Object -Minimum).Minimum
-                } else {
-                    ($data | Measure-Object -Maximum).Maximum
-                }
-                $value = [math]::Round($value, if($_.Field -eq 'MemMB'){0}else{1})
-                Write-Host "$($_.Label): $($_.Format -f $value)"
-                if (($_.UseMin -and $value -lt $_.Threshold) -or (!$_.UseMin -and $value -gt $_.Threshold)) {
-                    Write-Host "! $($_.Warning)" -ForegroundColor Red
-                }
+        # CPU Maximum
+        $cpuData = $samples | Where-Object {$_.CPU} | ForEach-Object {$_.CPU}
+        if ($cpuData) {
+            $cpuMax = [math]::Round(($cpuData | Measure-Object -Maximum).Maximum, 1)
+            Write-Host "CPU Max: $cpuMax%"
+            if ($cpuMax -gt 90) {
+                Write-Host "! High CPU detected" -ForegroundColor Red
+            }
+        }
+        
+        # Memory Minimum
+        $memData = $samples | Where-Object {$_.MemMB} | ForEach-Object {$_.MemMB}
+        if ($memData) {
+            $memMin = [math]::Round(($memData | Measure-Object -Minimum).Minimum, 0)
+            Write-Host "Memory Min: ${memMin}MB"
+            if ($memMin -lt 500) {
+                Write-Host "! Low memory detected" -ForegroundColor Red
+            }
+        }
+        
+        # Disk Queue Maximum
+        $queueData = $samples | Where-Object {$_.Queue} | ForEach-Object {$_.Queue}
+        if ($queueData) {
+            $queueMax = [math]::Round(($queueData | Measure-Object -Maximum).Maximum, 1)
+            Write-Host "Disk Queue Max: $queueMax"
+            if ($queueMax -gt 2) {
+                Write-Host "! Storage bottleneck detected" -ForegroundColor Red
             }
         }
     }
