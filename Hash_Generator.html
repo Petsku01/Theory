@@ -21,35 +21,96 @@
             padding: 20px; 
             text-align: center; 
             margin-bottom: 20px; 
-            background-color: #1e1e1e; 
+            background-color: #1e1e1e;
+            cursor: pointer;
+            transition: border-color 0.3s;
         }
-        .hash-result { 
+        .file-upload:hover {
+            border-color: #666;
+        }
+        .file-upload.dragover {
+            border-color: #888;
+            background-color: #252525;
+        }
+        .hash-result, .file-info { 
             margin-top: 20px; 
             padding: 10px; 
             border: 1px solid #333; 
-            background-color: #1e1e1e; 
+            background-color: #1e1e1e;
+            display: none;
+        }
+        .hash-result.show, .file-info.show {
+            display: block;
         }
         button { 
             margin-right: 10px; 
+            padding: 8px 16px;
             background-color: #333; 
             color: #e0e0e0; 
-            border: 1px solid #444; 
+            border: 1px solid #444;
+            cursor: pointer;
+            border-radius: 4px;
         }
         button:hover { 
             background-color: #444; 
         }
+        button:disabled {
+            background-color: #222;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
         pre { 
-            color: #e0e0e0; 
+            color: #e0e0e0;
+            word-break: break-all;
+            white-space: pre-wrap;
         }
         input[type="text"] { 
             background-color: #1e1e1e; 
             color: #e0e0e0; 
-            border: 1px solid #444; 
+            border: 1px solid #444;
+            padding: 8px;
+            border-radius: 4px;
+            width: 70%;
         }
         select { 
             background-color: #1e1e1e; 
             color: #e0e0e0; 
-            border: 1px solid #444; 
+            border: 1px solid #444;
+            padding: 4px;
+            border-radius: 4px;
+        }
+        .algorithm-section {
+            margin: 20px 0;
+        }
+        .compare-hash {
+            margin-top: 20px;
+        }
+        .status {
+            padding: 8px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .status.success {
+            background-color: #1a4d1a;
+            border: 1px solid #2d7d2d;
+        }
+        .status.error {
+            background-color: #4d1a1a;
+            border: 1px solid #7d2d2d;
+        }
+        .spinner {
+            border: 2px solid #333;
+            border-top: 2px solid #666;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
@@ -59,11 +120,11 @@
 
         <div class="file-upload" id="drop-area">
             <p>Click here or drag & drop a file</p>
-            <input type="file" id="file-input" style="display: none;">
+            <input type="file" id="file-input" style="display: none;" accept="*/*">
             <p>Maximum file size: 100MB</p>
         </div>
 
-        <div>
+        <div class="algorithm-section">
             <label for="hash-algorithm">Select Hash Algorithm:</label>
             <select id="hash-algorithm">
                 <option value="SHA-256">SHA-256</option>
@@ -81,19 +142,19 @@
             <p>Modified: <span id="file-modified"></span></p>
         </div>
 
-        <button id="calculate-btn">Calculate Hash</button>
+        <button id="calculate-btn" disabled>Calculate Hash</button>
 
         <div class="hash-result" id="hash-result">
             <h2>Hash Result</h2>
             <pre id="hash-output"></pre>
-            <button id="copy-btn">Copy</button>
+            <button id="copy-btn">Copy Hash</button>
         </div>
 
         <div class="compare-hash">
             <h2>Compare Hash</h2>
             <input type="text" id="compare-input" placeholder="Enter hash to compare">
             <button id="compare-btn">Compare</button>
-            <p id="compare-result"></p>
+            <div id="compare-result"></div>
         </div>
     </div>
 
@@ -113,77 +174,190 @@
         const hashOutput = document.getElementById('hash-output');
         const compareInput = document.getElementById('compare-input');
         const compareResult = document.getElementById('compare-result');
+        const fileInfo = document.getElementById('file-info');
+        const hashResult = document.getElementById('hash-result');
 
         let selectedFile = null;
+        let currentHash = '';
 
         // Handle file selection
+        function handleFile() {
+            selectedFile = fileInput.files[0];
+            if (selectedFile) {
+                // Check file size limit
+                if (selectedFile.size > 100 * 1024 * 1024) {
+                    showError('File exceeds 100MB limit.');
+                    selectedFile = null;
+                    calculateBtn.disabled = true;
+                    fileInfo.classList.remove('show');
+                    return;
+                }
+
+                // Display file information
+                fileName.textContent = selectedFile.name;
+                fileSize.textContent = `${(selectedFile.size / 1024 / 1024).toFixed(2)} MB`;
+                fileType.textContent = selectedFile.type || 'Unknown';
+                fileModified.textContent = new Date(selectedFile.lastModified).toLocaleString();
+                
+                // Show file info and enable calculate button
+                fileInfo.classList.add('show');
+                calculateBtn.disabled = false;
+                
+                // Clear previous results
+                clearResults();
+            }
+        }
+
+        function clearResults() {
+            hashResult.classList.remove('show');
+            hashOutput.textContent = '';
+            compareResult.innerHTML = '';
+            compareInput.value = '';
+            currentHash = '';
+        }
+
+        function showError(message) {
+            compareResult.innerHTML = `<div class="status error">${message}</div>`;
+        }
+
+        function showSuccess(message) {
+            compareResult.innerHTML = `<div class="status success">${message}</div>`;
+        }
+
+        function isValidHash(hash, algorithm) {
+            if (!hash || typeof hash !== 'string') return false;
+            
+            const expectedLengths = {
+                'SHA-1': 40,
+                'SHA-256': 64,
+                'SHA-384': 96,
+                'SHA-512': 128
+            };
+            
+            const hexPattern = /^[a-f0-9]+$/i;
+            return hash.length === expectedLengths[algorithm] && hexPattern.test(hash);
+        }
+
+        // Event listeners
         dropArea.addEventListener('click', () => fileInput.click());
+        
         fileInput.addEventListener('change', handleFile);
+        
         dropArea.addEventListener('dragover', (e) => {
             e.preventDefault();
-            dropArea.style.borderColor = '#888';
+            dropArea.classList.add('dragover');
         });
-        dropArea.addEventListener('dragleave', () => dropArea.style.borderColor = '#444');
+        
+        dropArea.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            dropArea.classList.remove('dragover');
+        });
+        
         dropArea.addEventListener('drop', (e) => {
             e.preventDefault();
-            dropArea.style.borderColor = '#444';
-            if (e.dataTransfer.files.length) {
+            dropArea.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
                 fileInput.files = e.dataTransfer.files;
                 handleFile();
             }
         });
 
-        function handleFile() {
-            selectedFile = fileInput.files[0];
-            if (selectedFile) {
-                if (selectedFile.size > 100 * 1024 * 1024) {
-                    alert('File exceeds 100MB limit.');
-                    selectedFile = null;
-                    return;
-                }
-                fileName.textContent = selectedFile.name;
-                fileSize.textContent = `${(selectedFile.size / 1024 / 1024).toFixed(2)} MB`;
-                fileType.textContent = selectedFile.type;
-                fileModified.textContent = new Date(selectedFile.lastModified).toLocaleString();
-            }
-        }
-
         // Calculate hash
         calculateBtn.addEventListener('click', async () => {
             if (!selectedFile) {
-                alert('Please select a file first.');
+                showError('Please select a file first.');
                 return;
             }
+
             const algo = hashAlgorithm.value;
+            calculateBtn.disabled = true;
+            calculateBtn.innerHTML = '<span class="spinner"></span>Calculating...';
+
             try {
                 const buffer = await selectedFile.arrayBuffer();
                 const hashBuffer = await crypto.subtle.digest(algo, buffer);
                 const hashArray = Array.from(new Uint8Array(hashBuffer));
                 const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                
                 hashOutput.textContent = hashHex;
+                currentHash = hashHex;
+                hashResult.classList.add('show');
+                
             } catch (error) {
-                hashOutput.textContent = `Error: ${error.message}`;
+                showError(`Error calculating hash: ${error.message}`);
+                hashOutput.textContent = '';
+                currentHash = '';
+            } finally {
+                calculateBtn.disabled = false;
+                calculateBtn.textContent = 'Calculate Hash';
             }
         });
 
         // Copy hash
-        copyBtn.addEventListener('click', () => {
-            const text = hashOutput.textContent;
-            if (text) {
-                navigator.clipboard.writeText(text).then(() => alert('Hash copied!'));
+        copyBtn.addEventListener('click', async () => {
+            const text = hashOutput.textContent.trim();
+            if (!text) {
+                showError('No hash to copy.');
+                return;
+            }
+
+            try {
+                await navigator.clipboard.writeText(text);
+                showSuccess('Hash copied to clipboard!');
+            } catch (error) {
+                // Fallback for older browsers or when clipboard API fails
+                try {
+                    const textArea = document.createElement('textarea');
+                    textArea.value = text;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    showSuccess('Hash copied to clipboard!');
+                } catch (fallbackError) {
+                    showError('Failed to copy hash. Please copy manually.');
+                }
             }
         });
 
         // Compare hash
         compareBtn.addEventListener('click', () => {
-            const inputHash = compareInput.value.trim().toLowerCase();
-            const computedHash = hashOutput.textContent.trim().toLowerCase();
-            if (!computedHash) {
-                compareResult.textContent = 'Compute hash first.';
+            const inputHash = compareInput.value.trim();
+            
+            if (!currentHash) {
+                showError('Please calculate a hash first.');
                 return;
             }
-            compareResult.textContent = inputHash === computedHash ? 'Hashes match!' : 'Hashes do not match.';
+            
+            if (!inputHash) {
+                showError('Please enter a hash to compare.');
+                return;
+            }
+
+            const algorithm = hashAlgorithm.value;
+            
+            if (!isValidHash(inputHash, algorithm)) {
+                showError(`Invalid ${algorithm} hash format. Expected ${algorithm === 'SHA-1' ? '40' : algorithm === 'SHA-256' ? '64' : algorithm === 'SHA-384' ? '96' : '128'} hexadecimal characters.`);
+                return;
+            }
+
+            const inputLower = inputHash.toLowerCase();
+            const computedLower = currentHash.toLowerCase();
+            
+            if (inputLower === computedLower) {
+                showSuccess('✓ Hashes match! File integrity verified.');
+            } else {
+                showError('✗ Hashes do not match. File may be corrupted or modified.');
+            }
         });
+
+        // Allow Enter key in compare input
+        compareInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                compareBtn.click();
+            }
+        });
+
     </script>
 </body>
 </html>
