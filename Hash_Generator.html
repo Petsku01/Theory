@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>File Hash Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <style>
-        /* Inverted color scheme: dark mode */
+        /* Color scheme: dark mode */
         body { 
             font-family: Arial, sans-serif; 
             margin: 20px; 
@@ -82,6 +83,14 @@
         .algorithm-section {
             margin: 20px 0;
         }
+        .algorithm-note {
+            font-size: 0.9em;
+            color: #aaa;
+            margin-top: 5px;
+        }
+        .security-warning {
+            color: #ff9999;
+        }
         .compare-hash {
             margin-top: 20px;
         }
@@ -98,6 +107,10 @@
             background-color: #4d1a1a;
             border: 1px solid #7d2d2d;
         }
+        .status.warning {
+            background-color: #4d4d1a;
+            border: 1px solid #7d7d2d;
+        }
         .spinner {
             border: 2px solid #333;
             border-top: 2px solid #666;
@@ -112,6 +125,20 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background-color: #333;
+            border-radius: 3px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background-color: #666;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
     </style>
 </head>
 <body>
@@ -121,17 +148,24 @@
         <div class="file-upload" id="drop-area">
             <p>Click here or drag & drop a file</p>
             <input type="file" id="file-input" style="display: none;" accept="*/*">
-            <p>Maximum file size: 100MB</p>
+            <p>Maximum file size: 1GB</p>
         </div>
 
         <div class="algorithm-section">
             <label for="hash-algorithm">Select Hash Algorithm:</label>
             <select id="hash-algorithm">
-                <option value="SHA-256">SHA-256</option>
+                <option value="MD5">MD5</option>
                 <option value="SHA-1">SHA-1</option>
+                <option value="SHA-256" selected>SHA-256</option>
                 <option value="SHA-384">SHA-384</option>
-                <option value="SHA-512">SHA-512</option>  
+                <option value="SHA-512">SHA-512</option>
+                <option value="SHA3-256">SHA3-256</option>
+                <option value="SHA3-384">SHA3-384</option>
+                <option value="SHA3-512">SHA3-512</option>
             </select>
+            <div class="algorithm-note">
+                <span class="security-warning">⚠️ MD5 and SHA-1 are cryptographically broken</span> - use for file integrity only, not security
+            </div>
         </div>
 
         <div class="file-info" id="file-info">
@@ -143,6 +177,12 @@
         </div>
 
         <button id="calculate-btn" disabled>Calculate Hash</button>
+
+        <div id="progress-container" style="display: none;">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+        </div>
 
         <div class="hash-result" id="hash-result">
             <h2>Hash Result</h2>
@@ -159,8 +199,36 @@
     </div>
 
     <script>
-        // JavaScript to make the tool functional using Web Crypto API
+        // Check for required APIs and libraries
+        function checkBrowserSupport() {
+            const issues = [];
+            
+            if (!window.crypto || !window.crypto.subtle) {
+                issues.push('Web Crypto API not supported');
+            }
+            
+            if (!window.File || !window.FileReader || !window.ArrayBuffer) {
+                issues.push('File API not supported');
+            }
+            
+            if (typeof CryptoJS === 'undefined') {
+                issues.push('CryptoJS library failed to load');
+            }
+            
+            return issues;
+        }
 
+        // Initialize application
+        function initializeApp() {
+            const supportIssues = checkBrowserSupport();
+            if (supportIssues.length > 0) {
+                showError(`Browser compatibility issues: ${supportIssues.join(', ')}`);
+                return false;
+            }
+            return true;
+        }
+
+        // DOM element references
         const dropArea = document.getElementById('drop-area');
         const fileInput = document.getElementById('file-input');
         const hashAlgorithm = document.getElementById('hash-algorithm');
@@ -176,44 +244,21 @@
         const compareResult = document.getElementById('compare-result');
         const fileInfo = document.getElementById('file-info');
         const hashResult = document.getElementById('hash-result');
+        const progressContainer = document.getElementById('progress-container');
+        const progressFill = document.getElementById('progress-fill');
 
         let selectedFile = null;
         let currentHash = '';
 
-        // Handle file selection
-        function handleFile() {
-            selectedFile = fileInput.files[0];
-            if (selectedFile) {
-                // Check file size limit
-                if (selectedFile.size > 100 * 1024 * 1024) {
-                    showError('File exceeds 100MB limit.');
-                    selectedFile = null;
-                    calculateBtn.disabled = true;
-                    fileInfo.classList.remove('show');
-                    return;
-                }
-
-                // Display file information
-                fileName.textContent = selectedFile.name;
-                fileSize.textContent = `${(selectedFile.size / 1024 / 1024).toFixed(2)} MB`;
-                fileType.textContent = selectedFile.type || 'Unknown';
-                fileModified.textContent = new Date(selectedFile.lastModified).toLocaleString();
-                
-                // Show file info and enable calculate button
-                fileInfo.classList.add('show');
-                calculateBtn.disabled = false;
-                
-                // Clear previous results
-                clearResults();
-            }
-        }
-
-        function clearResults() {
-            hashResult.classList.remove('show');
-            hashOutput.textContent = '';
-            compareResult.innerHTML = '';
-            compareInput.value = '';
-            currentHash = '';
+        // Utility functions
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
 
         function showError(message) {
@@ -224,46 +269,82 @@
             compareResult.innerHTML = `<div class="status success">${message}</div>`;
         }
 
+        function showWarning(message) {
+            compareResult.innerHTML = `<div class="status warning">${message}</div>`;
+        }
+
+        function clearResults() {
+            hashResult.classList.remove('show');
+            hashOutput.textContent = '';
+            compareResult.innerHTML = '';
+            compareInput.value = '';
+            currentHash = '';
+            progressContainer.style.display = 'none';
+            progressFill.style.width = '0%';
+        }
+
         function isValidHash(hash, algorithm) {
             if (!hash || typeof hash !== 'string') return false;
             
             const expectedLengths = {
+                'MD5': 32,
                 'SHA-1': 40,
                 'SHA-256': 64,
                 'SHA-384': 96,
-                'SHA-512': 128
+                'SHA-512': 128,
+                'SHA3-256': 64,
+                'SHA3-384': 96,
+                'SHA3-512': 128
             };
             
             const hexPattern = /^[a-f0-9]+$/i;
-            return hash.length === expectedLengths[algorithm] && hexPattern.test(hash);
+            const expectedLength = expectedLengths[algorithm];
+            
+            return expectedLength && hash.length === expectedLength && hexPattern.test(hash);
         }
 
-        // Event listeners
-        dropArea.addEventListener('click', () => fileInput.click());
-        
-        fileInput.addEventListener('change', handleFile);
-        
-        dropArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropArea.classList.add('dragover');
-        });
-        
-        dropArea.addEventListener('dragleave', (e) => {
-            e.preventDefault();
-            dropArea.classList.remove('dragover');
-        });
-        
-        dropArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropArea.classList.remove('dragover');
-            if (e.dataTransfer.files.length > 0) {
-                fileInput.files = e.dataTransfer.files;
-                handleFile();
+        // File handling
+        function handleFile() {
+            selectedFile = fileInput.files[0];
+            if (!selectedFile) {
+                return;
             }
-        });
 
-        // Calculate hash
-        calculateBtn.addEventListener('click', async () => {
+            // Check file size limit (1GB)
+            if (selectedFile.size > 1024 * 1024 * 1024) {
+                showError('File exceeds 1GB limit.');
+                selectedFile = null;
+                calculateBtn.disabled = true;
+                fileInfo.classList.remove('show');
+                return;
+            }
+
+            // Warn about memory usage for large files
+            if (selectedFile.size > 500 * 1024 * 1024) { // 500MB
+                showWarning('Large file detected. Processing may be slow and use significant memory.');
+            }
+
+            // Display file information
+            fileName.textContent = selectedFile.name;
+            fileSize.textContent = formatFileSize(selectedFile.size);
+            fileType.textContent = selectedFile.type || 'Unknown';
+            
+            try {
+                fileModified.textContent = new Date(selectedFile.lastModified).toLocaleString();
+            } catch (e) {
+                fileModified.textContent = 'Unknown';
+            }
+            
+            // Show file info and enable calculate button
+            fileInfo.classList.add('show');
+            calculateBtn.disabled = false;
+            
+            // Clear previous results
+            clearResults();
+        }
+
+        // Hash calculation
+        async function calculateHash() {
             if (!selectedFile) {
                 showError('Please select a file first.');
                 return;
@@ -272,29 +353,88 @@
             const algo = hashAlgorithm.value;
             calculateBtn.disabled = true;
             calculateBtn.innerHTML = '<span class="spinner"></span>Calculating...';
+            progressContainer.style.display = 'block';
 
             try {
+                // Simulate progress for user feedback
+                progressFill.style.width = '10%';
+                
                 const buffer = await selectedFile.arrayBuffer();
-                const hashBuffer = await crypto.subtle.digest(algo, buffer);
-                const hashArray = Array.from(new Uint8Array(hashBuffer));
-                const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                progressFill.style.width = '50%';
+                
+                let hashHex = '';
+                
+                if (algo === 'MD5' || algo.startsWith('SHA3')) {
+                    // Use crypto-js for MD5 and SHA3
+                    if (typeof CryptoJS === 'undefined') {
+                        throw new Error('CryptoJS library not available for ' + algo);
+                    }
+                    
+                    const wordArray = CryptoJS.lib.WordArray.create(buffer);
+                    progressFill.style.width = '70%';
+                    
+                    try {
+                        switch (algo) {
+                            case 'MD5':
+                                hashHex = CryptoJS.MD5(wordArray).toString();
+                                break;
+                            case 'SHA3-256':
+                                hashHex = CryptoJS.SHA3(wordArray, { outputLength: 256 }).toString();
+                                break;
+                            case 'SHA3-384':
+                                hashHex = CryptoJS.SHA3(wordArray, { outputLength: 384 }).toString();
+                                break;
+                            case 'SHA3-512':
+                                hashHex = CryptoJS.SHA3(wordArray, { outputLength: 512 }).toString();
+                                break;
+                            default:
+                                throw new Error('Unsupported algorithm: ' + algo);
+                        }
+                    } catch (cryptoError) {
+                        throw new Error(`${algo} calculation failed: ${cryptoError.message}`);
+                    }
+                } else {
+                    // Use Web Crypto API for SHA-1, SHA-256, SHA-384, SHA-512
+                    try {
+                        const hashBuffer = await crypto.subtle.digest(algo, buffer);
+                        progressFill.style.width = '70%';
+                        
+                        const hashArray = Array.from(new Uint8Array(hashBuffer));
+                        hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                    } catch (cryptoError) {
+                        throw new Error(`${algo} calculation failed: ${cryptoError.message}`);
+                    }
+                }
+                
+                if (!hashHex) {
+                    throw new Error('Hash calculation returned empty result');
+                }
+                
+                progressFill.style.width = '100%';
                 
                 hashOutput.textContent = hashHex;
                 currentHash = hashHex;
                 hashResult.classList.add('show');
                 
+                setTimeout(() => {
+                    progressContainer.style.display = 'none';
+                    progressFill.style.width = '0%';
+                }, 1000);
+                
             } catch (error) {
                 showError(`Error calculating hash: ${error.message}`);
                 hashOutput.textContent = '';
                 currentHash = '';
+                progressContainer.style.display = 'none';
+                progressFill.style.width = '0%';
             } finally {
                 calculateBtn.disabled = false;
                 calculateBtn.textContent = 'Calculate Hash';
             }
-        });
+        }
 
-        // Copy hash
-        copyBtn.addEventListener('click', async () => {
+        // Copy hash to clipboard
+        async function copyHashToClipboard() {
             const text = hashOutput.textContent.trim();
             if (!text) {
                 showError('No hash to copy.');
@@ -309,19 +449,26 @@
                 try {
                     const textArea = document.createElement('textarea');
                     textArea.value = text;
+                    textArea.style.position = 'fixed';
+                    textArea.style.opacity = '0';
                     document.body.appendChild(textArea);
                     textArea.select();
-                    document.execCommand('copy');
+                    const successful = document.execCommand('copy');
                     document.body.removeChild(textArea);
-                    showSuccess('Hash copied to clipboard!');
+                    
+                    if (successful) {
+                        showSuccess('Hash copied to clipboard!');
+                    } else {
+                        throw new Error('Copy command failed');
+                    }
                 } catch (fallbackError) {
                     showError('Failed to copy hash. Please copy manually.');
                 }
             }
-        });
+        }
 
-        // Compare hash
-        compareBtn.addEventListener('click', () => {
+        // Compare hashes
+        function compareHashes() {
             const inputHash = compareInput.value.trim();
             
             if (!currentHash) {
@@ -337,7 +484,18 @@
             const algorithm = hashAlgorithm.value;
             
             if (!isValidHash(inputHash, algorithm)) {
-                showError(`Invalid ${algorithm} hash format. Expected ${algorithm === 'SHA-1' ? '40' : algorithm === 'SHA-256' ? '64' : algorithm === 'SHA-384' ? '96' : '128'} hexadecimal characters.`);
+                const expectedLengths = {
+                    'MD5': '32',
+                    'SHA-1': '40', 
+                    'SHA-256': '64',
+                    'SHA-384': '96',
+                    'SHA-512': '128',
+                    'SHA3-256': '64',
+                    'SHA3-384': '96', 
+                    'SHA3-512': '128'
+                };
+                const expectedLength = expectedLengths[algorithm];
+                showError(`Invalid ${algorithm} hash format. Expected ${expectedLength} hexadecimal characters.`);
                 return;
             }
 
@@ -349,12 +507,51 @@
             } else {
                 showError('✗ Hashes do not match. File may be corrupted or modified.');
             }
-        });
+        }
 
-        // Allow Enter key in compare input
-        compareInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                compareBtn.click();
+        // Event listeners setup
+        function setupEventListeners() {
+            // File selection events
+            dropArea.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', handleFile);
+            
+            // Drag and drop events
+            dropArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropArea.classList.add('dragover');
+            });
+            
+            dropArea.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                dropArea.classList.remove('dragover');
+            });
+            
+            dropArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropArea.classList.remove('dragover');
+                if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    fileInput.files = e.dataTransfer.files;
+                    handleFile();
+                }
+            });
+
+            // Button events
+            calculateBtn.addEventListener('click', calculateHash);
+            copyBtn.addEventListener('click', copyHashToClipboard);
+            compareBtn.addEventListener('click', compareHashes);
+
+            // Keyboard events
+            compareInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    compareHashes();
+                }
+            });
+        }
+
+        // Initialize application
+        document.addEventListener('DOMContentLoaded', () => {
+            if (initializeApp()) {
+                setupEventListeners();
             }
         });
 
