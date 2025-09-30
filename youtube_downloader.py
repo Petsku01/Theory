@@ -1,9 +1,8 @@
-#!/usr/bin/env python3
-"""
-YouTube Downloader - Testing Purpose Only
-For personal use only (e.g., your own videos or Creative Commons content)
-YouTube's Terms of Service prohibit unauthorized downloading: https://www.youtube.com/tos
-"""
+
+# YouTube Downloader - Testing Purpose Only
+# For personal use only (e.g., your own videos or Creative Commons content)
+# YouTube's Terms of Service prohibit unauthorized downloading: https://www.youtube.com/tos
+
 
 import os
 import re
