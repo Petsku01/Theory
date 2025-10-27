@@ -1,0 +1,83 @@
+"""
+F5 BIG-IP TMUI Honeypot for Vulnerability Detection (f5hpotv0.2.py).
+
+-pk
+
+How to Run:
+1. Ensure Python 3.6+ and Flask  are installed.
+2. Run: `python f5hpotv0.2.py --port 8443` (use sudo for ports <1024, e.g., 443).
+3. Test: `curl -X POST http://localhost:8443/tmui/ -d "command=list auth user admin"`
+4. Logs: Saved to `f5_honeypot.log` (text) and `f5_honeypot.log.json` (structured JSON).
+5. Stop: Ctrl+C for graceful shutdown.
+
+Security: Low-interaction; no real execution. Run in Docker/VM (e.g., `docker run -p 8443:8443 python:3.12 bash -c "pip install flask && python f5hpotv0.2.py"`).
+Comply with local laws on network monitoring.
+"""
+
+from flask import Flask, request
+import logging
+import json
+import argparse
+import signal
+import sys
+from datetime import datetime
+
+app = Flask(__name__)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger()
+
+class F5Honeypot:
+    def __init__(self, port, log_file):
+        self.port = port
+        self.log_file = log_file
+        self.setup_logging()
+        signal.signal(signal.SIGINT, self.signal_handler)
+
+    def setup_logging(self):
+        handler = logging.FileHandler(self.log_file)
+        handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+        logger.addHandler(handler)
+
+    def log_activity(self, activity):
+        try:
+            with open(self.log_file + '.json', 'a') as f:
+                json.dump(activity, f)
+                f.write('\n')
+        except Exception as e:
+            logger.error(f"Failed to write JSON log: {e}")
+
+    @app.route('/tmui/<path:subpath>', methods=['GET', 'POST'])
+    def tmui_endpoint(subpath):
+        activity = {
+            'timestamp': datetime.now().isoformat(),
+            'remote_ip': request.remote_addr,
+            'method': request.method,
+            'path': f"/tmui/{subpath}",
+            'headers': dict(request.headers),
+            'data': request.get_data(as_text=True) if request.data else None
+        }
+        logger.info(f"TMUI access from {activity['remote_ip']}: {activity['method']} {activity['path']}")
+        if activity['data']:
+            logger.info(f"Payload: {activity['data']}")
+        activity['events'] = [{'type': 'tmui_request', 'subpath': subpath}]
+        honeypot.log_activity(activity)
+        return "BIG-IP TMUI Response: Command executed (honeypot simulation)", 200
+
+    def run(self):
+        try:
+            app.run(host='0.0.0.0', port=self.port, debug=False)
+        except Exception as e:
+            logger.error(f"Server error: {e}")
+            sys.exit(1)
+
+    def signal_handler(self, sig, frame):
+        logger.info("Shutdown signal received.")
+        sys.exit(0)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='F5 BIG-IP TMUI Honeypot')
+    parser.add_argument('--port', type=int, default=8443, help='Port (default: 8443)')
+    parser.add_argument('--log_file', default='f5_honeypot.log', help='Log file (default: f5_honeypot.log)')
+    args = parser.parse_args()
+    honeypot = F5Honeypot(args.port, args.log_file)
+    honeypot.run()
