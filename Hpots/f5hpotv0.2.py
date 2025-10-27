@@ -10,8 +10,7 @@ How to Run:
 4. Logs: Saved to `f5_honeypot.log` (text) and `f5_honeypot.log.json` (structured JSON).
 5. Stop: Ctrl+C for graceful shutdown.
 
-Security: Low-interaction; no real execution. Run in Docker/VM (e.g., `docker run -p 8443:8443 python:3.12 bash -c "pip install flask && python f5hpotv0.2.py"`).
-Comply with local laws on network monitoring.
+Security: Low-interaction; no real executions. Run in Docker/VM (e.g., `docker run -p 8443:8443 python:3.12 bash -c "pip install flask && python f5hpotv0.2.py"`).
 """
 
 from flask import Flask, request
@@ -80,4 +79,5 @@ if __name__ == "__main__":
     parser.add_argument('--log_file', default='f5_honeypot.log', help='Log file (default: f5_honeypot.log)')
     args = parser.parse_args()
     honeypot = F5Honeypot(args.port, args.log_file)
+
     honeypot.run()
