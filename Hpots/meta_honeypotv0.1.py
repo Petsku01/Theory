@@ -4,6 +4,10 @@ Honeypot to Detect Honeypot Hunters (meta_honeypotv0.1.py).
 
 Overview: Low-interaction honeypot mimicking other honeypots (e.g., Cowrie, Dionaea) to capture anti-honeypot scans or exploits. Logs HTTP requests to fake management interfaces (/admin, /status), detects honeypot scanners (e.g., Shodan, honeypot-checker), and alerts on suspicious payloads.
 
+Sources: 
+https://www.sans.org/reading-room/whitepapers/detection/detecting-honeypot-hunters-43562
+https://research.nccgroup.com/2023/10/05/honeypot-detection-techniques/
+https://www.freecodecamp.org/news/build-a-honeypot-with-python/
 
 How to Run:
 1. Install Python 3.6+ and Flask: `pip install flask`.
