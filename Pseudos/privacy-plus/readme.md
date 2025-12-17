@@ -64,4 +64,4 @@ This is a simple, user-focused extension. Feel free to:
 
 
 
-Enjoy a cleaner, more private web with **Privacy Plus**! 🛡️
+// -pk
