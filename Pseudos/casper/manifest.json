@@ -1,0 +1,28 @@
+{
+  "manifest_version": 2,
+  "name": "Casper",
+  "version": "2.0",
+  "description": "High-performance ad/tracker/malware blocker using curated, updated blocklists. Lightweight and privacy-focused.",
+
+  "icons": {
+    "48": "icon.png",
+    "96": "icon.png"
+  },
+
+  "permissions": [
+    "webRequest",
+    "webRequestBlocking",
+    "<all_urls>",
+    "storage",
+    "alarms"
+  ],
+
+  "background": {
+    "scripts": ["background.js"]
+  },
+
+  "browser_action": {
+    "default_popup": "popup.html",
+    "default_title": "Casper"
+  }
+}
