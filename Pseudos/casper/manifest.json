@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "Casper",
   "version": "2.0",
-  "description": "High-performance ad/tracker/malware blocker using curated, updated blocklists. Lightweight and privacy-focused.",
+  "description": "Test ad/tracker/malware blocker using curated, updated blocklists. Lightweight and privacy-focused.",
 
   "icons": {
     "48": "icon.png",
