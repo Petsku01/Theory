@@ -34,7 +34,7 @@ graph TD
     A[Tiedustelu helmikuu–maaliskuu 2024] --> B[VPN-kaataminen 14.4.2024]
     B --> C[Sisäänpääsy sisäverkkoon 25.4.2024 oppilaan tunnuksilla]
     C --> D[Verkon skannaus ~9 945 IP-osoitetta]
-    D --> E[Active Directoryn kompromissointi]
+    D --> E[Active Directoryy:n kompromissointi]
     E --> F[Datan kopiointi ~2 Tt 25.–30.4.2024]
     F --> G[Havaitseminen 30.4.2024]
 ```
