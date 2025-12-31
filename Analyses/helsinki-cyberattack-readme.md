@@ -44,9 +44,9 @@ graph TD
 - **Living Off The Land (LOTL)** - Windowsin omat työkalut
 - **Brute force** - Salasanojen murtaminen
 - **Lateraalinen liikkuminen** - Verkon sisäinen leviäminen
-- **Priviligioiden eskalointi** - Admin-oikeuksien saaminen
+- **Oikeuksien eskalointi** - Admin-oikeuksien saaminen
 
-## Organisatoriset ongelmat
+## Organisaatiolliset ongelmat
 
 ### Vastuunjaon epäselvyys
 - ASA 5515:n vastuusta ei selvyyttä KASKO ↔ DigiHelsinki
