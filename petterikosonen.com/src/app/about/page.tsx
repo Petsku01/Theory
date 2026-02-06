@@ -1,3 +1,10 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "About — Petteri Kosonen",
+  description: "Background, skills, and expertise of Petteri Kosonen — B.Eng. student specializing in Data Networks and Cybersecurity.",
+};
+
 export default function About() {
   return (
     <div>

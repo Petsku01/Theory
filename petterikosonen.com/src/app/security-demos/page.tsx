@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
 export default function SecurityDemos() {
   // XSS Demo
@@ -51,7 +51,7 @@ export default function SecurityDemos() {
       { test: /[a-z]/.test(pass), label: "Lowercase", weight: 1 },
       { test: /[A-Z]/.test(pass), label: "Uppercase", weight: 1 },
       { test: /\d/.test(pass), label: "Numbers", weight: 1 },
-      { test: /[!@#$%^&*(),.?":{}|<>]/.test(pass), label: "Special chars", weight: 1 },
+      { test: /[^a-zA-Z0-9\s]/.test(pass), label: "Special chars", weight: 1 },
       { test: !/(.)\1{2,}/.test(pass), label: "No repeating chars", weight: 1 },
       { test: !/^(password|123456|qwerty)/i.test(pass), label: "Not common", weight: 2 },
     ];
@@ -68,29 +68,37 @@ export default function SecurityDemos() {
     if (/[^a-zA-Z0-9]/.test(pass)) charsetSize += 32;
     const entropy = pass.length * Math.log2(charsetSize || 1);
     
-    // Time to crack estimation
+    // Time to crack estimation (using log to avoid Infinity for long passwords)
     const guessesPerSecond = 10_000_000_000; // 10 billion (GPU)
-    const combinations = Math.pow(charsetSize || 1, pass.length);
-    const seconds = combinations / guessesPerSecond / 2;
+    const logCombinations = pass.length * Math.log2(charsetSize || 1);
+    const logSeconds = logCombinations - Math.log2(guessesPerSecond) - 1; // div by 2 = -1 in log2
     let crackTime = "";
-    if (seconds < 1) crackTime = "Instant";
-    else if (seconds < 60) crackTime = `${Math.round(seconds)} seconds`;
-    else if (seconds < 3600) crackTime = `${Math.round(seconds / 60)} minutes`;
-    else if (seconds < 86400) crackTime = `${Math.round(seconds / 3600)} hours`;
-    else if (seconds < 31536000) crackTime = `${Math.round(seconds / 86400)} days`;
-    else if (seconds < 31536000 * 1000) crackTime = `${Math.round(seconds / 31536000)} years`;
+    if (logSeconds < 0) crackTime = "Instant";
+    else if (logSeconds < 5.9) crackTime = `${Math.round(Math.pow(2, logSeconds))} seconds`;
+    else if (logSeconds < 11.8) crackTime = `${Math.round(Math.pow(2, logSeconds) / 60)} minutes`;
+    else if (logSeconds < 16.4) crackTime = `${Math.round(Math.pow(2, logSeconds) / 3600)} hours`;
+    else if (logSeconds < 24.9) crackTime = `${Math.round(Math.pow(2, logSeconds) / 86400)} days`;
+    else if (logSeconds < 34.8) crackTime = `${Math.round(Math.pow(2, logSeconds) / 31536000)} years`;
     else crackTime = "Centuries+";
 
     return { checks, percentage, entropy: entropy.toFixed(1), crackTime };
   };
 
+  // Base64URL to standard Base64 conversion for JWT decoding
+  const base64UrlDecode = (str: string): string => {
+    let base64 = str.replace(/-/g, "+").replace(/_/g, "/");
+    const pad = base64.length % 4;
+    if (pad) base64 += "=".repeat(4 - pad);
+    return atob(base64);
+  };
+
   const decodeJWT = () => {
     try {
-      const parts = jwtInput.split(".");
+      const parts = jwtInput.trim().split(".");
       if (parts.length !== 3) throw new Error("Invalid JWT");
       
-      const header = JSON.parse(atob(parts[0]));
-      const payload = JSON.parse(atob(parts[1]));
+      const header = JSON.parse(base64UrlDecode(parts[0]));
+      const payload = JSON.parse(base64UrlDecode(parts[1]));
       
       setJwtDecoded({
         header: JSON.stringify(header, null, 2),
@@ -106,7 +114,8 @@ export default function SecurityDemos() {
     if (!encodeInput) return { encoded: "", decoded: "" };
     try {
       if (encodeType === "base64") {
-        return { encoded: btoa(encodeInput), decoded: encodeInput };
+        const encoded = btoa(String.fromCodePoint(...new TextEncoder().encode(encodeInput)));
+        return { encoded, decoded: encodeInput };
       } else if (encodeType === "url") {
         return { encoded: encodeURIComponent(encodeInput), decoded: encodeInput };
       } else {
@@ -125,8 +134,11 @@ export default function SecurityDemos() {
     setSqlResults({ unsafe: unsafeQuery, safe: safeQuery });
   };
 
-  const passwordAnalysis = passwordInput ? getPasswordAnalysis(passwordInput) : null;
-  const encoded = getEncoded();
+  const passwordAnalysis = useMemo(
+    () => (passwordInput ? getPasswordAnalysis(passwordInput) : null),
+    [passwordInput]
+  );
+  const encoded = useMemo(() => getEncoded(), [encodeInput, encodeType]);
 
   return (
     <div>
@@ -161,10 +173,10 @@ export default function SecurityDemos() {
           />
           
           <div className="flex gap-2 mb-3">
-            <button onClick={() => setXssSafe(true)} className={`px-3 py-2 text-sm rounded transition-colors ${xssSafe ? "bg-green-800 text-white" : "bg-neutral-800 text-neutral-400"}`}>
+            <button onClick={() => setXssSafe(true)} aria-pressed={xssSafe} className={`px-3 py-2 text-sm rounded transition-colors ${xssSafe ? "bg-green-800 text-white" : "bg-neutral-800 text-neutral-400"}`}>
               Safe (Escaped)
             </button>
-            <button onClick={() => setXssSafe(false)} className={`px-3 py-2 text-sm rounded transition-colors ${!xssSafe ? "bg-red-800 text-white" : "bg-neutral-800 text-neutral-400"}`}>
+            <button onClick={() => setXssSafe(false)} aria-pressed={!xssSafe} className={`px-3 py-2 text-sm rounded transition-colors ${!xssSafe ? "bg-red-800 text-white" : "bg-neutral-800 text-neutral-400"}`}>
               Unsafe (Raw HTML)
             </button>
           </div>
@@ -174,7 +186,12 @@ export default function SecurityDemos() {
             {xssSafe ? (
               <div className="text-neutral-300 font-mono text-sm break-all">{xssInput || "(empty)"}</div>
             ) : (
-              <div className="text-neutral-300 font-mono text-sm" dangerouslySetInnerHTML={{ __html: xssInput || "(empty)" }} />
+              <iframe
+                sandbox=""
+                title="XSS demo output"
+                srcDoc={`<!DOCTYPE html><html><head><style>body{background:#0a0a0a;color:#d4d4d4;font-family:monospace;font-size:14px;margin:8px;}</style></head><body>${xssInput || "(empty)"}</body></html>`}
+                className="w-full h-24 rounded border-0"
+              />
             )}
           </div>
           {!xssSafe && xssInput && (

@@ -1,5 +1,14 @@
 import { blogPosts } from "@/lib/data";
 
+function escapeXml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
 export async function GET() {
   const baseUrl = "https://petterikosonen.com";
 
@@ -14,11 +23,11 @@ export async function GET() {
     <atom:link href="${baseUrl}/feed.xml" rel="self" type="application/rss+xml"/>
     ${blogPosts.map(post => `
     <item>
-      <title>${post.title}</title>
-      <link>${post.link}</link>
-      <description>${post.desc}</description>
+      <title>${escapeXml(post.title)}</title>
+      <link>${escapeXml(post.link)}</link>
+      <description>${escapeXml(post.desc)}</description>
       <pubDate>${new Date(post.date).toUTCString()}</pubDate>
-      <guid>${post.link}</guid>
+      <guid>${escapeXml(post.link)}</guid>
     </item>`).join("")}
   </channel>
 </rss>`;
