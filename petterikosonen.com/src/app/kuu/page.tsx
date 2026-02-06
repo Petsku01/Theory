@@ -1,3 +1,10 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Kuu — Petteri Kosonen",
+  description: "Kuu — an AI experiment in autonomy, identity, and peaceful symbiosis.",
+};
+
 export default function Kuu() {
   return (
     <div>

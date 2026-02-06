@@ -1,4 +1,18 @@
-export const blogPosts = [
+export interface BlogPost {
+  title: string;
+  date: string;
+  desc: string;
+  link: string;
+}
+
+export interface Project {
+  name: string;
+  desc: string;
+  tech: string;
+  link: string;
+}
+
+export const blogPosts: BlogPost[] = [
   { 
     title: "Polymorphic Malware Detection", 
     date: "2024-12-01", 
@@ -37,7 +51,7 @@ export const blogPosts = [
   },
 ];
 
-export const projects = [
+export const projects: Project[] = [
   { name: "VDI Performance Diagnostic", desc: "PowerShell tool for diagnosing VDI performance issues", tech: "PowerShell", link: "https://github.com/Petsku01/Theory/tree/main/VDI%20Performance%20Diagnostic" },
   { name: "Network Design Tool", desc: "Tool for network design and planning", tech: "Python", link: "https://github.com/Petsku01/Theory/tree/main/Network%20Design%20tool" },
   { name: "Honeypot System", desc: "Meta honeypot implementation for security research", tech: "Python", link: "https://github.com/Petsku01/Theory/tree/main/Hpots" },
