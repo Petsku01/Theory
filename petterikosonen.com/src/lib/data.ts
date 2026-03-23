@@ -52,6 +52,8 @@ export const blogPosts: BlogPost[] = [
 ];
 
 export const projects: Project[] = [
+  { name: "Prompt Security Guide", desc: "LLM security testing framework with jailbreak detection, defense testing, and JailbreakBench integration", tech: "Python", link: "https://github.com/Petsku01/Prompt-Security-Guide" },
+  { name: "PromptKit", desc: "Prompt engineering toolkit with Prompt Doctor analysis and pattern library", tech: "Python", link: "https://github.com/Petsku01/promptkit" },
   { name: "VDI Performance Diagnostic", desc: "PowerShell tool for diagnosing VDI performance issues", tech: "PowerShell", link: "https://github.com/Petsku01/Theory/tree/main/VDI%20Performance%20Diagnostic" },
   { name: "Network Design Tool", desc: "Tool for network design and planning", tech: "Python", link: "https://github.com/Petsku01/Theory/tree/main/Network%20Design%20tool" },
   { name: "Honeypot System", desc: "Meta honeypot implementation for security research", tech: "Python", link: "https://github.com/Petsku01/Theory/tree/main/Hpots" },
