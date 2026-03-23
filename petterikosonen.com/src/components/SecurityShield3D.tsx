@@ -268,7 +268,7 @@ function ShieldCore({
       <Float speed={1.8} rotationIntensity={0.16} floatIntensity={0.35}>
         <group ref={bodyRef}>
           <mesh ref={bodyMeshRef}>
-            <icosahedronGeometry args={[1.2, 1]} />
+            <boxGeometry args={[1.8, 1.8, 1.8]} />
             <MeshDistortMaterial
               color={theme.shield}
               distort={0.26}
@@ -283,7 +283,7 @@ function ShieldCore({
           </mesh>
 
           <mesh>
-            <icosahedronGeometry args={[2.2, 1]} />
+            <boxGeometry args={[2.8, 2.8, 2.8]} />
             <meshBasicMaterial color={theme.shield} wireframe transparent opacity={0.16} />
           </mesh>
         </group>
