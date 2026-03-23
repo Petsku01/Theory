@@ -106,13 +106,23 @@ export default function SecurityDemos() {
     }
   };
 
-  const getEncoded = () => {
+  const simulateSql = () => {
+    const unsafeQuery = `SELECT * FROM users WHERE username = '${sqlUsername}'`;
+    const safeQuery = `SELECT * FROM users WHERE username = $1 -- param: "${sqlUsername}"`;
+    setSqlResults({ unsafe: unsafeQuery, safe: safeQuery });
+  };
+
+  const passwordAnalysis = useMemo(
+    () => (passwordInput ? getPasswordAnalysis(passwordInput) : null),
+    [passwordInput],
+  );
+  const encoded = useMemo(() => {
     if (!encodeInput) return { encoded: "", decoded: "" };
 
     try {
       if (encodeType === "base64") {
-        const encoded = btoa(String.fromCodePoint(...new TextEncoder().encode(encodeInput)));
-        return { encoded, decoded: encodeInput };
+        const encodedValue = btoa(String.fromCodePoint(...new TextEncoder().encode(encodeInput)));
+        return { encoded: encodedValue, decoded: encodeInput };
       }
 
       if (encodeType === "url") {
@@ -127,19 +137,7 @@ export default function SecurityDemos() {
     } catch {
       return { encoded: "Error", decoded: "" };
     }
-  };
-
-  const simulateSql = () => {
-    const unsafeQuery = `SELECT * FROM users WHERE username = '${sqlUsername}'`;
-    const safeQuery = `SELECT * FROM users WHERE username = $1 -- param: "${sqlUsername}"`;
-    setSqlResults({ unsafe: unsafeQuery, safe: safeQuery });
-  };
-
-  const passwordAnalysis = useMemo(
-    () => (passwordInput ? getPasswordAnalysis(passwordInput) : null),
-    [passwordInput],
-  );
-  const encoded = useMemo(() => getEncoded(), [encodeInput, encodeType]);
+  }, [encodeInput, encodeType]);
 
   return (
     <div className="space-y-8">
