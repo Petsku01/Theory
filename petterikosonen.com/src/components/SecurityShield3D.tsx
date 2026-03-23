@@ -3,7 +3,7 @@
 import { useRef, useMemo, Suspense, useState, useEffect, useCallback } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Float, MeshDistortMaterial, Sparkles, Text } from "@react-three/drei";
+import { Float, Sparkles, Text } from "@react-three/drei";
 import * as THREE from "three";
 
 const DATA_STRINGS = [
@@ -244,11 +244,8 @@ function ShieldCore({
       bodyRef.current.scale.setScalar(pulseGlow);
     }
 
-    const bodyMaterial = bodyMeshRef.current?.material as
-      | (THREE.MeshStandardMaterial & { distort?: number })
-      | undefined;
+    const bodyMaterial = bodyMeshRef.current?.material as THREE.MeshStandardMaterial | undefined;
     if (bodyMaterial) {
-      bodyMaterial.distort = 0.26 + pulse * 0.45;
       bodyMaterial.emissiveIntensity = theme.glow + pulse * 0.5;
     }
 
@@ -269,16 +266,15 @@ function ShieldCore({
         <group ref={bodyRef}>
           <mesh ref={bodyMeshRef}>
             <boxGeometry args={[1.8, 1.8, 1.8]} />
-            <MeshDistortMaterial
+            <meshStandardMaterial
               color={theme.shield}
-              distort={0.26}
-              speed={2.6}
               roughness={theme.isDay ? 0.36 : 0.18}
               metalness={0.85}
               transparent
               opacity={0.9}
               emissive={theme.shield}
               emissiveIntensity={theme.glow}
+              flatShading
             />
           </mesh>
 
