@@ -11,7 +11,8 @@ const links = [
   { href: "/projects", label: "Projects" },
   { href: "/about", label: "About" },
   { href: "/blog", label: "Research" },
-  { href: "/security-demos", label: "Labs" },
+  { href: "/security-demos", label: "Security" },
+  { href: "/llm-labs", label: "LLM Labs" },
   { href: "/kuu", label: "Kuu" },
 ];
 
