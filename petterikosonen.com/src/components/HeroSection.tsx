@@ -109,39 +109,6 @@ export default function HeroSection() {
           className="relative h-[300px] sm:h-[350px] lg:h-[420px]"
         >
           <SecurityShield3D />
-          
-          {/* Floating stats around the 3D element */}
-          <div className="pointer-events-none absolute inset-0">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.8 }}
-              className="absolute left-0 top-8 rounded-lg border border-line-0 bg-bg-2/90 px-3 py-2 backdrop-blur-sm sm:left-4"
-            >
-              <p className="font-mono text-[10px] uppercase tracking-wider text-text-2">Attacks Tested</p>
-              <p className="font-mono text-lg text-accent-green">2.4K+</p>
-            </motion.div>
-            
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 1 }}
-              className="absolute bottom-12 right-0 rounded-lg border border-line-0 bg-bg-2/90 px-3 py-2 backdrop-blur-sm sm:right-4"
-            >
-              <p className="font-mono text-[10px] uppercase tracking-wider text-text-2">Classifier F1</p>
-              <p className="font-mono text-lg text-accent-cyan">1.000</p>
-            </motion.div>
-            
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 1.2 }}
-              className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-lg border border-line-0 bg-bg-2/90 px-3 py-2 backdrop-blur-sm"
-            >
-              <p className="font-mono text-[10px] uppercase tracking-wider text-text-2">Projects</p>
-              <p className="font-mono text-lg text-accent-violet">12+</p>
-            </motion.div>
-          </div>
         </motion.div>
       </div>
     </section>
