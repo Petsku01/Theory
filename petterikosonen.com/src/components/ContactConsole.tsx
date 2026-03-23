@@ -3,7 +3,7 @@
 import { useState } from "react";
 import StatusPill from "@/components/StatusPill";
 
-const email = "contact@petterikosonen.com";
+const email = "petteri.a.kosonen@proton.me";
 
 export default function ContactConsole() {
   const [copied, setCopied] = useState(false);
