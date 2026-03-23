@@ -1,15 +1,59 @@
+@config "../../tailwind.config.ts";
 @import "tailwindcss";
+
+:root {
+  --bg-0: #05070a;
+  --bg-1: #0a0f14;
+  --bg-2: #101821;
+  --bg-3: #16222e;
+  --line-0: #1e2b38;
+  --line-1: #2b3d4f;
+
+  --text-0: #eaf2f8;
+  --text-1: #b5c5d3;
+  --text-2: #7f95a8;
+  --text-inverse: #040608;
+
+  --accent-cyan: #22d3ee;
+  --accent-green: #39ff88;
+  --accent-amber: #f4b942;
+  --accent-red: #ff5c7a;
+  --accent-violet: #7c8cff;
+
+  --glow-cyan: #22d3ee66;
+  --glow-green: #39ff884d;
+  --glow-red: #ff5c7a4d;
+
+  --motion-fast: 120ms;
+  --motion-base: 220ms;
+  --motion-slow: 420ms;
+  --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-emphasis: cubic-bezier(0.16, 1, 0.3, 1);
+}
 
 * {
   box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: #000;
-  color: #e5e5e5;
-  font-family: system-ui, -apple-system, sans-serif;
+  margin: 0;
+  background: radial-gradient(circle at 18% -10%, rgba(124, 140, 255, 0.17), transparent 42%),
+    radial-gradient(circle at 88% 2%, rgba(34, 211, 238, 0.12), transparent 38%),
+    var(--bg-0);
+  color: var(--text-0);
+  font-family: var(--font-manrope), sans-serif;
+  font-weight: 400;
+  line-height: 1.6;
+  text-rendering: optimizeLegibility;
 }
 
 a {
@@ -18,5 +62,67 @@ a {
 }
 
 ::selection {
-  background: #333;
+  background: rgba(34, 211, 238, 0.3);
+  color: var(--text-0);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-space-grotesk), sans-serif;
+  letter-spacing: -0.02em;
+}
+
+p,
+li {
+  color: var(--text-1);
+}
+
+.container-shell {
+  width: min(1120px, calc(100% - 2rem));
+  margin-inline: auto;
+}
+
+.terminal-grid {
+  background-image: linear-gradient(rgba(43, 61, 79, 0.22) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(43, 61, 79, 0.22) 1px, transparent 1px);
+  background-size: 36px 36px;
+}
+
+.section-label {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--line-1);
+  padding: 0.3rem 0.7rem;
+  font-family: var(--font-ibm-plex-mono), monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-2);
+  background: rgba(5, 7, 10, 0.65);
+}
+
+.focus-outline {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+.focus-outline:focus-visible {
+  outline-color: var(--accent-cyan);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
 }
