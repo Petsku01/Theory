@@ -57,11 +57,16 @@ const config: Config = {
           "0%": { backgroundPosition: "0 -100%" },
           "100%": { backgroundPosition: "0 200%" },
         },
+        float: {
+          "0%, 100%": { transform: "translateY(0px)" },
+          "50%": { transform: "translateY(-10px)" },
+        },
       },
       animation: {
         blink: "blink 1s linear infinite",
         pulseGlow: "pulseGlow 2.4s ease-in-out infinite",
         scan: "scan 12s linear infinite",
+        float: "float 3s ease-in-out infinite",
       },
     },
   },
