@@ -452,11 +452,12 @@ export default function SecurityShield3D() {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 
     const detectEnvironment = () => {
-      const mobileByWidth = window.innerWidth < 768;
+      // Only detect as mobile on actual mobile devices, not small desktop windows
       const mobileByUserAgent =
         /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
-      setIsMobile(mobileByWidth || mobileByUserAgent);
+      setIsMobile(mobileByUserAgent && isTouchDevice);
       setPrefersReducedMotion(mediaQuery.matches);
 
       try {
