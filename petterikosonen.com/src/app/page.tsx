@@ -1,118 +1,126 @@
+import ContactConsole from "@/components/ContactConsole";
+import ExperienceTimeline from "@/components/ExperienceTimeline";
+import FeaturedProject from "@/components/FeaturedProject";
+import HeroSection from "@/components/HeroSection";
+import ScrollProgress from "@/components/ScrollProgress";
+import SectionFrame from "@/components/SectionFrame";
+import SkillsMatrix from "@/components/SkillsMatrix";
+import StatusPill from "@/components/StatusPill";
+import TerminalProjectCard from "@/components/TerminalProjectCard";
+import { blogPosts, projects } from "@/lib/data";
+
+const sections = [
+  { id: "hero", label: "Hero" },
+  { id: "projects", label: "Projects" },
+  { id: "experience", label: "Experience" },
+  { id: "education", label: "Education" },
+  { id: "skills", label: "Skills" },
+  { id: "research", label: "Research" },
+  { id: "contact", label: "Contact" },
+];
+
 export default function Home() {
+  const [psg, promptKit, ...restProjects] = projects;
+
   return (
-    <div>
-      <section className="py-20">
-        <h1 className="text-3xl font-medium text-white mb-2">
-          Petteri Kosonen
-        </h1>
-        <p className="text-neutral-400 mb-6">
-          B.Eng. Student — Information and Communication Technology
-        </p>
-        <p className="text-neutral-500 text-sm leading-relaxed max-w-xl">
-          Calm and open person, always willing to learn and work hard. 
-          Comfortable working under pressure with strong problem-solving skills. 
-          Team player who values collaboration.
-        </p>
-      </section>
+    <div className="space-y-8 pb-6">
+      <ScrollProgress sections={sections} />
+      <HeroSection />
 
-      <section className="py-12 border-t border-neutral-900">
-        <h2 className="text-lg font-medium text-white mb-8">Experience</h2>
-        
-        <div className="space-y-8">
-          <div>
-            <div className="flex justify-between items-start mb-2">
-              <h3 className="text-white">2M-IT — Security Trainee</h3>
-              <span className="text-neutral-600 text-sm">Mar 2024 – Sep 2024</span>
-            </div>
-            <ul className="text-sm text-neutral-500 space-y-1">
-              <li>• Maintaining and studying information security standards</li>
-              <li>• Investigating security alerts and requests</li>
-              <li>• Testing new Microsoft security products</li>
-            </ul>
-          </div>
-
-          <div>
-            <div className="flex justify-between items-start mb-2">
-              <h3 className="text-white">2M-IT — IT Support Specialist</h3>
-              <span className="text-neutral-600 text-sm">Nov 2022 – Present</span>
-            </div>
-            <ul className="text-sm text-neutral-500 space-y-1">
-              <li>• Resolving technical issues, cloud management</li>
-              <li>• Healthcare application support</li>
-              <li>• Pattern recognition and reporting</li>
-            </ul>
-          </div>
-
-          <div>
-            <div className="flex justify-between items-start mb-2">
-              <h3 className="text-white">theFirma — IT Support Intern</h3>
-              <span className="text-neutral-600 text-sm">Jan 2018 – Jun 2019</span>
-            </div>
-            <ul className="text-sm text-neutral-500 space-y-1">
-              <li>• Assisting clients with technical needs</li>
-              <li>• Device and software troubleshooting</li>
-            </ul>
-          </div>
+      <SectionFrame
+        id="projects"
+        command="/projects --featured"
+        title="Featured Projects"
+        description="Prompt security testing and prompt engineering systems with practical output for real operations."
+      >
+        <div className="grid gap-4 lg:grid-cols-2">
+          <FeaturedProject
+            title={psg.name}
+            summary={psg.desc}
+            points={[
+              "Jailbreak defense validation and adversarial prompt testing workflows.",
+              "Benchmark-oriented checks for safer LLM deployment decisions.",
+              "Clear reporting model for repeatable prompt security reviews.",
+            ]}
+            tech={["Python", "JailbreakBench", "Security evaluation"]}
+            link={psg.link}
+            variant="cyan"
+          />
+          <FeaturedProject
+            title={promptKit.name}
+            summary={promptKit.desc}
+            points={[
+              "Pattern-driven prompt library with reusable structures.",
+              "Prompt Doctor style analysis for prompt clarity and risk signals.",
+              "Workflow modules for faster prompt experimentation.",
+            ]}
+            tech={["Python", "Prompt patterns", "AI workflow tooling"]}
+            link={promptKit.link}
+            variant="violet"
+          />
         </div>
-      </section>
-
-      <section className="py-12 border-t border-neutral-900">
-        <h2 className="text-lg font-medium text-white mb-8">Education</h2>
-        
-        <div className="space-y-6">
-          <div>
-            <div className="flex justify-between items-start mb-1">
-              <h3 className="text-white">Turku University of Applied Sciences</h3>
-              <span className="text-neutral-600 text-sm">2020 – Present</span>
-            </div>
-            <p className="text-sm text-neutral-500">B.Eng. Information and Communication Technology — Data Networks and Cybersecurity</p>
-          </div>
-
-          <div>
-            <div className="flex justify-between items-start mb-1">
-              <h3 className="text-white">Turku Vocational Institute</h3>
-              <span className="text-neutral-600 text-sm">2017 – 2019</span>
-            </div>
-            <p className="text-sm text-neutral-500">IT Technician, IT Support</p>
-          </div>
+        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {restProjects.slice(0, 6).map((project) => (
+            <TerminalProjectCard key={project.link} project={project} />
+          ))}
         </div>
-      </section>
+      </SectionFrame>
 
-      <section className="py-12 border-t border-neutral-900">
-        <h2 className="text-lg font-medium text-white mb-8">Skills</h2>
-        
-        <div className="space-y-4">
-          <div>
-            <h3 className="text-neutral-400 text-sm mb-2">Microsoft</h3>
-            <div className="flex flex-wrap gap-2">
-              {["Entra/Azure AD", "Intune", "Defender EDR", "Exchange Online", "Active Directory", "Office 365"].map((s) => (
-                <span key={s} className="px-2 py-1 bg-neutral-900 text-neutral-400 text-xs rounded">{s}</span>
-              ))}
-            </div>
-          </div>
-          
-          <div>
-            <h3 className="text-neutral-400 text-sm mb-2">Security & Tools</h3>
-            <div className="flex flex-wrap gap-2">
-              {["F-Secure Policy Manager", "PowerShell", "Linux/Windows Servers", "ServiceNow", "SCCM", "Python", "SQL"].map((s) => (
-                <span key={s} className="px-2 py-1 bg-neutral-900 text-neutral-400 text-xs rounded">{s}</span>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
+      <SectionFrame id="experience" command="/experience --timeline" title="Experience Timeline">
+        <ExperienceTimeline />
+      </SectionFrame>
 
-      <section className="py-12 border-t border-neutral-900">
-        <h2 className="text-lg font-medium text-white mb-4">Contact</h2>
-        <div className="space-y-2 text-sm">
-          <a href="https://www.linkedin.com/in/petteri-kosonen-511907172/" className="text-neutral-400 hover:text-white block">
-            LinkedIn →
-          </a>
-          <a href="https://tryhackme.com/p/Petsku" className="text-neutral-400 hover:text-white block">
-            TryHackMe →
-          </a>
+      <SectionFrame
+        id="education"
+        command="/education --certs"
+        title="Education & Certifications"
+        description="Formal studies plus continuous lab work in modern cybersecurity and cloud systems."
+      >
+        <div className="grid gap-4 md:grid-cols-2">
+          <article className="rounded-xl border border-line-0 bg-bg-2/80 p-5">
+            <h3 className="text-lg font-semibold text-text-0">Turku University of Applied Sciences</h3>
+            <p className="mt-2 text-sm text-text-1">B.Eng. ICT, Data Networks and Cybersecurity (2020 - Present)</p>
+          </article>
+          <article className="rounded-xl border border-line-0 bg-bg-2/80 p-5">
+            <h3 className="text-lg font-semibold text-text-0">Turku Vocational Institute</h3>
+            <p className="mt-2 text-sm text-text-1">IT Technician, IT Support (2017 - 2019)</p>
+          </article>
         </div>
-      </section>
+        <div className="mt-5 flex flex-wrap gap-2">
+          <StatusPill label="TryHackMe active" variant="green" />
+          <StatusPill label="Security labs" variant="cyan" />
+          <StatusPill label="Microsoft ecosystem" variant="amber" />
+        </div>
+      </SectionFrame>
+
+      <SectionFrame id="skills" command="/skills --matrix" title="Skills Matrix">
+        <SkillsMatrix />
+      </SectionFrame>
+
+      <SectionFrame
+        id="research"
+        command="/research --logs"
+        title="Writing / Research Logs"
+        description="Timestamped notes and experiments covering security engineering, diagnostics, and development tooling."
+      >
+        <div className="space-y-3">
+          {blogPosts.map((post) => (
+            <a
+              key={post.link}
+              href={post.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="focus-outline block rounded-xl border border-line-0 bg-bg-2/75 p-4 transition-colors hover:border-accent-cyan/45"
+            >
+              <p className="font-mono text-xs uppercase tracking-[0.05em] text-text-2">{post.date}</p>
+              <h3 className="mt-1 text-lg font-semibold text-text-0">{post.title}</h3>
+              <p className="mt-1 text-sm text-text-1">{post.desc}</p>
+            </a>
+          ))}
+        </div>
+      </SectionFrame>
+
+      <ContactConsole />
     </div>
   );
 }

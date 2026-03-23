@@ -1,71 +1,98 @@
 "use client";
+
+import GlitchText from "@/components/GlitchText";
+import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 const links = [
   { href: "/", label: "Home" },
-  { href: "/about", label: "About" },
   { href: "/projects", label: "Projects" },
-  { href: "/blog", label: "Blog" },
-  { href: "/security-demos", label: "Security" },
-  { href: "/kuu", label: "Kuu 🌙" },
+  { href: "/about", label: "About" },
+  { href: "/blog", label: "Research" },
+  { href: "/security-demos", label: "Labs" },
+  { href: "/kuu", label: "Kuu" },
 ];
 
 export default function Navbar() {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
   return (
-    <nav className="border-b border-neutral-900" aria-label="Main navigation">
-      <div className="h-14 flex items-center justify-between">
-        <Link href="/" className="text-white font-medium focus:outline-none focus:ring-2 focus:ring-neutral-500 rounded">
-          Petteri Kosonen
-        </Link>
-        {/* Desktop nav */}
-        <div className="hidden md:flex gap-6 text-sm text-neutral-500">
-          {links.slice(1).map((link) => (
-            <Link key={link.href} href={link.href} className="hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-neutral-500 rounded px-1">
-              {link.label}
-            </Link>
-          ))}
+    <header className="sticky top-0 z-40 pt-4">
+      <nav
+        aria-label="Main navigation"
+        className="rounded-xl border border-line-0 bg-bg-1/80 px-4 py-3 backdrop-blur-lg shadow-terminal"
+      >
+        <div className="flex items-center justify-between gap-3">
+          <Link href="/" className="focus-outline inline-flex items-center gap-2 rounded-md font-display text-sm font-semibold text-text-0">
+            <span className="h-2 w-2 rounded-full bg-accent-green shadow-glowGreen" aria-hidden="true" />
+            <GlitchText>petteri@secure-console</GlitchText>
+          </Link>
+
+          <button
+            type="button"
+            aria-label="Toggle menu"
+            aria-expanded={open}
+            onClick={() => setOpen((prev) => !prev)}
+            className="focus-outline rounded-md border border-line-1 px-3 py-1.5 text-xs font-mono text-text-1 md:hidden"
+          >
+            MENU
+          </button>
+
+          <ul className="hidden items-center gap-6 md:flex">
+            {links.map((link) => {
+              const active = pathname === link.href;
+              return (
+                <li key={link.href} className="relative">
+                  <Link href={link.href} className="focus-outline rounded-md text-sm text-text-1 transition-colors hover:text-text-0">
+                    {link.label}
+                  </Link>
+                  {active ? (
+                    <motion.span
+                      layoutId="active-nav"
+                      className="absolute -bottom-1 left-0 h-0.5 w-full bg-accent-cyan"
+                      transition={{ duration: 0.22, ease: [0.2, 0.8, 0.2, 1] }}
+                    />
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+
+          <Link
+            href="#contact"
+            className="focus-outline hidden rounded-md border border-accent-cyan/55 bg-accent-cyan/10 px-3 py-1.5 text-xs font-mono uppercase tracking-[0.04em] text-accent-cyan transition-colors hover:bg-accent-cyan/20 md:inline-flex"
+          >
+            Contact
+          </Link>
         </div>
-        {/* Mobile hamburger */}
-        <button
-          onClick={() => setOpen(!open)}
-          className="md:hidden text-neutral-400 hover:text-white p-2 focus:outline-none focus:ring-2 focus:ring-neutral-500 rounded"
-          aria-expanded={open}
-          aria-label="Toggle menu"
-        >
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-            {open ? (
-              <>
-                <line x1="4" y1="4" x2="16" y2="16" />
-                <line x1="16" y1="4" x2="4" y2="16" />
-              </>
-            ) : (
-              <>
-                <line x1="3" y1="5" x2="17" y2="5" />
-                <line x1="3" y1="10" x2="17" y2="10" />
-                <line x1="3" y1="15" x2="17" y2="15" />
-              </>
-            )}
-          </svg>
-        </button>
-      </div>
-      {/* Mobile menu */}
-      {open && (
-        <div className="md:hidden pb-4 flex flex-col gap-2 text-sm text-neutral-500">
-          {links.slice(1).map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              onClick={() => setOpen(false)}
-              className="hover:text-white transition-colors py-2 px-1 focus:outline-none focus:ring-2 focus:ring-neutral-500 rounded"
+
+        <AnimatePresence initial={false}>
+          {open ? (
+            <motion.ul
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.22, ease: [0.2, 0.8, 0.2, 1] }}
+              className="flex flex-col gap-2 overflow-hidden pt-3 md:hidden"
             >
-              {link.label}
-            </Link>
-          ))}
-        </div>
-      )}
-    </nav>
+              {links.map((link) => (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    onClick={() => setOpen(false)}
+                    className={`focus-outline block rounded-md px-2 py-2 text-sm ${pathname === link.href ? "text-accent-cyan" : "text-text-1"}`}
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </motion.ul>
+          ) : null}
+        </AnimatePresence>
+      </nav>
+    </header>
   );
 }

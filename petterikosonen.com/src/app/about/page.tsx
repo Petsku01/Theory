@@ -1,90 +1,51 @@
+import SectionFrame from "@/components/SectionFrame";
+import StatusPill from "@/components/StatusPill";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "About — Petteri Kosonen",
-  description: "Background, skills, and expertise of Petteri Kosonen — B.Eng. student specializing in Data Networks and Cybersecurity.",
+  title: "About - Petteri Kosonen",
+  description: "Background, skills, and expertise of Petteri Kosonen - B.Eng. student specializing in Data Networks and Cybersecurity.",
 };
 
 export default function About() {
   return (
-    <div>
-      <section className="py-20">
-        <h1 className="text-3xl font-medium text-white mb-4">About</h1>
-        <p className="text-neutral-400">
-          Engineering student specializing in data networks and cybersecurity.
+    <div className="space-y-8">
+      <section className="rounded-2xl border border-line-0 bg-bg-1/90 px-5 py-10 shadow-terminal sm:px-8">
+        <span className="section-label">/about --profile</span>
+        <h1 className="mt-4 text-4xl font-bold text-text-0 sm:text-5xl">Operator Profile</h1>
+        <p className="mt-3 max-w-3xl text-text-1">
+          Engineering student focused on data networks and cybersecurity, with hands-on responsibility across modern Microsoft cloud support and security operations.
         </p>
+        <div className="mt-5 flex flex-wrap gap-2">
+          <StatusPill label="team player" variant="green" />
+          <StatusPill label="calm under pressure" variant="cyan" />
+          <StatusPill label="continuous learner" variant="amber" />
+        </div>
       </section>
 
-      <section className="py-12 border-t border-neutral-900">
-        <h2 className="text-lg font-medium text-white mb-6">Background</h2>
-        <div className="text-neutral-500 text-sm leading-relaxed space-y-4">
+      <SectionFrame command="/about --background" title="Background">
+        <div className="space-y-4 text-text-1">
           <p>
-            Calm and open person, always willing to learn and work hard. Comfortable 
-            working under pressure and find problem-solving both familiar and intriguing.
+            I work at the intersection of practical IT support and cybersecurity. My day-to-day work blends incident handling, user support, and cloud platform troubleshooting in environments where reliability matters.
           </p>
           <p>
-            Team player who values collaboration and enjoys contributing to a positive 
-            environment. Currently studying Information and Communication Technology 
-            with focus on Data Networks and Cybersecurity at Turku University of Applied Sciences.
+            My studies in Information and Communication Technology at Turku University of Applied Sciences reinforce this with formal training in data networks and security.
           </p>
         </div>
-      </section>
+      </SectionFrame>
 
-      <section className="py-12 border-t border-neutral-900">
-        <h2 className="text-lg font-medium text-white mb-6">Microsoft Technologies</h2>
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <h3 className="text-neutral-400 mb-2">Identity & Access</h3>
-            <ul className="text-neutral-500 space-y-1">
-              <li>• Entra/Azure AD</li>
-              <li>• MFA & Conditional Access</li>
-              <li>• Active Directory (on-prem)</li>
-            </ul>
-          </div>
-          <div>
-            <h3 className="text-neutral-400 mb-2">Security</h3>
-            <ul className="text-neutral-500 space-y-1">
-              <li>• Defender EDR</li>
-              <li>• Intune</li>
-              <li>• Email quarantine</li>
-            </ul>
-          </div>
-          <div>
-            <h3 className="text-neutral-400 mb-2">Productivity</h3>
-            <ul className="text-neutral-500 space-y-1">
-              <li>• Office 365</li>
-              <li>• Exchange Online</li>
-              <li>• Teams / Skype for Business</li>
-            </ul>
-          </div>
-          <div>
-            <h3 className="text-neutral-400 mb-2">Other</h3>
-            <ul className="text-neutral-500 space-y-1">
-              <li>• PowerShell automation</li>
-              <li>• Linux/Windows Servers</li>
-              <li>• Python / SQL</li>
-            </ul>
-          </div>
+      <SectionFrame command="/about --stack" title="Technology Focus">
+        <div className="grid gap-4 md:grid-cols-2">
+          <article className="rounded-xl border border-line-0 bg-bg-2/80 p-5">
+            <h3 className="text-lg font-semibold text-text-0">Identity & Security</h3>
+            <p className="mt-2 text-sm text-text-1">Entra ID, MFA, Conditional Access, Defender EDR, Intune, Active Directory.</p>
+          </article>
+          <article className="rounded-xl border border-line-0 bg-bg-2/80 p-5">
+            <h3 className="text-lg font-semibold text-text-0">Operations & Automation</h3>
+            <p className="mt-2 text-sm text-text-1">PowerShell automation, Exchange Online, Office 365 administration, Linux/Windows servers, Python, SQL.</p>
+          </article>
         </div>
-      </section>
-
-      <section className="py-12 border-t border-neutral-900">
-        <h2 className="text-lg font-medium text-white mb-6">Languages</h2>
-        <div className="space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-neutral-400">Finnish</span>
-            <span className="text-neutral-600">Native</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-neutral-400">English</span>
-            <span className="text-neutral-600">Good</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-neutral-400">Swedish</span>
-            <span className="text-neutral-600">Written</span>
-          </div>
-        </div>
-      </section>
+      </SectionFrame>
     </div>
   );
 }
