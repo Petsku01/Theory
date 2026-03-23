@@ -33,13 +33,19 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://petterikosonen.com"),
   title: "Petteri Kosonen",
   description:
     "B.Eng. Student specializing in Data Networks and Cybersecurity. IT Support Specialist with experience in Microsoft technologies and security.",
   keywords: ["Petteri Kosonen", "Cybersecurity", "IT Support", "Developer", "Finland"],
   authors: [{ name: "Petteri Kosonen" }],
   manifest: "/manifest.json",
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/icon.svg" }],
+  },
   alternates: {
+    canonical: "/",
     types: {
       "application/rss+xml": "/feed.xml",
     },
@@ -69,10 +75,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${spaceGrotesk.variable} ${manrope.variable} ${ibmPlexMono.variable}`}>
-      <head>
-        <link rel="icon" href="/icon.svg" type="image/svg+xml" />
-        <link rel="apple-touch-icon" href="/icon.svg" />
-      </head>
       <body className="relative min-h-screen overflow-x-hidden">
         <AmbientBackground />
         <SpotlightCursor />

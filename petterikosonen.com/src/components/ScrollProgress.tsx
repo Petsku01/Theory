@@ -36,7 +36,10 @@ export default function ScrollProgress({ sections }: ScrollProgressProps) {
   if (sections.length === 0) return null;
 
   return (
-    <aside className="pointer-events-none fixed right-3 top-1/2 z-30 hidden -translate-y-1/2 xl:block" aria-hidden="true">
+    <aside
+      className="pointer-events-none fixed right-3 top-1/2 z-30 hidden -translate-y-1/2 xl:block"
+      aria-label="Section progress navigation"
+    >
       <div className="pointer-events-auto flex items-center gap-2">
         <div className="relative h-48 w-[2px] overflow-hidden rounded bg-line-0">
           <motion.div className="absolute inset-x-0 top-0 origin-top bg-accent-cyan" style={{ scaleY }} />

@@ -2,7 +2,7 @@ import { MetadataRoute } from "next";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = "https://petterikosonen.com";
-  const now = "2026-02-06";
+  const now = new Date();
   
   return [
     {

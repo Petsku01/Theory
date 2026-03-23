@@ -63,7 +63,7 @@ export default function Navbar() {
           </ul>
 
           <Link
-            href="#contact"
+            href="/#contact"
             className="focus-outline hidden rounded-md border border-accent-cyan/55 bg-accent-cyan/10 px-3 py-1.5 text-xs font-mono uppercase tracking-[0.04em] text-accent-cyan transition-colors hover:bg-accent-cyan/20 md:inline-flex"
           >
             Contact
