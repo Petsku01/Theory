@@ -1,458 +1,524 @@
 "use client";
 
 import { useRef, useMemo, Suspense, useState, useEffect, useCallback } from "react";
+import type { MouseEvent as ReactMouseEvent } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Float, MeshDistortMaterial, Sparkles, Text } from "@react-three/drei";
 import * as THREE from "three";
 
-// Live data strings that "fly" around the shield
-const dataStrings = [
-  "0x7f3a", "AUTH_OK", "SHA256", "TLS1.3", "AES256", "RSA4096",
-  "VERIFY", "ENCRYPT", "SECURE", "VALID", "HASH", "SIGN",
-  "192.168", "10.0.0", "CERT_OK", "JWT", "OAUTH", "MFA",
+const DATA_STRINGS = [
+  "SHA256",
+  "TLS1.3",
+  "AUTH_OK",
+  "MFA",
+  "JWT",
+  "AES256",
+  "RSA4096",
+  "CERT_OK",
+  "VERIFY",
+  "ENCRYPT",
+  "SIGN",
+  "HMAC",
+  "FIREWALL",
+  "WAF_ON",
+  "SIEM",
+  "ZERO_TRUST",
 ];
 
-// Threat types for the mini-game
-const threatTypes = ["MALWARE", "PHISH", "SQLI", "XSS", "DDOS"];
+const THREAT_TYPES = ["MALWARE", "PHISH", "SQLI", "XSS", "DDOS"];
 
 interface Threat {
   id: number;
-  position: [number, number, number];
-  type: string;
+  angle: number;
+  radius: number;
+  y: number;
   speed: number;
+  type: string;
 }
 
-function FloatingData({ scrollProgress }: { scrollProgress: number }) {
+function stableNoise(seed: number) {
+  const x = Math.sin(seed * 12.9898) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+function getThemeFromHour(hour: number) {
+  const isDay = hour >= 7 && hour < 19;
+
+  if (isDay) {
+    return {
+      isDay,
+      shield: "#38bdf8",
+      ringOuter: "#34d399",
+      ringInner: "#60a5fa",
+      glow: 0.38,
+      ambient: 0.42,
+      sparkles: "#34d399",
+      dataText: "#67e8f9",
+    };
+  }
+
+  return {
+    isDay,
+    shield: "#0ea5e9",
+    ringOuter: "#22d3ee",
+    ringInner: "#818cf8",
+    glow: 0.62,
+    ambient: 0.22,
+    sparkles: "#22d3ee",
+    dataText: "#22d3ee",
+  };
+}
+
+function FloatingDataFeed({
+  color,
+  scrollRef,
+}: {
+  color: string;
+  scrollRef: React.MutableRefObject<number>;
+}) {
   const groupRef = useRef<THREE.Group>(null);
-  
-  const dataParticles = useMemo(() => {
-    return dataStrings.map((str, i) => ({
-      text: str,
-      radius: 2.5 + Math.random() * 1.5,
-      speed: 0.3 + Math.random() * 0.4,
-      offset: (i / dataStrings.length) * Math.PI * 2,
-      y: (Math.random() - 0.5) * 3,
-    }));
-  }, []);
-  
-  useFrame((state) => {
+
+  const feedItems = useMemo(
+    () =>
+      DATA_STRINGS.map((text, index) => ({
+        text,
+        radius: 2.5 + stableNoise(index + 1) * 0.9,
+        speed: 0.35 + stableNoise(index + 7) * 0.4,
+        yOffset: -1.1 + stableNoise(index + 13) * 2.2,
+        phase: (index / DATA_STRINGS.length) * Math.PI * 2,
+      })),
+    [],
+  );
+
+  useFrame(({ clock }) => {
     if (!groupRef.current) return;
-    const time = state.clock.getElapsedTime();
-    
-    groupRef.current.children.forEach((child, i) => {
-      const particle = dataParticles[i];
-      const angle = time * particle.speed + particle.offset;
-      child.position.x = Math.cos(angle) * particle.radius;
-      child.position.z = Math.sin(angle) * particle.radius;
-      child.position.y = particle.y + Math.sin(time * 0.5 + particle.offset) * 0.3;
+
+    const time = clock.getElapsedTime();
+    const spread = 1 + scrollRef.current * 0.35;
+
+    for (let index = 0; index < groupRef.current.children.length; index += 1) {
+      const child = groupRef.current.children[index];
+      const item = feedItems[index];
+      const angle = time * item.speed + item.phase;
+      child.position.set(
+        Math.cos(angle) * item.radius * spread,
+        item.yOffset + Math.sin(time * 0.7 + item.phase) * 0.22,
+        Math.sin(angle) * item.radius * spread,
+      );
       child.lookAt(0, child.position.y, 0);
-    });
+    }
   });
-  
+
   return (
     <group ref={groupRef}>
-      {dataParticles.map((particle, i) => (
+      {feedItems.map((item) => (
         <Text
-          key={i}
-          fontSize={0.15}
-          color="#22d3ee"
+          key={item.text}
+          fontSize={0.14}
+          color={color}
           anchorX="center"
           anchorY="middle"
-          fillOpacity={0.6 + Math.random() * 0.4}
+          fillOpacity={0.85}
         >
-          {particle.text}
+          {item.text}
         </Text>
       ))}
     </group>
   );
 }
 
-function Shield({ 
-  mousePosition, 
-  scrollProgress, 
-  keyPulse,
-  isDayMode,
+function ThreatField({
   threats,
   onThreatClick,
-}: { 
-  mousePosition: { x: number; y: number };
-  scrollProgress: number;
-  keyPulse: number;
-  isDayMode: boolean;
+}: {
   threats: Threat[];
   onThreatClick: (id: number) => void;
 }) {
-  const meshRef = useRef<THREE.Mesh>(null);
-  const ringRef = useRef<THREE.Mesh>(null);
-  const innerRingRef = useRef<THREE.Mesh>(null);
-  const shieldRef = useRef<THREE.Group>(null);
-  
-  // Colors based on day/night mode
-  const cyanColor = isDayMode ? "#0ea5e9" : "#22d3ee";
-  const greenColor = isDayMode ? "#22c55e" : "#39ff88";
-  const violetColor = isDayMode ? "#8b5cf6" : "#7c8cff";
-  
-  // Pulse effect from key presses
-  const pulseScale = 1 + keyPulse * 0.1;
-  
-  useFrame((state) => {
-    if (meshRef.current) {
-      meshRef.current.rotation.x = THREE.MathUtils.lerp(
-        meshRef.current.rotation.x,
-        mousePosition.y * 0.3,
-        0.05
+  const meshRefs = useRef<Map<number, THREE.Mesh>>(new Map());
+
+  useFrame(({ clock }) => {
+    const time = clock.getElapsedTime();
+
+    threats.forEach((threat) => {
+      const mesh = meshRefs.current.get(threat.id);
+      if (!mesh) return;
+
+      const angle = threat.angle + time * threat.speed;
+      mesh.position.set(
+        Math.cos(angle) * threat.radius,
+        threat.y + Math.sin(time * (threat.speed + 0.5)) * 0.2,
+        Math.sin(angle) * threat.radius,
       );
-      meshRef.current.rotation.y = THREE.MathUtils.lerp(
-        meshRef.current.rotation.y,
-        mousePosition.x * 0.3,
-        0.05
-      );
-    }
-    
-    if (ringRef.current) {
-      ringRef.current.rotation.z += 0.005;
-    }
-    
-    if (innerRingRef.current) {
-      innerRingRef.current.rotation.z -= 0.008;
-    }
-    
-    // Scroll-based shield "opening" effect
-    if (shieldRef.current) {
-      const openAmount = Math.min(scrollProgress * 2, 1);
-      shieldRef.current.scale.setScalar(1 - openAmount * 0.3);
-      shieldRef.current.rotation.y = openAmount * Math.PI * 0.5;
-    }
+    });
   });
 
   return (
-    <group ref={meshRef} scale={pulseScale}>
-      <group ref={shieldRef}>
-        <Float speed={2} rotationIntensity={0.2} floatIntensity={0.5}>
-          <mesh>
-            <icosahedronGeometry args={[1.2, 1]} />
-            <MeshDistortMaterial
-              color={cyanColor}
-              attach="material"
-              distort={0.3 + keyPulse * 0.2}
-              speed={2}
-              roughness={isDayMode ? 0.4 : 0.2}
-              metalness={0.8}
-              transparent
-              opacity={0.9}
-            />
-          </mesh>
-        </Float>
-      </group>
-      
-      <mesh ref={ringRef} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[2, 0.04, 16, 100]} />
-        <meshStandardMaterial 
-          color={greenColor} 
-          emissive={greenColor} 
-          emissiveIntensity={isDayMode ? 0.3 : 0.5} 
-        />
-      </mesh>
-      
-      <mesh ref={innerRingRef} rotation={[Math.PI / 2, Math.PI / 4, 0]}>
-        <torusGeometry args={[1.6, 0.03, 16, 80]} />
-        <meshStandardMaterial 
-          color={violetColor} 
-          emissive={violetColor} 
-          emissiveIntensity={isDayMode ? 0.2 : 0.4} 
-        />
-      </mesh>
-      
-      <mesh>
-        <icosahedronGeometry args={[2.3, 1]} />
-        <meshBasicMaterial color={cyanColor} wireframe transparent opacity={0.15} />
-      </mesh>
-      
-      <Sparkles count={50} scale={5} size={2} speed={0.4} color={greenColor} />
-      
-      {/* Threat spheres */}
+    <group>
       {threats.map((threat) => (
         <mesh
           key={threat.id}
-          position={threat.position}
-          onClick={(e) => {
-            e.stopPropagation();
+          ref={(mesh) => {
+            if (mesh) {
+              meshRefs.current.set(threat.id, mesh);
+            } else {
+              meshRefs.current.delete(threat.id);
+            }
+          }}
+          onClick={(event) => {
+            event.stopPropagation();
             onThreatClick(threat.id);
           }}
         >
-          <sphereGeometry args={[0.15, 16, 16]} />
-          <meshStandardMaterial 
-            color="#ef4444" 
-            emissive="#ef4444" 
-            emissiveIntensity={0.8}
-          />
+          <sphereGeometry args={[0.16, 20, 20]} />
+          <meshStandardMaterial color="#ef4444" emissive="#ef4444" emissiveIntensity={0.95} />
+          <Text position={[0, 0.32, 0]} fontSize={0.08} color="#fca5a5" anchorX="center" anchorY="middle">
+            {threat.type}
+          </Text>
         </mesh>
       ))}
     </group>
   );
 }
 
-function DataParticles({ scrollProgress }: { scrollProgress: number }) {
-  const count = 100;
-  const meshRef = useRef<THREE.InstancedMesh>(null);
-  
-  const particles = useMemo(() => {
-    const temp = [];
-    for (let i = 0; i < count; i++) {
-      const theta = Math.random() * Math.PI * 2;
-      const phi = Math.acos(2 * Math.random() - 1);
-      const r = 3 + Math.random() * 2;
-      
-      temp.push({
-        position: [
-          r * Math.sin(phi) * Math.cos(theta),
-          r * Math.sin(phi) * Math.sin(theta),
-          r * Math.cos(phi),
-        ],
-        speed: 0.2 + Math.random() * 0.5,
-        offset: Math.random() * Math.PI * 2,
-      });
+function ShieldCore({
+  mouseRef,
+  scrollRef,
+  pulseRef,
+  theme,
+}: {
+  mouseRef: React.MutableRefObject<{ x: number; y: number }>;
+  scrollRef: React.MutableRefObject<number>;
+  pulseRef: React.MutableRefObject<number>;
+  theme: ReturnType<typeof getThemeFromHour>;
+}) {
+  const shieldGroupRef = useRef<THREE.Group>(null);
+  const bodyRef = useRef<THREE.Group>(null);
+  const bodyMeshRef = useRef<THREE.Mesh>(null);
+  const outerRingRef = useRef<THREE.Mesh>(null);
+  const innerRingRef = useRef<THREE.Mesh>(null);
+
+  useFrame((_, delta) => {
+    if (pulseRef.current > 0) {
+      pulseRef.current = Math.max(0, pulseRef.current - delta * 4.4);
     }
-    return temp;
-  }, []);
-  
-  useFrame((state) => {
-    if (!meshRef.current) return;
-    
-    const time = state.clock.getElapsedTime();
-    const matrix = new THREE.Matrix4();
-    
-    particles.forEach((particle, i) => {
-      const [x, y, z] = particle.position;
-      const scale = 0.03 + Math.sin(time * particle.speed + particle.offset) * 0.015;
-      
-      // Scroll effect: particles spread out
-      const spreadFactor = 1 + scrollProgress * 0.5;
-      
-      matrix.setPosition(
-        (x + Math.sin(time * 0.5 + particle.offset) * 0.2) * spreadFactor,
-        (y + Math.cos(time * 0.3 + particle.offset) * 0.2) * spreadFactor,
-        (z + Math.sin(time * 0.4 + particle.offset) * 0.2) * spreadFactor
-      );
-      matrix.scale(new THREE.Vector3(scale, scale, scale));
-      
-      meshRef.current!.setMatrixAt(i, matrix);
-    });
-    
-    meshRef.current.instanceMatrix.needsUpdate = true;
+
+    if (outerRingRef.current) {
+      outerRingRef.current.rotation.z += delta * 0.8;
+    }
+
+    if (innerRingRef.current) {
+      innerRingRef.current.rotation.z -= delta * 1.25;
+    }
+
+    if (!shieldGroupRef.current) return;
+
+    const pulse = pulseRef.current;
+    const scroll = scrollRef.current;
+    const targetScale = 1 - scroll * 0.42 + pulse * 0.2;
+    const targetRotationY = scroll * Math.PI * 0.55;
+    const targetRotationX = mouseRef.current.y * 0.35 + scroll * 0.12;
+    const targetRotationZ = -mouseRef.current.x * 0.2;
+
+    shieldGroupRef.current.scale.lerp(
+      new THREE.Vector3(targetScale, targetScale, targetScale),
+      0.08,
+    );
+    shieldGroupRef.current.rotation.x = THREE.MathUtils.lerp(
+      shieldGroupRef.current.rotation.x,
+      targetRotationX,
+      0.08,
+    );
+    shieldGroupRef.current.rotation.y = THREE.MathUtils.lerp(
+      shieldGroupRef.current.rotation.y,
+      targetRotationY,
+      0.08,
+    );
+    shieldGroupRef.current.rotation.z = THREE.MathUtils.lerp(
+      shieldGroupRef.current.rotation.z,
+      targetRotationZ,
+      0.08,
+    );
+
+    if (bodyRef.current) {
+      const pulseGlow = 1 + pulse * 0.35;
+      bodyRef.current.scale.setScalar(pulseGlow);
+    }
+
+    const bodyMaterial = bodyMeshRef.current?.material as
+      | (THREE.MeshStandardMaterial & { distort?: number })
+      | undefined;
+    if (bodyMaterial) {
+      bodyMaterial.distort = 0.26 + pulse * 0.45;
+      bodyMaterial.emissiveIntensity = theme.glow + pulse * 0.5;
+    }
+
+    const outerRingMaterial = outerRingRef.current?.material as THREE.MeshStandardMaterial | undefined;
+    if (outerRingMaterial) {
+      outerRingMaterial.emissiveIntensity = theme.glow + pulse * 0.45;
+    }
+
+    const innerRingMaterial = innerRingRef.current?.material as THREE.MeshStandardMaterial | undefined;
+    if (innerRingMaterial) {
+      innerRingMaterial.emissiveIntensity = theme.glow * 0.9 + pulse * 0.35;
+    }
   });
-  
+
   return (
-    <instancedMesh ref={meshRef} args={[undefined, undefined, count]}>
-      <sphereGeometry args={[1, 8, 8]} />
-      <meshBasicMaterial color="#22d3ee" transparent opacity={0.6} />
-    </instancedMesh>
+    <group ref={shieldGroupRef}>
+      <Float speed={1.8} rotationIntensity={0.16} floatIntensity={0.35}>
+        <group ref={bodyRef}>
+          <mesh ref={bodyMeshRef}>
+            <icosahedronGeometry args={[1.2, 1]} />
+            <MeshDistortMaterial
+              color={theme.shield}
+              distort={0.26}
+              speed={2.6}
+              roughness={theme.isDay ? 0.36 : 0.18}
+              metalness={0.85}
+              transparent
+              opacity={0.9}
+              emissive={theme.shield}
+              emissiveIntensity={theme.glow}
+            />
+          </mesh>
+
+          <mesh>
+            <icosahedronGeometry args={[2.2, 1]} />
+            <meshBasicMaterial color={theme.shield} wireframe transparent opacity={0.16} />
+          </mesh>
+        </group>
+      </Float>
+
+      <mesh ref={outerRingRef} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[2, 0.05, 16, 120]} />
+        <meshStandardMaterial color={theme.ringOuter} emissive={theme.ringOuter} emissiveIntensity={theme.glow} />
+      </mesh>
+
+      <mesh ref={innerRingRef} rotation={[Math.PI / 2, Math.PI / 4, 0]}>
+        <torusGeometry args={[1.58, 0.036, 16, 96]} />
+        <meshStandardMaterial color={theme.ringInner} emissive={theme.ringInner} emissiveIntensity={theme.glow * 0.9} />
+      </mesh>
+
+      <Sparkles count={65} scale={5.2} size={2} speed={0.35} color={theme.sparkles} />
+    </group>
   );
 }
 
-function Scene({ 
-  mousePosition, 
-  scrollProgress, 
-  keyPulse,
-  isDayMode,
+function Scene({
+  mouseRef,
+  scrollRef,
+  pulseRef,
+  theme,
   threats,
   onThreatClick,
-}: { 
-  mousePosition: { x: number; y: number };
-  scrollProgress: number;
-  keyPulse: number;
-  isDayMode: boolean;
+}: {
+  mouseRef: React.MutableRefObject<{ x: number; y: number }>;
+  scrollRef: React.MutableRefObject<number>;
+  pulseRef: React.MutableRefObject<number>;
+  theme: ReturnType<typeof getThemeFromHour>;
   threats: Threat[];
   onThreatClick: (id: number) => void;
 }) {
-  const ambientIntensity = isDayMode ? 0.4 : 0.2;
-  
   return (
     <>
-      <ambientLight intensity={ambientIntensity} />
-      <pointLight position={[10, 10, 10]} intensity={isDayMode ? 0.8 : 1} color="#22d3ee" />
-      <pointLight position={[-10, -10, -10]} intensity={0.5} color="#7c8cff" />
-      <pointLight position={[0, 10, 0]} intensity={0.3} color="#39ff88" />
-      
-      <Shield 
-        mousePosition={mousePosition} 
-        scrollProgress={scrollProgress}
-        keyPulse={keyPulse}
-        isDayMode={isDayMode}
-        threats={threats}
-        onThreatClick={onThreatClick}
-      />
-      <DataParticles scrollProgress={scrollProgress} />
-      <FloatingData scrollProgress={scrollProgress} />
+      <ambientLight intensity={theme.ambient} />
+      <pointLight position={[7, 7, 6]} intensity={theme.isDay ? 0.9 : 1.1} color={theme.shield} />
+      <pointLight position={[-7, -3, -6]} intensity={0.5} color={theme.ringInner} />
+      <pointLight position={[0, 9, 0]} intensity={0.35} color={theme.ringOuter} />
+
+      <ShieldCore mouseRef={mouseRef} scrollRef={scrollRef} pulseRef={pulseRef} theme={theme} />
+      <FloatingDataFeed color={theme.dataText} scrollRef={scrollRef} />
+      <ThreatField threats={threats} onThreatClick={onThreatClick} />
     </>
   );
 }
 
-// CSS-based animated fallback for mobile/no-WebGL
 function MobileFallback() {
   return (
     <div className="relative flex h-full w-full items-center justify-center">
       <div className="absolute h-48 w-48 animate-pulse rounded-full border border-accent-cyan/20" />
       <div className="absolute h-40 w-40 animate-[spin_8s_linear_infinite] rounded-full border-2 border-dashed border-accent-green/40" />
       <div className="absolute h-32 w-32 animate-[spin_6s_linear_infinite_reverse] rounded-full border border-accent-violet/40" />
-      
+
       <div className="relative h-24 w-24">
         <div className="absolute inset-0 animate-pulse rounded-full bg-gradient-to-br from-accent-cyan/30 to-accent-violet/30 blur-sm" />
         <div className="absolute inset-2 rounded-full border border-accent-cyan/50 bg-bg-1/80 backdrop-blur-sm" />
         <div className="absolute inset-4 rounded-full bg-gradient-to-br from-accent-cyan/20 to-accent-green/20" />
-        
-        <svg 
-          className="absolute inset-0 m-auto h-10 w-10 text-accent-cyan" 
-          fill="none" 
-          viewBox="0 0 24 24" 
+
+        <svg
+          className="absolute inset-0 m-auto h-10 w-10 text-accent-cyan"
+          fill="none"
+          viewBox="0 0 24 24"
           stroke="currentColor"
         >
-          <path 
-            strokeLinecap="round" 
-            strokeLinejoin="round" 
-            strokeWidth={1.5} 
-            d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" 
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.5}
+            d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
           />
         </svg>
       </div>
-      
-      <div className="absolute h-4 w-4 animate-[float_3s_ease-in-out_infinite] rounded-full bg-accent-cyan/30" style={{ top: '20%', left: '25%' }} />
-      <div className="absolute h-3 w-3 animate-[float_4s_ease-in-out_infinite_0.5s] rounded-full bg-accent-green/30" style={{ top: '30%', right: '20%' }} />
-      <div className="absolute h-2 w-2 animate-[float_3.5s_ease-in-out_infinite_1s] rounded-full bg-accent-violet/30" style={{ bottom: '25%', left: '30%' }} />
-      <div className="absolute h-3 w-3 animate-[float_4.5s_ease-in-out_infinite_1.5s] rounded-full bg-accent-cyan/30" style={{ bottom: '30%', right: '25%' }} />
+
+      <div
+        className="absolute h-4 w-4 animate-[float_3s_ease-in-out_infinite] rounded-full bg-accent-cyan/30"
+        style={{ top: "20%", left: "25%" }}
+      />
+      <div
+        className="absolute h-3 w-3 animate-[float_4s_ease-in-out_infinite_0.5s] rounded-full bg-accent-green/30"
+        style={{ top: "30%", right: "20%" }}
+      />
+      <div
+        className="absolute h-2 w-2 animate-[float_3.5s_ease-in-out_infinite_1s] rounded-full bg-accent-violet/30"
+        style={{ bottom: "25%", left: "30%" }}
+      />
+      <div
+        className="absolute h-3 w-3 animate-[float_4.5s_ease-in-out_infinite_1.5s] rounded-full bg-accent-cyan/30"
+        style={{ bottom: "30%", right: "25%" }}
+      />
     </div>
   );
 }
 
 export default function SecurityShield3D() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mousePosition = useRef({ x: 0, y: 0 });
+  const mouseRef = useRef({ x: 0, y: 0 });
+  const scrollRef = useRef(0);
+  const pulseRef = useRef(0);
+  const threatIdRef = useRef(0);
+
+  const [theme, setTheme] = useState(() => getThemeFromHour(new Date().getHours()));
   const [isMobile, setIsMobile] = useState(false);
   const [hasWebGL, setHasWebGL] = useState(true);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
-  const [scrollProgress, setScrollProgress] = useState(0);
-  const [keyPulse, setKeyPulse] = useState(0);
-  const [isDayMode, setIsDayMode] = useState(false);
   const [threats, setThreats] = useState<Threat[]>([]);
   const [score, setScore] = useState(0);
-  const [showScore, setShowScore] = useState(false);
-  const threatIdRef = useRef(0);
-  
-  // Day/night mode based on time
+
   useEffect(() => {
-    const hour = new Date().getHours();
-    setIsDayMode(hour >= 7 && hour < 19);
+    const updateTheme = () => {
+      setTheme(getThemeFromHour(new Date().getHours()));
+    };
+
+    updateTheme();
+    const intervalId = window.setInterval(updateTheme, 60000);
+    return () => window.clearInterval(intervalId);
   }, []);
-  
-  // Keyboard listener for pulse effect
+
   useEffect(() => {
     const handleKeyDown = () => {
-      setKeyPulse(1);
-      setTimeout(() => setKeyPulse(0), 150);
+      pulseRef.current = 1;
     };
-    
+
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
   }, []);
-  
-  // Scroll listener
+
   useEffect(() => {
     const handleScroll = () => {
-      const scrollY = window.scrollY;
       const maxScroll = 500;
-      setScrollProgress(Math.min(scrollY / maxScroll, 1));
+      scrollRef.current = Math.min(window.scrollY / maxScroll, 1);
     };
-    
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
   }, []);
-  
-  // Spawn threats periodically
+
   useEffect(() => {
-    const spawnThreat = () => {
-      if (threats.length >= 5) return;
-      
-      const theta = Math.random() * Math.PI * 2;
-      const phi = Math.random() * Math.PI;
-      const r = 2.5;
-      
-      const newThreat: Threat = {
-        id: threatIdRef.current++,
-        position: [
-          r * Math.sin(phi) * Math.cos(theta),
-          r * Math.sin(phi) * Math.sin(theta) * 0.5,
-          r * Math.cos(phi),
-        ],
-        type: threatTypes[Math.floor(Math.random() * threatTypes.length)],
-        speed: 0.5 + Math.random() * 0.5,
-      };
-      
-      setThreats((prev) => [...prev, newThreat]);
-      setShowScore(true);
+    const intervalId = window.setInterval(() => {
+      setThreats((previous) => {
+        if (previous.length >= 8) return previous;
+
+        const newThreat: Threat = {
+          id: threatIdRef.current,
+          angle: Math.random() * Math.PI * 2,
+          radius: 2.35 + Math.random() * 0.65,
+          y: -1 + Math.random() * 2,
+          speed: 0.45 + Math.random() * 0.75,
+          type: THREAT_TYPES[Math.floor(Math.random() * THREAT_TYPES.length)],
+        };
+
+        threatIdRef.current += 1;
+        return [...previous, newThreat];
+      });
+    }, 3000);
+
+    return () => {
+      window.clearInterval(intervalId);
     };
-    
-    const interval = setInterval(spawnThreat, 3000);
-    return () => clearInterval(interval);
-  }, [threats.length]);
-  
+  }, []);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+    const detectEnvironment = () => {
+      const mobileByWidth = window.innerWidth < 768;
+      const mobileByUserAgent =
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+      setIsMobile(mobileByWidth || mobileByUserAgent);
+      setPrefersReducedMotion(mediaQuery.matches);
+
+      try {
+        const canvas = document.createElement("canvas");
+        const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+        setHasWebGL(Boolean(gl));
+      } catch {
+        setHasWebGL(false);
+      }
+    };
+
+    detectEnvironment();
+
+    const handleMediaQueryChange = (event: MediaQueryListEvent) => {
+      setPrefersReducedMotion(event.matches);
+    };
+
+    window.addEventListener("resize", detectEnvironment);
+    mediaQuery.addEventListener("change", handleMediaQueryChange);
+
+    return () => {
+      window.removeEventListener("resize", detectEnvironment);
+      mediaQuery.removeEventListener("change", handleMediaQueryChange);
+    };
+  }, []);
+
   const handleThreatClick = useCallback((id: number) => {
-    setThreats((prev) => prev.filter((t) => t.id !== id));
-    setScore((prev) => prev + 100);
+    setThreats((previous) => previous.filter((threat) => threat.id !== id));
+    setScore((previous) => previous + 100);
   }, []);
-  
-  useEffect(() => {
-    const checkMobile = window.innerWidth < 768 || 
-      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    setIsMobile(checkMobile);
-    
-    setPrefersReducedMotion(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-    
-    try {
-      const canvas = document.createElement("canvas");
-      const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
-      setHasWebGL(!!gl);
-    } catch {
-      setHasWebGL(false);
-    }
-  }, []);
-  
-  const handleMouseMove = (e: React.MouseEvent) => {
+
+  const handleMouseMove = (event: ReactMouseEvent<HTMLDivElement>) => {
     if (!containerRef.current || prefersReducedMotion) return;
-    
+
     const rect = containerRef.current.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-    const y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-    
-    mousePosition.current = { x, y };
+    mouseRef.current = {
+      x: ((event.clientX - rect.left) / rect.width) * 2 - 1,
+      y: -((event.clientY - rect.top) / rect.height) * 2 + 1,
+    };
   };
-  
+
   if (isMobile || !hasWebGL || prefersReducedMotion) {
     return <MobileFallback />;
   }
-  
+
   return (
-    <div 
-      ref={containerRef}
-      className="relative h-full w-full"
-      onMouseMove={handleMouseMove}
-    >
-      {/* Score display */}
-      {showScore && (
-        <div className="absolute right-2 top-2 z-10 rounded-lg border border-accent-green/30 bg-bg-1/80 px-3 py-1 backdrop-blur-sm">
-          <p className="font-mono text-xs text-text-2">THREATS NEUTRALIZED</p>
-          <p className="font-mono text-lg text-accent-green">{score}</p>
-        </div>
-      )}
-      
-      {/* Hint */}
+    <div ref={containerRef} className="relative h-full w-full" onMouseMove={handleMouseMove}>
+      <div className="absolute right-2 top-2 z-10 rounded-lg border border-accent-green/30 bg-bg-1/80 px-3 py-1 backdrop-blur-sm">
+        <p className="font-mono text-xs text-text-2">THREATS NEUTRALIZED</p>
+        <p className="font-mono text-lg text-accent-green">{score}</p>
+      </div>
+
       {threats.length > 0 && (
         <div className="absolute bottom-2 left-1/2 z-10 -translate-x-1/2 rounded-lg border border-accent-red/30 bg-bg-1/80 px-3 py-1 backdrop-blur-sm">
-          <p className="font-mono text-xs text-accent-red animate-pulse">
-            Click red threats to neutralize!
-          </p>
+          <p className="animate-pulse font-mono text-xs text-accent-red">Click red threats to neutralize</p>
         </div>
       )}
-      
+
       <Suspense fallback={<MobileFallback />}>
         <Canvas
           camera={{ position: [0, 0, 6], fov: 50 }}
@@ -460,11 +526,11 @@ export default function SecurityShield3D() {
           gl={{ antialias: true, alpha: true }}
           style={{ background: "transparent" }}
         >
-          <Scene 
-            mousePosition={mousePosition.current}
-            scrollProgress={scrollProgress}
-            keyPulse={keyPulse}
-            isDayMode={isDayMode}
+          <Scene
+            mouseRef={mouseRef}
+            scrollRef={scrollRef}
+            pulseRef={pulseRef}
+            theme={theme}
             threats={threats}
             onThreatClick={handleThreatClick}
           />
