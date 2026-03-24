@@ -6,6 +6,7 @@ import Footer from "@/components/Footer";
 import Analytics from "@/components/Analytics";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import AmbientBackground from "@/components/AmbientBackground";
+import InteractiveBackground from "@/components/InteractiveBackground";
 import SpotlightCursor from "@/components/SpotlightCursor";
 
 const spaceGrotesk = Space_Grotesk({
@@ -77,6 +78,7 @@ export default function RootLayout({
     <html lang="en" className={`${spaceGrotesk.variable} ${manrope.variable} ${ibmPlexMono.variable}`}>
       <body className="relative min-h-screen overflow-x-hidden">
         <AmbientBackground />
+        <InteractiveBackground />
         <SpotlightCursor />
         <Analytics />
         <a

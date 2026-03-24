@@ -4,7 +4,7 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Center, Float, Sparkles } from "@react-three/drei";
 import type { AmbientLight, Group, Mesh, Points } from "three";
-import { AdditiveBlending, Color } from "three";
+import { AdditiveBlending, Color, IcosahedronGeometry } from "three";
 import type { MeshPhysicalMaterial, MeshStandardMaterial } from "three";
 
 function DataParticles() {
@@ -68,17 +68,20 @@ function RotatingIcosahedron() {
     const t = state.clock.elapsedTime;
     const hoverBoost = isHovered ? 1.4 : 1;
 
+    // Group floating and parallax
     if (groupRef.current) {
       groupRef.current.position.y = Math.sin(t * 0.8) * 0.25;
       groupRef.current.position.x += (state.pointer.x * 0.35 - groupRef.current.position.x) * 0.06;
       groupRef.current.position.z += (-state.pointer.y * 0.3 - groupRef.current.position.z) * 0.06;
     }
 
+    // Main icosahedron rotation
     if (mainRef.current) {
       mainRef.current.rotation.x += delta * 0.25;
       mainRef.current.rotation.y += delta * 0.4;
       mainRef.current.rotation.z = Math.sin(t * 0.5) * 0.1;
 
+      // Color cycling
       const colorPhase = ((t * 0.12) % 1);
       if (colorPhase < 0.2) {
         mainColor.copy(cyan).lerp(purple, colorPhase * 5);
@@ -94,13 +97,14 @@ function RotatingIcosahedron() {
       emissiveColor.copy(mainColor).multiplyScalar(0.6);
 
       const mat = mainRef.current.material as MeshPhysicalMaterial;
-      if (mat && "color" in mat) {
+      if (mat && 'color' in mat) {
         mat.color.copy(mainColor);
         mat.emissive.copy(emissiveColor);
         mat.attenuationColor?.copy(mainColor);
       }
     }
 
+    // Inner icosahedron (counter-rotate)
     if (innerRef.current) {
       innerRef.current.rotation.x -= delta * 0.35;
       innerRef.current.rotation.y -= delta * 0.2;
@@ -110,6 +114,7 @@ function RotatingIcosahedron() {
       }
     }
 
+    // Wireframe sync
     if (wireRef.current && mainRef.current) {
       wireRef.current.rotation.copy(mainRef.current.rotation);
       const wireMat = wireRef.current.material as MeshPhysicalMaterial;
@@ -118,11 +123,13 @@ function RotatingIcosahedron() {
       }
     }
 
+    // Outer wireframe (slow rotation)
     if (outerWireRef.current) {
       outerWireRef.current.rotation.x += delta * 0.08;
       outerWireRef.current.rotation.y -= delta * 0.12;
     }
 
+    // Ambient color shift
     if (ambientRef.current) {
       const phase = (Math.sin(t * 0.35) + 1) / 2;
       if (phase < 0.5) {
@@ -145,6 +152,7 @@ function RotatingIcosahedron() {
           <pointLight position={[3, 2, 2]} intensity={2.2} color="#34d399" />
           <pointLight position={[-3, -2, 2]} intensity={2.0} color="#f472b6" />
 
+          {/* Main crystal icosahedron */}
           <mesh
             ref={mainRef}
             onPointerOver={() => setIsHovered(true)}
@@ -170,6 +178,7 @@ function RotatingIcosahedron() {
             />
           </mesh>
 
+          {/* Inner glowing core */}
           <mesh ref={innerRef} scale={0.5}>
             <icosahedronGeometry args={[1.6, 0]} />
             <meshStandardMaterial
@@ -182,6 +191,7 @@ function RotatingIcosahedron() {
             />
           </mesh>
 
+          {/* Close wireframe */}
           <mesh ref={wireRef} scale={1.08}>
             <icosahedronGeometry args={[1.6, 0]} />
             <meshPhysicalMaterial
@@ -200,6 +210,7 @@ function RotatingIcosahedron() {
             />
           </mesh>
 
+          {/* Outer slow-rotating wireframe */}
           <mesh ref={outerWireRef} scale={1.8}>
             <icosahedronGeometry args={[1.6, 1]} />
             <meshBasicMaterial
@@ -210,6 +221,7 @@ function RotatingIcosahedron() {
             />
           </mesh>
 
+          {/* Sparkles */}
           <Sparkles count={90} size={3.5} scale={[5, 5, 5]} speed={0.3} noise={0.9} color="#67e8f9" />
           <Sparkles count={150} size={2} scale={[7, 5, 7]} speed={0.2} noise={1.2} color="#a78bfa" opacity={0.5} />
           <Sparkles count={180} size={1.3} scale={[9, 6, 9]} speed={0.1} noise={1.6} color="#bbf7d0" opacity={0.25} />
