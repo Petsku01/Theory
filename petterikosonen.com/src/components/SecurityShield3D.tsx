@@ -62,7 +62,11 @@ function RotatingCube() {
   const cyan = useMemo(() => new Color("#22d3ee"), []);
   const purple = useMemo(() => new Color("#a78bfa"), []);
   const green = useMemo(() => new Color("#34d399"), []);
+  const pink = useMemo(() => new Color("#f472b6"), []);
+  const orange = useMemo(() => new Color("#fb923c"), []);
   const shiftColor = useMemo(() => new Color("#22d3ee"), []);
+  const cubeColor = useMemo(() => new Color("#22d3ee"), []);
+  const emissiveColor = useMemo(() => new Color("#22d3ee"), []);
 
   useFrame((state, delta) => {
     const t = state.clock.elapsedTime;
@@ -79,6 +83,29 @@ function RotatingCube() {
       cubeRef.current.rotation.x += delta * (0.35 + Math.sin(t * 0.55) * 0.02);
       cubeRef.current.rotation.y += delta * 0.9;
       cubeRef.current.rotation.z = Math.sin(t * 0.8) * 0.09;
+      
+      // Color cycling: cyan → purple → pink → orange → green → cyan
+      const colorPhase = ((t * 0.15) % 1);
+      if (colorPhase < 0.2) {
+        cubeColor.copy(cyan).lerp(purple, colorPhase * 5);
+      } else if (colorPhase < 0.4) {
+        cubeColor.copy(purple).lerp(pink, (colorPhase - 0.2) * 5);
+      } else if (colorPhase < 0.6) {
+        cubeColor.copy(pink).lerp(orange, (colorPhase - 0.4) * 5);
+      } else if (colorPhase < 0.8) {
+        cubeColor.copy(orange).lerp(green, (colorPhase - 0.6) * 5);
+      } else {
+        cubeColor.copy(green).lerp(cyan, (colorPhase - 0.8) * 5);
+      }
+      
+      emissiveColor.copy(cubeColor).multiplyScalar(0.7);
+      
+      const cubeMat = cubeRef.current.material as MeshPhysicalMaterial;
+      if (cubeMat && 'color' in cubeMat) {
+        cubeMat.color.copy(cubeColor);
+        cubeMat.emissive.copy(emissiveColor);
+        cubeMat.attenuationColor.copy(cubeColor);
+      }
     }
 
     if (edgeRef.current) {
