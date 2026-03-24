@@ -4,6 +4,23 @@ import SectionFrame from "@/components/SectionFrame";
 import StatusPill from "@/components/StatusPill";
 import { useMemo, useState } from "react";
 
+function escapeHtml(input: string): string {
+  return input
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function bytesToBinary(bytes: Uint8Array): string {
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 1) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return binary;
+}
+
 export default function SecurityDemos() {
   const [xssInput, setXssInput] = useState("");
   const [xssSafe, setXssSafe] = useState(true);
@@ -85,7 +102,9 @@ export default function SecurityDemos() {
     let base64 = str.replace(/-/g, "+").replace(/_/g, "/");
     const pad = base64.length % 4;
     if (pad) base64 += "=".repeat(4 - pad);
-    return atob(base64);
+    const binary = atob(base64);
+    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+    return new TextDecoder().decode(bytes);
   };
 
   const decodeJWT = () => {
@@ -117,27 +136,28 @@ export default function SecurityDemos() {
     [passwordInput],
   );
   const encoded = useMemo(() => {
-    if (!encodeInput) return { encoded: "", decoded: "" };
+    if (!encodeInput) return "";
 
     try {
       if (encodeType === "base64") {
-        const encodedValue = btoa(String.fromCodePoint(...new TextEncoder().encode(encodeInput)));
-        return { encoded: encodedValue, decoded: encodeInput };
+        const encodedValue = btoa(bytesToBinary(new TextEncoder().encode(encodeInput)));
+        return encodedValue;
       }
 
       if (encodeType === "url") {
-        return { encoded: encodeURIComponent(encodeInput), decoded: encodeInput };
+        return encodeURIComponent(encodeInput);
       }
 
       const hex = Array.from(new TextEncoder().encode(encodeInput))
         .map((byte) => byte.toString(16).padStart(2, "0"))
         .join(" ");
 
-      return { encoded: hex, decoded: encodeInput };
+      return hex;
     } catch {
-      return { encoded: "Error", decoded: "" };
+      return "Error";
     }
   }, [encodeInput, encodeType]);
+  const escapedXssInput = useMemo(() => escapeHtml(xssInput), [xssInput]);
 
   return (
     <div className="space-y-8">
@@ -188,12 +208,18 @@ export default function SecurityDemos() {
               {xssSafe ? (
                 <div className="mt-2 break-all font-mono text-sm text-text-1">{xssInput || "(empty)"}</div>
               ) : (
-                <iframe
-                  sandbox=""
-                  title="XSS demo output"
-                  srcDoc={`<!DOCTYPE html><html><head><style>body{background:#0a0f14;color:#d3dfeb;font-family:monospace;font-size:14px;margin:8px;}</style></head><body>${xssInput || "(empty)"}</body></html>`}
-                  className="mt-2 h-24 w-full rounded border-0"
-                />
+                <div className="mt-2 space-y-2">
+                  <p className="text-xs text-accent-red">
+                    Unsafe execution is disabled here. This is the raw payload that would be dangerous if inserted as HTML.
+                  </p>
+                  <code className="block break-all rounded border border-accent-red/30 bg-accent-red/10 p-2 text-xs text-text-1">
+                    {xssInput || "(empty)"}
+                  </code>
+                  <p className="text-xs text-text-2">Escaped preview:</p>
+                  <code className="block break-all rounded border border-line-0 bg-bg-1 p-2 text-xs text-text-1">
+                    {escapedXssInput || "(empty)"}
+                  </code>
+                </div>
               )}
             </div>
           </article>
@@ -393,7 +419,7 @@ export default function SecurityDemos() {
             {encodeInput ? (
               <div className="mt-3 rounded border border-line-0 bg-bg-0 p-3">
                 <p className="font-mono text-xs text-text-2">Encoded ({encodeType.toUpperCase()})</p>
-                <code className="mt-1 block break-all text-xs text-accent-cyan">{encoded.encoded}</code>
+                <code className="mt-1 block break-all text-xs text-accent-cyan">{encoded}</code>
               </div>
             ) : null}
           </article>

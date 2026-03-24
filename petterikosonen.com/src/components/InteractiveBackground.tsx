@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useCallback } from "react";
+import { useReducedMotion } from "framer-motion";
 
 interface TrailPoint {
   x: number;
@@ -14,6 +15,8 @@ export default function InteractiveBackground() {
   const mouseRef = useRef({ x: -1000, y: -1000 });
   const lastMouseRef = useRef({ x: -1000, y: -1000 });
   const animationRef = useRef<number>(0);
+  const animateRef = useRef<() => void>(() => {});
+  const reduceMotion = useReducedMotion();
 
   const animate = useCallback(() => {
     const canvas = canvasRef.current;
@@ -140,10 +143,16 @@ export default function InteractiveBackground() {
       ctx.fill();
     }
 
-    animationRef.current = requestAnimationFrame(animate);
+    animationRef.current = requestAnimationFrame(() => animateRef.current());
   }, []);
 
   useEffect(() => {
+    animateRef.current = animate;
+  }, [animate]);
+
+  useEffect(() => {
+    if (reduceMotion) return;
+
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -156,6 +165,7 @@ export default function InteractiveBackground() {
       
       const ctx = canvas.getContext("2d");
       if (ctx) {
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.scale(dpr, dpr);
       }
     };
@@ -176,7 +186,7 @@ export default function InteractiveBackground() {
     window.addEventListener("mousemove", handleMouseMove, { passive: true });
     window.addEventListener("mouseleave", handleMouseLeave);
 
-    animationRef.current = requestAnimationFrame(animate);
+    animationRef.current = requestAnimationFrame(() => animateRef.current());
 
     return () => {
       window.removeEventListener("resize", resize);
@@ -184,10 +194,9 @@ export default function InteractiveBackground() {
       window.removeEventListener("mouseleave", handleMouseLeave);
       cancelAnimationFrame(animationRef.current);
     };
-  }, [animate]);
+  }, [animate, reduceMotion]);
 
-  // Check for reduced motion preference
-  if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  if (reduceMotion) {
     return null;
   }
 

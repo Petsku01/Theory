@@ -4,18 +4,23 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Center, Float, Sparkles } from "@react-three/drei";
 import type { AmbientLight, Group, Mesh, Points } from "three";
-import { AdditiveBlending, Color, IcosahedronGeometry } from "three";
+import { AdditiveBlending, Color } from "three";
 import type { MeshPhysicalMaterial, MeshStandardMaterial } from "three";
+
+function seededUnit(seed: number) {
+  const x = Math.sin(seed * 12.9898) * 43758.5453;
+  return x - Math.floor(x);
+}
 
 function DataParticles() {
   const pointsRef = useRef<Points | null>(null);
   const positions = useMemo(() => {
-    const count = 280;
+    const count = 180;
     const data = new Float32Array(count * 3);
     for (let i = 0; i < count; i += 1) {
-      const radius = 3.5 + Math.random() * 3;
-      const theta = Math.random() * Math.PI * 2;
-      const phi = Math.acos(2 * Math.random() - 1);
+      const radius = 3.5 + seededUnit(i + 1) * 3;
+      const theta = seededUnit((i + 1) * 17) * Math.PI * 2;
+      const phi = Math.acos(2 * seededUnit((i + 1) * 31) - 1);
       data[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
       data[i * 3 + 1] = radius * Math.cos(phi) * 0.8;
       data[i * 3 + 2] = radius * Math.sin(phi) * Math.sin(theta);
@@ -222,9 +227,9 @@ function RotatingIcosahedron() {
           </mesh>
 
           {/* Sparkles */}
-          <Sparkles count={90} size={3.5} scale={[5, 5, 5]} speed={0.3} noise={0.9} color="#67e8f9" />
-          <Sparkles count={150} size={2} scale={[7, 5, 7]} speed={0.2} noise={1.2} color="#a78bfa" opacity={0.5} />
-          <Sparkles count={180} size={1.3} scale={[9, 6, 9]} speed={0.1} noise={1.6} color="#bbf7d0" opacity={0.25} />
+          <Sparkles count={60} size={3.5} scale={[5, 5, 5]} speed={0.3} noise={0.9} color="#67e8f9" />
+          <Sparkles count={100} size={2} scale={[7, 5, 7]} speed={0.2} noise={1.2} color="#a78bfa" opacity={0.5} />
+          <Sparkles count={120} size={1.3} scale={[9, 6, 9]} speed={0.1} noise={1.6} color="#bbf7d0" opacity={0.25} />
           
           <DataParticles />
         </group>
@@ -275,7 +280,7 @@ export default function SecurityShield3D() {
     <div className="h-full w-full">
       <Canvas
         camera={{ position: [0, 0, 7], fov: 45 }}
-        dpr={[1, 2]}
+        dpr={[1, 1.5]}
         gl={{ antialias: true, alpha: true }}
       >
         <Suspense fallback={null}>
