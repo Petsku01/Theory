@@ -1,0 +1,22 @@
+{
+  "targets": {
+    "release": {
+      "outFile": "public/particles.wasm",
+      "optimizeLevel": 3,
+      "shrinkLevel": 2,
+      "converge": true,
+      "noAssert": true
+    },
+    "debug": {
+      "outFile": "public/particles.debug.wasm",
+      "debug": true
+    }
+  },
+  "options": {
+    "runtime": "stub",
+    "exportStart": false,
+    "memoryBase": 0,
+    "initialMemory": 16,
+    "maximumMemory": 64
+  }
+}
