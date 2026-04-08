@@ -4,18 +4,27 @@ interface StatusPillProps {
 }
 
 const variants = {
-  cyan: "border-accent-cyan/50 bg-accent-cyan/10 text-accent-cyan",
-  green: "border-accent-green/50 bg-accent-green/10 text-accent-green",
-  amber: "border-accent-amber/50 bg-accent-amber/10 text-accent-amber",
-  red: "border-accent-red/50 bg-accent-red/10 text-accent-red",
-  violet: "border-accent-violet/50 bg-accent-violet/10 text-accent-violet",
+  cyan: "border-accent-cyan/40 bg-accent-cyan/8 text-accent-cyan shadow-[0_0_12px_rgba(34,211,238,0.08)]",
+  green: "border-accent-green/40 bg-accent-green/8 text-accent-green shadow-[0_0_12px_rgba(57,255,136,0.08)]",
+  amber: "border-accent-amber/40 bg-accent-amber/8 text-accent-amber shadow-[0_0_12px_rgba(244,185,66,0.08)]",
+  red: "border-accent-red/40 bg-accent-red/8 text-accent-red shadow-[0_0_12px_rgba(255,92,122,0.08)]",
+  violet: "border-accent-violet/40 bg-accent-violet/8 text-accent-violet shadow-[0_0_12px_rgba(124,140,255,0.08)]",
+};
+
+const dotColors = {
+  cyan: "bg-accent-cyan",
+  green: "bg-accent-green",
+  amber: "bg-accent-amber",
+  red: "bg-accent-red",
+  violet: "bg-accent-violet",
 };
 
 export default function StatusPill({ label, variant = "cyan" }: StatusPillProps) {
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-1 font-mono text-[0.72rem] uppercase tracking-[0.05em] ${variants[variant]}`}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 font-mono text-[0.7rem] uppercase tracking-[0.06em] ${variants[variant]}`}
     >
+      <span className={`h-1.5 w-1.5 rounded-full ${dotColors[variant]}`} aria-hidden="true" />
       {label}
     </span>
   );
