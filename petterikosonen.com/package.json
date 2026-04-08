@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run build:wasm && next build",
+    "build:wasm": "asc assembly/index.ts --outFile public/particles.wasm --optimize --runtime stub --memoryBase 0 --initialMemory 16 --maximumMemory 64 --noAssert",
     "start": "next start",
     "lint": "eslint"
   },
@@ -21,6 +22,7 @@
     "@tailwindcss/postcss": "^4",
     "@types/node": "25.5.0",
     "@types/react": "^19",
+    "assemblyscript": "^0.28.13",
     "eslint": "^9",
     "eslint-config-next": "^16.2.1",
     "tailwindcss": "^4",
