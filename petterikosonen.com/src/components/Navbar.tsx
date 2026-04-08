@@ -1,10 +1,9 @@
 "use client";
 
 import GlitchText from "@/components/GlitchText";
-import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const links = [
   { href: "/", label: "Home" },
@@ -14,123 +13,189 @@ const links = [
   { href: "/security-demos", label: "Security" },
   { href: "/llm-labs", label: "LLM Labs" },
   { href: "/kuu", label: "Kuu" },
-];
+] as const;
 
 export default function Navbar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const navRef = useRef<HTMLElement>(null);
 
+  // RAF-throttled scroll handler
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20);
+    let ticking = false;
+    const onScroll = () => {
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          setScrolled(window.scrollY > 24);
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // Close menu on route change
+  useEffect(() => setOpen(false), [pathname]);
+
+  // Close on Escape
+  const onKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === "Escape") setOpen(false);
+  }, []);
+
+  useEffect(() => {
+    if (open) {
+      document.addEventListener("keydown", onKeyDown);
+      return () => document.removeEventListener("keydown", onKeyDown);
+    }
+  }, [open, onKeyDown]);
+
+  // Animated underline position tracking
+  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
+  const linksRef = useRef<(HTMLAnchorElement | null)[]>([]);
+
+  useEffect(() => {
+    const idx = links.findIndex((l) => l.href === pathname);
+    const el = linksRef.current[idx];
+    if (el) {
+      const nav = navRef.current;
+      if (!nav) return;
+      const navRect = nav.getBoundingClientRect();
+      const elRect = el.getBoundingClientRect();
+      setIndicatorStyle({
+        left: elRect.left - navRect.left,
+        width: elRect.width,
+      });
+    }
+  }, [pathname]);
+
   return (
     <header className="sticky top-0 z-40 pt-3">
       <nav
+        ref={navRef}
         aria-label="Main navigation"
-        className={`rounded-2xl border px-5 py-3.5 transition-all duration-300 ease-standard ${
+        className={`relative rounded-2xl border px-5 py-3 transition-all duration-500 ease-standard ${
           scrolled
-            ? "border-line-0/80 bg-bg-0/70 shadow-terminal-lg backdrop-blur-2xl"
-            : "border-line-0/40 bg-bg-1/50 backdrop-blur-lg"
+            ? "border-line-0/60 bg-bg-0/80 shadow-terminal-lg backdrop-blur-2xl"
+            : "border-line-0/30 bg-bg-1/40 backdrop-blur-lg"
         }`}
       >
         <div className="flex items-center justify-between gap-3">
-          <Link href="/" className="focus-outline group inline-flex items-center gap-2.5 rounded-md font-display text-sm font-semibold text-text-0">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="absolute inline-flex h-full w-full animate-pulse-ring rounded-full bg-accent-green opacity-60" aria-hidden="true" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-accent-green shadow-glowGreen" aria-hidden="true" />
+          {/* Logo */}
+          <Link
+            href="/"
+            className="focus-outline group inline-flex items-center gap-2.5 rounded-lg px-1 py-1 font-display text-sm font-semibold text-text-0"
+          >
+            <span className="relative flex h-2.5 w-2.5" aria-hidden="true">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent-green/40" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-accent-green shadow-glowGreen" />
             </span>
             <GlitchText>petteri@secure-console</GlitchText>
           </Link>
 
+          {/* Mobile toggle */}
           <button
             type="button"
-            aria-label="Toggle menu"
+            aria-label={open ? "Close menu" : "Open menu"}
             aria-expanded={open}
-            onClick={() => setOpen((prev) => !prev)}
-            className="focus-outline flex items-center gap-1.5 rounded-lg border border-line-1 px-3 py-2 text-xs font-mono text-text-1 transition-colors hover:border-accent-cyan/40 hover:text-text-0 md:hidden"
+            onClick={() => setOpen((p) => !p)}
+            className="focus-outline relative flex h-9 w-9 items-center justify-center rounded-lg border border-line-1/60 transition-colors hover:border-accent-cyan/40 md:hidden"
           >
-            <span className="flex w-4 flex-col gap-1" aria-hidden="true">
-              <span className={`h-px w-full bg-current transition-transform duration-200 ${open ? "translate-y-[3px] rotate-45" : ""}`} />
-              <span className={`h-px w-full bg-current transition-opacity duration-200 ${open ? "opacity-0" : ""}`} />
-              <span className={`h-px w-full bg-current transition-transform duration-200 ${open ? "-translate-y-[3px] -rotate-45" : ""}`} />
+            <span className="flex w-4 flex-col items-center gap-[5px]" aria-hidden="true">
+              <span
+                className={`block h-[1.5px] w-full rounded-full bg-text-1 transition-all duration-300 ${
+                  open ? "translate-y-[3.5px] rotate-45" : ""
+                }`}
+              />
+              <span
+                className={`block h-[1.5px] w-3 rounded-full bg-text-1 transition-all duration-300 ${
+                  open ? "scale-x-0 opacity-0" : ""
+                }`}
+              />
+              <span
+                className={`block h-[1.5px] w-full rounded-full bg-text-1 transition-all duration-300 ${
+                  open ? "-translate-y-[3.5px] -rotate-45" : ""
+                }`}
+              />
             </span>
-            MENU
           </button>
 
-          <ul className="hidden items-center gap-1 md:flex">
-            {links.map((link) => {
+          {/* Desktop links */}
+          <ul className="relative hidden items-center gap-0.5 md:flex">
+            {/* Animated active indicator */}
+            <li
+              className="absolute -bottom-1 h-0.5 rounded-full bg-accent-cyan shadow-[0_0_10px_rgba(34,211,238,0.5)] transition-all duration-300 ease-emphasis"
+              style={{ left: indicatorStyle.left, width: indicatorStyle.width }}
+              aria-hidden="true"
+            />
+            {links.map((link, i) => {
               const active = pathname === link.href;
               return (
-                <li key={link.href} className="relative">
+                <li key={link.href}>
                   <Link
+                    ref={(el) => { linksRef.current[i] = el; }}
                     href={link.href}
-                    className={`focus-outline rounded-lg px-3 py-1.5 text-sm transition-colors ${
-                      active ? "text-text-0" : "text-text-2 hover:text-text-0 hover:bg-bg-3/50"
+                    className={`focus-outline block rounded-lg px-3 py-1.5 text-[0.82rem] font-medium transition-colors duration-200 ${
+                      active
+                        ? "text-text-0"
+                        : "text-text-2 hover:bg-bg-3/40 hover:text-text-0"
                     }`}
                   >
                     {link.label}
                   </Link>
-                  {active ? (
-                    <motion.span
-                      layoutId="active-nav"
-                      className="absolute -bottom-1 left-2 right-2 h-0.5 rounded-full bg-accent-cyan shadow-[0_0_8px_rgba(34,211,238,0.5)]"
-                      transition={{ duration: 0.22, ease: [0.2, 0.8, 0.2, 1] }}
-                    />
-                  ) : null}
                 </li>
               );
             })}
           </ul>
 
+          {/* CTA */}
           <Link
             href="/#contact"
-            className="focus-outline hidden items-center gap-2 rounded-lg border border-accent-cyan/40 bg-accent-cyan/8 px-4 py-2 text-xs font-mono uppercase tracking-[0.04em] text-accent-cyan transition-all hover:border-accent-cyan/60 hover:bg-accent-cyan/15 hover:shadow-glowCyan md:inline-flex"
+            className="focus-outline hidden items-center gap-2 rounded-xl border border-accent-cyan/30 bg-accent-cyan/6 px-4 py-2 text-xs font-mono uppercase tracking-wider text-accent-cyan transition-all duration-300 hover:border-accent-cyan/50 hover:bg-accent-cyan/12 hover:shadow-glowCyan md:inline-flex"
           >
             <span className="h-1.5 w-1.5 rounded-full bg-accent-cyan" aria-hidden="true" />
             Contact
           </Link>
         </div>
 
-        <AnimatePresence initial={false}>
-          {open ? (
-            <motion.ul
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.22, ease: [0.2, 0.8, 0.2, 1] }}
-              className="flex flex-col gap-1 overflow-hidden pt-3 md:hidden"
-            >
-              {links.map((link) => (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    onClick={() => setOpen(false)}
-                    className={`focus-outline block rounded-lg px-3 py-2.5 text-sm transition-colors ${
-                      pathname === link.href
-                        ? "bg-accent-cyan/10 text-accent-cyan"
-                        : "text-text-1 hover:bg-bg-3/50 hover:text-text-0"
-                    }`}
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-              <li className="mt-1 border-t border-line-0 pt-2">
+        {/* Mobile menu */}
+        <div
+          className={`grid transition-[grid-template-rows] duration-300 ease-emphasis md:hidden ${
+            open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+          }`}
+        >
+          <ul className="overflow-hidden">
+            <li className="pt-3" aria-hidden="true">
+              <div className="gradient-divider" />
+            </li>
+            {links.map((link) => (
+              <li key={link.href}>
                 <Link
-                  href="/#contact"
+                  href={link.href}
                   onClick={() => setOpen(false)}
-                  className="focus-outline block rounded-lg px-3 py-2.5 text-sm text-accent-cyan"
+                  className={`focus-outline block rounded-lg px-3 py-2.5 text-sm transition-colors duration-200 ${
+                    pathname === link.href
+                      ? "bg-accent-cyan/8 text-accent-cyan"
+                      : "text-text-1 hover:bg-bg-3/40 hover:text-text-0"
+                  }`}
                 >
-                  Contact
+                  {link.label}
                 </Link>
               </li>
-            </motion.ul>
-          ) : null}
-        </AnimatePresence>
+            ))}
+            <li className="border-t border-line-0/40 pt-2 mt-1">
+              <Link
+                href="/#contact"
+                onClick={() => setOpen(false)}
+                className="focus-outline block rounded-lg px-3 py-2.5 text-sm font-medium text-accent-cyan"
+              >
+                Contact
+              </Link>
+            </li>
+          </ul>
+        </div>
       </nav>
     </header>
   );

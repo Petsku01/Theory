@@ -1,32 +1,37 @@
+import { Suspense } from "react";
 import ContactConsole from "@/components/ContactConsole";
 import ExperienceTimeline from "@/components/ExperienceTimeline";
 import FeaturedProject from "@/components/FeaturedProject";
 import HeroSection from "@/components/HeroSection";
-import ScrollProgress from "@/components/ScrollProgress";
 import SectionFrame from "@/components/SectionFrame";
 import SkillsMatrix from "@/components/SkillsMatrix";
 import StatusPill from "@/components/StatusPill";
 import TerminalProjectCard from "@/components/TerminalProjectCard";
+import ClientScrollProgress from "@/components/ClientScrollProgress";
 import { blogPosts, projects } from "@/lib/data";
-
-const sections = [
-  { id: "hero", label: "Hero" },
-  { id: "projects", label: "Projects" },
-  { id: "experience", label: "Experience" },
-  { id: "education", label: "Education" },
-  { id: "skills", label: "Skills" },
-  { id: "research", label: "Research" },
-  { id: "contact", label: "Contact" },
-];
 
 export default function Home() {
   const [psg, promptKit, ...restProjects] = projects;
 
   return (
-    <div className="space-y-10 pb-8 lg:space-y-14">
-      <ScrollProgress sections={sections} />
+    <div className="space-y-12 pb-8 lg:space-y-16">
+      <Suspense fallback={null}>
+        <ClientScrollProgress
+          sections={[
+            { id: "hero", label: "Hero" },
+            { id: "projects", label: "Projects" },
+            { id: "experience", label: "Experience" },
+            { id: "education", label: "Education" },
+            { id: "skills", label: "Skills" },
+            { id: "research", label: "Research" },
+            { id: "contact", label: "Contact" },
+          ]}
+        />
+      </Suspense>
+
       <HeroSection />
 
+      {/* ── Projects ────────────────────────────── */}
       <SectionFrame
         id="projects"
         command="/projects --featured"
@@ -66,10 +71,12 @@ export default function Home() {
         </div>
       </SectionFrame>
 
+      {/* ── Experience ──────────────────────────── */}
       <SectionFrame id="experience" command="/experience --timeline" title="Experience Timeline">
         <ExperienceTimeline />
       </SectionFrame>
 
+      {/* ── Education ───────────────────────────── */}
       <SectionFrame
         id="education"
         command="/education --certs"
@@ -77,7 +84,7 @@ export default function Home() {
         description="Formal studies plus continuous lab work in modern cybersecurity and cloud systems."
       >
         <div className="grid gap-5 md:grid-cols-2">
-          <article className="group rounded-2xl border border-line-0 bg-bg-2/60 p-6 transition-all duration-300 hover:border-line-1 hover:shadow-[0_4px_24px_rgba(0,0,0,0.3)]">
+          <article className="group rounded-2xl border border-line-0 bg-bg-2/50 p-6 transition-all duration-300 hover:border-line-1 hover:shadow-[0_4px_24px_rgba(0,0,0,0.25)]">
             <div className="mb-3 flex items-center gap-3">
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-violet/10 text-accent-violet">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -89,14 +96,12 @@ export default function Home() {
                 <p className="text-sm text-text-2">B.Eng. ICT, Data Networks and Cybersecurity</p>
               </div>
             </div>
-            <p className="inline-flex items-center gap-2 rounded-lg bg-bg-3/40 px-2.5 py-1 font-mono text-xs text-text-2">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-              </svg>
+            <p className="inline-flex items-center gap-2 rounded-lg bg-bg-3/30 px-2.5 py-1 font-mono text-xs text-text-2">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
               2020 - Present
             </p>
           </article>
-          <article className="group rounded-2xl border border-line-0 bg-bg-2/60 p-6 transition-all duration-300 hover:border-line-1 hover:shadow-[0_4px_24px_rgba(0,0,0,0.3)]">
+          <article className="group rounded-2xl border border-line-0 bg-bg-2/50 p-6 transition-all duration-300 hover:border-line-1 hover:shadow-[0_4px_24px_rgba(0,0,0,0.25)]">
             <div className="mb-3 flex items-center gap-3">
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-cyan/10 text-accent-cyan">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -108,10 +113,8 @@ export default function Home() {
                 <p className="text-sm text-text-2">IT Technician, IT Support</p>
               </div>
             </div>
-            <p className="inline-flex items-center gap-2 rounded-lg bg-bg-3/40 px-2.5 py-1 font-mono text-xs text-text-2">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-              </svg>
+            <p className="inline-flex items-center gap-2 rounded-lg bg-bg-3/30 px-2.5 py-1 font-mono text-xs text-text-2">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
               2017 - 2019
             </p>
           </article>
@@ -123,10 +126,12 @@ export default function Home() {
         </div>
       </SectionFrame>
 
+      {/* ── Skills ──────────────────────────────── */}
       <SectionFrame id="skills" command="/skills --matrix" title="Skills Matrix">
         <SkillsMatrix />
       </SectionFrame>
 
+      {/* ── Research ────────────────────────────── */}
       <SectionFrame
         id="research"
         command="/research --logs"
@@ -140,10 +145,12 @@ export default function Home() {
               href={post.link}
               target="_blank"
               rel="noopener noreferrer"
-              className="focus-outline group block overflow-hidden rounded-2xl border border-line-0 bg-bg-2/60 p-5 transition-all duration-300 hover:border-accent-cyan/35 hover:shadow-[0_4px_24px_rgba(0,0,0,0.3)]"
+              className="focus-outline group block overflow-hidden rounded-2xl border border-line-0 bg-bg-2/50 p-5 transition-all duration-300 hover:border-accent-cyan/30 hover:shadow-[0_4px_28px_rgba(0,0,0,0.25)]"
             >
-              <p className="font-mono text-[0.68rem] uppercase tracking-[0.06em] text-text-2">{post.date}</p>
-              <h3 className="mt-2 text-lg font-bold text-text-0 transition-colors duration-200 group-hover:text-accent-cyan">{post.title}</h3>
+              <p className="font-mono text-[0.65rem] uppercase tracking-widest text-text-2">{post.date}</p>
+              <h3 className="mt-2 text-lg font-bold text-text-0 transition-colors duration-200 group-hover:text-accent-cyan">
+                {post.title}
+              </h3>
               <p className="mt-1.5 text-sm leading-relaxed text-text-1">{post.desc}</p>
               <span className="mt-3 inline-flex items-center gap-1.5 font-mono text-xs text-text-2 transition-colors duration-200 group-hover:text-accent-cyan">
                 Read more
@@ -156,6 +163,7 @@ export default function Home() {
         </div>
       </SectionFrame>
 
+      {/* ── Contact ─────────────────────────────── */}
       <ContactConsole />
     </div>
   );
