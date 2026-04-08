@@ -3,19 +3,22 @@
 import dynamic from "next/dynamic";
 
 const WasmParticleField = dynamic(() => import("@/components/WasmParticleField"), { ssr: false });
-const InteractiveBackground = dynamic(() => import("@/components/InteractiveBackground"), { ssr: false });
-const SpotlightCursor = dynamic(() => import("@/components/SpotlightCursor"), { ssr: false });
+const WasmInteractiveBackground = dynamic(() => import("@/components/WasmInteractiveBackground"), { ssr: false });
+const WasmSpotlightCursor = dynamic(() => import("@/components/WasmSpotlightCursor"), { ssr: false });
 
 /**
  * Client-only visual effects wrapper.
- * Isolates ssr:false dynamic imports from the server layout.
+ * All three effects are WASM-powered:
+ *   - particles.wasm   → background particle field
+ *   - mouse_trail.wasm → interactive mouse trails
+ *   - spring_cursor.wasm → spotlight cursor with spring physics
  */
 export default function ClientEffects() {
   return (
     <>
       <WasmParticleField particleCount={1200} />
-      <InteractiveBackground />
-      <SpotlightCursor />
+      <WasmInteractiveBackground />
+      <WasmSpotlightCursor />
     </>
   );
 }
