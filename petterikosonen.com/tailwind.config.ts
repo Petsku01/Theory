@@ -5,9 +5,9 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        display: ["var(--font-space-grotesk)", "sans-serif"],
-        sans: ["var(--font-manrope)", "sans-serif"],
-        mono: ["var(--font-ibm-plex-mono)", "ui-monospace", "monospace"],
+        display: ["Space Grotesk", "system-ui", "-apple-system", "sans-serif"],
+        sans: ["Manrope", "system-ui", "-apple-system", "sans-serif"],
+        mono: ["IBM Plex Mono", "ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
       },
       colors: {
         bg: {
@@ -36,9 +36,13 @@ const config: Config = {
       },
       boxShadow: {
         terminal: "0 10px 28px rgba(0, 0, 0, 0.36)",
+        "terminal-lg": "0 20px 60px rgba(0, 0, 0, 0.5), 0 4px 16px rgba(0, 0, 0, 0.3)",
         glowCyan: "0 0 0 1px var(--glow-cyan), 0 0 28px -10px var(--glow-cyan)",
         glowGreen: "0 0 0 1px var(--glow-green), 0 0 24px -8px var(--glow-green)",
         glowRed: "0 0 0 1px var(--glow-red), 0 0 24px -8px var(--glow-red)",
+        glowViolet: "0 0 0 1px var(--glow-violet), 0 0 24px -8px var(--glow-violet)",
+        "glow-lg": "0 0 0 1px rgba(34,211,238,0.2), 0 0 60px -10px rgba(34,211,238,0.3), 0 0 100px -20px rgba(124,140,255,0.15)",
+        "inner-glow": "inset 0 1px 0 0 rgba(255,255,255,0.05)",
       },
       transitionTimingFunction: {
         standard: "var(--ease-standard)",
@@ -61,12 +65,32 @@ const config: Config = {
           "0%, 100%": { transform: "translateY(0px)" },
           "50%": { transform: "translateY(-10px)" },
         },
+        shimmer: {
+          "0%": { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
+        },
+        "pulse-ring": {
+          "0%": { transform: "scale(1)", opacity: "0.6" },
+          "100%": { transform: "scale(1.8)", opacity: "0" },
+        },
+        "fade-in-up": {
+          from: { opacity: "0", transform: "translateY(16px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        "gradient-shift": {
+          "0%, 100%": { backgroundPosition: "0% 50%" },
+          "50%": { backgroundPosition: "100% 50%" },
+        },
       },
       animation: {
         blink: "blink 1s linear infinite",
         pulseGlow: "pulseGlow 2.4s ease-in-out infinite",
         scan: "scan 12s linear infinite",
         float: "float 3s ease-in-out infinite",
+        shimmer: "shimmer 3s linear infinite",
+        "pulse-ring": "pulse-ring 2s ease-out infinite",
+        "fade-in-up": "fade-in-up 0.5s ease-out forwards",
+        "gradient-shift": "gradient-shift 6s ease infinite",
       },
     },
   },

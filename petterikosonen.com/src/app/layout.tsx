@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { IBM_Plex_Mono, Manrope, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -8,24 +7,6 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import AmbientBackground from "@/components/AmbientBackground";
 import InteractiveBackground from "@/components/InteractiveBackground";
 import SpotlightCursor from "@/components/SpotlightCursor";
-
-const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
-  variable: "--font-space-grotesk",
-  weight: ["500", "600", "700"],
-});
-
-const manrope = Manrope({
-  subsets: ["latin"],
-  variable: "--font-manrope",
-  weight: ["400", "500", "600"],
-});
-
-const ibmPlexMono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  variable: "--font-ibm-plex-mono",
-  weight: ["400", "500"],
-});
 
 export const viewport: Viewport = {
   themeColor: "#05070A",
@@ -60,7 +41,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary",
-    title: "Petteri Kosonen",
+    title: "Petteri Kososen",
     description: "B.Eng. Student specializing in Data Networks and Cybersecurity",
   },
   robots: {
@@ -75,7 +56,23 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${spaceGrotesk.variable} ${manrope.variable} ${ibmPlexMono.variable}`}>
+    <html lang="en">
+      <head>
+        <link
+          rel="preconnect"
+          href="https://fonts.googleapis.com"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
+        />
+        <link
+          href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Manrope:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body className="relative min-h-screen overflow-x-hidden">
         <AmbientBackground />
         <InteractiveBackground />
@@ -90,7 +87,7 @@ export default function RootLayout({
         <div className="relative z-10 flex min-h-screen flex-col">
           <div className="container-shell py-4">
             <Navbar />
-            <main id="main-content" role="main" className="mt-6 flex-1 pb-10">
+            <main id="main-content" role="main" className="mt-8 flex-1 pb-12">
               <ErrorBoundary>{children}</ErrorBoundary>
             </main>
           </div>
