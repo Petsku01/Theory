@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "npm run build:wasm && next build",
-    "build:wasm": "asc assembly/index.ts --outFile public/particles.wasm --optimize --runtime stub --memoryBase 0 --initialMemory 16 --maximumMemory 64 --noAssert && asc assembly/renderer3d.ts --outFile public/renderer3d.wasm --optimize --runtime stub --memoryBase 0 --initialMemory 16 --maximumMemory 64 --noAssert && asc assembly/matrix_rain.ts --outFile public/matrix_rain.wasm --optimize --runtime stub --memoryBase 0 --initialMemory 4 --maximumMemory 16 --noAssert",
+    "build:wasm": "asc assembly/index.ts --outFile public/particles.wasm --optimize --runtime stub --memoryBase 0 --initialMemory 16 --maximumMemory 64 --noAssert && asc assembly/renderer3d.ts --outFile public/renderer3d.wasm --optimize --runtime stub --memoryBase 0 --initialMemory 16 --maximumMemory 64 --noAssert && asc assembly/matrix_rain.ts --outFile public/matrix_rain.wasm --optimize --runtime stub --memoryBase 0 --initialMemory 4 --maximumMemory 16 --noAssert && asc assembly/mouse_trail.ts --outFile public/mouse_trail.wasm --optimize --runtime stub --memoryBase 0 --initialMemory 4 --maximumMemory 16 --noAssert && asc assembly/spring_cursor.ts --outFile public/spring_cursor.wasm --optimize --runtime stub --memoryBase 0 --initialMemory 1 --maximumMemory 1 --noAssert",
     "start": "next start",
     "lint": "eslint"
   },
