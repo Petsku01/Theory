@@ -8,7 +8,8 @@ import TypeWriter from "@/components/TypeWriter";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { useInView } from "@/hooks/useInView";
 
-const SecurityShield3D = dynamic(() => import("@/components/SecurityShield3D"), {
+/** WASM-powered 3D icosahedron — replaces Three.js */
+const WasmSecurityShield = dynamic(() => import("@/components/WasmSecurityShield"), {
   ssr: false,
   loading: () => (
     <div className="flex h-full w-full items-center justify-center">
@@ -16,6 +17,9 @@ const SecurityShield3D = dynamic(() => import("@/components/SecurityShield3D"), 
     </div>
   ),
 });
+
+/** WASM-powered Matrix Rain background */
+const WasmMatrixRain = dynamic(() => import("@/components/WasmMatrixRain"), { ssr: false });
 
 /** Stagger animation helper — CSS-only, no Framer Motion overhead */
 function AnimateIn({
@@ -89,6 +93,11 @@ export default function HeroSection() {
         }}
         aria-hidden="true"
       />
+
+      {/* WASM-powered Matrix Rain background */}
+      <div className="pointer-events-none absolute inset-0 opacity-[0.07] rounded-3xl overflow-hidden">
+        <WasmMatrixRain />
+      </div>
 
       {/* Scan line */}
       <div className="pointer-events-none absolute inset-0 scan-line rounded-3xl" />
@@ -175,7 +184,7 @@ export default function HeroSection() {
             }}
           >
             <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle,rgba(34,211,238,0.06),transparent_65%)]" aria-hidden="true" />
-            <SecurityShield3D />
+            <WasmSecurityShield />
           </div>
         </AnimateIn>
       </div>
