@@ -63,6 +63,8 @@ export default function RootLayout({
           rel="stylesheet"
         />
         <link rel="preload" href="/particles.wasm" as="fetch" crossOrigin="anonymous" />
+        <link rel="preload" href="/renderer3d.wasm" as="fetch" crossOrigin="anonymous" />
+        <link rel="preload" href="/matrix_rain.wasm" as="fetch" crossOrigin="anonymous" />
       </head>
       <body className="relative min-h-screen overflow-x-hidden">
         {/* Background layers */}
