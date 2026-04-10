@@ -19,26 +19,25 @@ Manual code reviews and vulnerability assessments were conducted on:
 - **Yamcs (v5.8.6)**: Telemetry and command server.
 - **OpenC3 Cosmos**: Command and control framework.
 - **CryptoLib**: Cryptographic library for satellite communications.
-- **NASA’s cFS (Eagle Package)**: Core flight system framework.
+- **NASA’s cFS (Aquila release, v6.7.0)**: Core flight system framework.
 
 Exploits used simulators, with vulnerabilities responsibly disclosed and patched.
 
 ### Findings
-The audit identified 23 vulnerabilities:
+The audit identified vulnerabilities across four open-source projects:
 
 | Software            | Number of Vulnerabilities | Severity Breakdown         | Key Vulnerability Types                     |
 |---------------------|---------------------------|---------------------------|---------------------------------------------|
 | Yamcs               | 5                         | All high/critical         | Unauthenticated access, command injection   |
 | OpenC3 Cosmos       | 7                         | 2 critical, others high   | RCE, XSS, input validation flaws           |
-| CryptoLib (NASA)    | 4                         | All critical              | Buffer overflows, encryption flaws         |
-| CryptoLib (Standard)| 7                         | 2 critical, others high   | Buffer overflows, key reset issues         |
-| cFS Eagle Package   | 4                         | All critical              | DoS, path traversal, RCE via GOT overwrite |
+| CryptoLib           | 7                         | 2 critical, others high   | Buffer overflows, key reset, encryption flaws |
+| NASA cFS (Aquila)   | 4                         | All critical              | DoS, path traversal, RCE via GOT overwrite |
 
 Notable issues:
 - **Yamcs**: Unauthenticated endpoints allowed full control.
 - **OpenC3 Cosmos**: XSS and RCE via flawed validation.
 - **CryptoLib**: Buffer overflows and unauthenticated crashes.
-- **cFS**: Path traversal and GOT overwrites.
+- **cFS (Aquila)**: Path traversal and GOT overwrites.
 
 ### Exploitation Methods
 Attacks involved phishing, XSS chains, RCE via malformed inputs, and simple probes. Demos showed orbit alterations and system crashes using simulators.
