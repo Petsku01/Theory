@@ -8,6 +8,7 @@ A collection of security research, tools, and experiments by [Petteri Kosonen](h
 |--------|-------------|-------|
 | [petterikosonen.com/](petterikosonen.com/) | Personal portfolio & security demos site | Next.js 16, React 19, Tailwind CSS 4 |
 | [Analyses/](Analyses/) | Security write-ups — CitrixBleed, Salt Typhoon, SharePoint CVEs, etc. | Markdown |
+| [Prompt_Engineering/](Prompt_Engineering/) | Prompt engineering articles — fundamentals, chain-of-thought, production patterns | Markdown |
 | [Hpots/](Hpots/) | Honeypot implementations (SSH, meta, F5) | Python |
 | [Pentesting/](Pentesting/) | Network pentesting & Nmap guides | Markdown |
 | [MFA_Theory/](MFA_Theory/) | Multi-factor authentication demos (Argon2, scrypt, Azure) | JavaScript, HTML |
