@@ -1,0 +1,5 @@
+# Ignore all detection and calibration result files.
+# These contain full model responses and timing data that
+# are environment-specific and potentially sensitive.
+*.json
+!.gitignore
