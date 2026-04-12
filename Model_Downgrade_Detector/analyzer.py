@@ -155,6 +155,14 @@ def _score_in_range(
 
     # Part 2: Proximity to typical value.
     # Uses a Gaussian-like decay with sigma = half the range width.
+    # This sigma choice means that a value at the range boundary
+    # (distance = range_width/2 from center) scores exp(-0.5) ~ 0.607,
+    # and a value one full range_width away from typical scores
+    # exp(-2.0) ~ 0.135. The choice is a pragmatic trade-off:
+    # smaller sigma would over-penalize values near range edges,
+    # larger sigma would fail to differentiate between tiers.
+    # There is no theoretical optimum -- this should be tuned
+    # empirically after calibration runs.
     sigma = range_width / 2.0
     typical_distance = abs(value - typical)
     typical_score = float(np.exp(-(typical_distance ** 2) / (2 * sigma ** 2)))

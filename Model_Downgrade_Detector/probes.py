@@ -6,7 +6,7 @@ characteristic of the model. The core assumption is that different model
 tiers (Opus, Sonnet, Haiku) produce measurably different outputs across
 these dimensions:
 
-    1. Latency (time-to-first-token, tokens/second)
+    1. Latency (time-to-first-token, words/second)
     2. Reasoning depth (multi-step logic correctness)
     3. Instruction compliance (adherence to complex constraints)
     4. Linguistic fingerprint (vocabulary richness, response structure)
@@ -174,6 +174,8 @@ def _simple_request(
         temperature=temperature,
         messages=[{"role": "user", "content": prompt}],
     )
+    if not response.content:
+        return ""
     return response.content[0].text
 
 
@@ -393,7 +395,7 @@ REASONING_PROBES = [
         "math_percentage",
         # Verification: 15% of 240 = 36. 240-36 = 204.
         (
-            "A store offers a 15%% discount on an item priced at $240. "
+            "A store offers a 15% discount on an item priced at $240. "
             "What is the final price after the discount? "
             "State ONLY the dollar amount (number only, no $ sign) on "
             "the last line prefixed with 'ANSWER: '."
@@ -610,8 +612,10 @@ def run_compliance_probes(
                     met += 1
                 else:
                     violations.append(name)
-            except Exception:
-                violations.append(f"{name} (validator error)")
+            except Exception as exc:
+                # Preserve the exception details so tool bugs are
+                # distinguishable from model failures in the output.
+                violations.append(f"{name} (validator error: {type(exc).__name__}: {exc})")
 
         total = len(validators)
         results.append(ComplianceResult(
@@ -685,8 +689,9 @@ def _compute_linguistic_metrics(text: str) -> tuple[int, int, float, float]:
     word_count = len(words)
     unique_words = len(set(words))
 
-    sentences = re.split(r'[.!?]+', text)
-    sentences = [s.strip() for s in sentences if s.strip()]
+    # Reuse the same sentence splitter used by compliance validators
+    # to avoid inconsistent sentence counts across probe categories.
+    sentences = _split_sentences(text)
     sentence_count = len(sentences) if sentences else 1
 
     ttr = unique_words / word_count if word_count > 0 else 0.0
