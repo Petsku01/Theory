@@ -67,9 +67,9 @@ Key themes include origins, skill development, professionalization, state integr
   - **Vulnerability Labs**: Tencent’s Xuanwu/Yunding, Alibaba’s YunDun.
   - **Startups**: UCloud (Ji Xinhua, 2012), Moan Tech (Wei Xingguo, 2016), Hufu (Wang Wei, 2019).
 - **APT Involvement**: Red 40 in state ops:
-  - **APT41**: Tan Dailin, indicted for 100+ hacks (2020, Treasury breach 2024).
+  - **APT41**: Tan Dailin, indicted for 100+ hacks (2020).
   - **APT17**: Zeng Xiaoyong (envymask), SharePoint exploits (2024).
-  - **APT27**: Zhou Shuai (coldface), sanctioned (Mar 2025).
+  - **APT27 / Silk Typhoon**: Zhou Shuai (coldface), sanctioned (Mar 2025); linked to Dec 2024 US Treasury BeyondTrust breach.
   - **Red Hotel (Aquatic Panda)**: i-SOON (Wu Haibo/Chen Cheng), 20 govts targeted.
 - **Tool Networks**: PlugX/ShadowPad shared across 10+ APTs (MITRE ATT&CK). i-SOON leaks (2024–2025) show exploit-sharing with Pangu Team.
 - **Mentoring New School**: Red 40 judge CTFs (XPwn/MOSEC), run Operation Myth (Wang Yingjian, 2015). Attack-defense firms (e.g., BoundaryX) dominate.

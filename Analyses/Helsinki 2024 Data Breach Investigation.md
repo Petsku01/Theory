@@ -12,7 +12,7 @@ Publication Date: June 17, 2025
 
 What’s in the Report?
 
-The report details a sophisticated cyberattack that stole ~2 terabytes of sensitive data, including personal details of ~150,000 students, their guardians, and all 38,000 city employees. The breach exploited outdated systems and weak monitoring in KASKO’s network. Here’s the breakdown:
+The report details a sophisticated cyberattack that stole ~2 terabytes of sensitive data, including personal details of ~150,000 students, their guardians, and ~15,000 KASKO (Education Division) employees. (Note: the City of Helsinki as a whole employs ~37,000 people across all divisions; the breach was scoped to KASKO's network, not the entire city workforce.) The breach exploited outdated systems and weak monitoring in KASKO’s network. Here’s the breakdown:
 The Breach
 
 Timeline: February–April 2024, with the main attack from April 25–30, 2024.
