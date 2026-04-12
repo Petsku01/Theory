@@ -88,7 +88,8 @@ def print_verdict(verdict, quiet: bool = False) -> None:
         verdict: DetectionVerdict object from the analyzer.
         quiet:   If True, print only the verdict summary.
     """
-    print_header("DETECTION VERDICT")
+    if not quiet:
+        print_header("DETECTION VERDICT")
 
     if verdict.is_tier_mismatch:
         print("\n  *** TIER MISMATCH DETECTED ***\n")
@@ -113,7 +114,8 @@ def print_verdict(verdict, quiet: bool = False) -> None:
                 bar = "#" * int(score * 20)
                 print(f"    {cat:15s}  {score:.4f}  [{bar:20s}]")
 
-    print_subheader("Summary")
+    if not quiet:
+        print_subheader("Summary")
     for line in verdict.summary.split("\n"):
         print(f"  {line}")
     print()
