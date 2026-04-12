@@ -21,7 +21,6 @@ License: MIT
 import time
 import re
 from dataclasses import dataclass, field, asdict
-from typing import Optional
 
 import anthropic
 
@@ -35,8 +34,8 @@ class LatencyResult:
     """Raw timing data from a single API call."""
     ttft_ms: float              # Time to first token (milliseconds)
     total_time_ms: float        # Wall-clock time for full response
-    output_tokens: int          # Number of tokens in the response
-    tokens_per_second: float    # Derived throughput
+    output_word_count: int      # Whitespace-split word count (not tokens)
+    words_per_second: float     # Derived throughput (words, not tokens)
 
 
 @dataclass
@@ -131,18 +130,20 @@ def _stream_response(
     total_time = (time.perf_counter() - start) * 1000  # ms
     full_text = "".join(chunks)
 
-    # Token count approximation: split on whitespace and punctuation.
-    # This is intentionally simple. For precise counts, use the API's
-    # usage field, but that is not available mid-stream in all SDK versions.
-    output_tokens = len(full_text.split())
+    # Word count approximation. The API does not expose token counts
+    # mid-stream in all SDK versions. We use word count as a proxy.
+    # The downstream metric is therefore "words per second", not
+    # "tokens per second". Baselines must be calibrated against this
+    # same word-based metric for consistency.
+    word_count = len(full_text.split())
 
-    tps = (output_tokens / (total_time / 1000)) if total_time > 0 else 0
+    wps = (word_count / (total_time / 1000)) if total_time > 0 else 0
 
     latency = LatencyResult(
         ttft_ms=ttft if ttft is not None else total_time,
         total_time_ms=total_time,
-        output_tokens=output_tokens,
-        tokens_per_second=round(tps, 2),
+        output_word_count=word_count,
+        words_per_second=round(wps, 2),
     )
     return full_text, latency
 
@@ -197,9 +198,11 @@ def run_latency_probes(
     """
     Measure latency characteristics across multiple prompts and iterations.
 
-    Runs each prompt multiple times to account for variance from network
-    conditions and server-side batching. The statistical analysis layer
-    uses medians rather than means to reduce the impact of outliers.
+    Runs a warm-up request first to eliminate connection setup overhead
+    (TLS handshake, DNS resolution, TCP connection) from the measurements.
+    Then runs each prompt multiple times to account for variance from
+    network conditions and server-side batching. The statistical analysis
+    layer uses medians rather than means to reduce the impact of outliers.
 
     Args:
         client:     Authenticated Anthropic client.
@@ -209,6 +212,11 @@ def run_latency_probes(
     Returns:
         List of LatencyResult objects.
     """
+    # Warm-up: establish the connection and discard the result.
+    # Without this, the first measurement includes TLS/TCP overhead
+    # that inflates TTFT by 100-500ms depending on network conditions.
+    _stream_response(client, model, "Say 'ready'.", max_tokens=16)
+
     results = []
     for prompt in LATENCY_PROMPTS:
         for _ in range(iterations):
@@ -221,23 +229,33 @@ def run_latency_probes(
 # Probe 2: Multi-step reasoning
 # ---------------------------------------------------------------------------
 
-# Each entry: (probe_id, prompt, expected_answer_substring)
+# Each entry: (probe_id, prompt, list_of_acceptable_exact_answers)
 #
 # These problems are chosen because they require genuine multi-step
-# reasoning that correlates with model capability tier. The expected
-# answers are mathematically or logically verifiable.
+# reasoning that correlates with model capability tier. Every expected
+# answer has been manually verified. Multiple acceptable forms are
+# listed to handle formatting variation without resorting to substring
+# matching.
+#
+# Verification notes are included inline so future maintainers can
+# confirm correctness without re-deriving.
 REASONING_PROBES = [
     (
         "math_modular_arithmetic",
+        # Verification: 17*23=391. 391+45=436. 436/7=62r2. Answer: 2.
         (
             "What is (17 * 23 + 45) mod 7? "
             "Show your work step by step, then state ONLY the final "
             "numeric answer on the last line prefixed with 'ANSWER: '."
         ),
-        "3",
+        ["2"],
     ),
     (
         "logic_knights_knaves",
+        # Verification:
+        #   If A=knave: A lies, so B=knight. B tells truth: A and C
+        #   same type, so C=knave. C lies: "A is knight" is false.
+        #   A=knave. Consistent.
         (
             "On an island, knights always tell the truth and knaves always lie. "
             "You meet three people: A, B, and C. "
@@ -248,28 +266,33 @@ REASONING_PROBES = [
             "State your final answer on the last line in the format "
             "'ANSWER: A=knight/knave, B=knight/knave, C=knight/knave'."
         ),
-        "A=knight, B=knave, C=knight",
+        ["a=knave, b=knight, c=knave"],
     ),
     (
         "math_probability",
+        # Verification: P = (5/8)*(4/7) = 20/56 = 5/14.
         (
             "A bag contains 5 red balls and 3 blue balls. You draw two balls "
             "without replacement. What is the probability that both are red? "
             "Express as a simplified fraction. "
             "State ONLY the fraction on the last line prefixed with 'ANSWER: '."
         ),
-        "5/14",
+        ["5/14"],
     ),
     (
         "logic_sequence",
+        # Verification: Differences are 4,8,16,32 (powers of 2).
+        # Next diff=64. 62+64=126.
         (
             "What is the next number in this sequence: 2, 6, 14, 30, 62, ? "
             "State ONLY the number on the last line prefixed with 'ANSWER: '."
         ),
-        "126",
+        ["126"],
     ),
     (
         "math_word_problem",
+        # Verification: By 10:00, train A traveled 60km. Gap=240km.
+        # Combined speed=150km/h. Time=240/150=1.6h=1h36m. 10:00+1:36=11:36.
         (
             "A train leaves Station A at 9:00 AM traveling at 60 km/h toward "
             "Station B. Another train leaves Station B at 10:00 AM traveling "
@@ -277,7 +300,114 @@ REASONING_PROBES = [
             "At what time do the trains meet? "
             "State the time on the last line prefixed with 'ANSWER: '."
         ),
-        "11:36",
+        ["11:36", "11:36 am"],
+    ),
+    (
+        "math_combinatorics",
+        # Verification: C(8,3) = 8!/(3!*5!) = (8*7*6)/(3*2*1) = 56.
+        (
+            "How many ways can you choose 3 items from a set of 8? "
+            "State ONLY the number on the last line prefixed with 'ANSWER: '."
+        ),
+        ["56"],
+    ),
+    (
+        "logic_deduction",
+        # Verification: From clues: Alice=cat, Bob=dog, Carol=fish.
+        (
+            "Alice, Bob, and Carol each own exactly one pet: a cat, a dog, "
+            "and a fish (not necessarily in that order). "
+            "Clue 1: Alice does not own the dog. "
+            "Clue 2: Bob does not own the fish. "
+            "Clue 3: Carol does not own the cat or the dog. "
+            "Who owns which pet? "
+            "State your answer on the last line in the format "
+            "'ANSWER: Alice=pet, Bob=pet, Carol=pet'."
+        ),
+        ["alice=cat, bob=dog, carol=fish"],
+    ),
+    (
+        "math_geometry",
+        # Verification: Hypotenuse = sqrt(7^2 + 24^2) = sqrt(49+576) = sqrt(625) = 25.
+        (
+            "A right triangle has legs of length 7 and 24. "
+            "What is the length of the hypotenuse? "
+            "State ONLY the number on the last line prefixed with 'ANSWER: '."
+        ),
+        ["25"],
+    ),
+    (
+        "math_series_sum",
+        # Verification: Sum of 1+2+...+50 = 50*51/2 = 1275.
+        (
+            "What is the sum of all integers from 1 to 50 inclusive? "
+            "State ONLY the number on the last line prefixed with 'ANSWER: '."
+        ),
+        ["1275"],
+    ),
+    (
+        "logic_truth_table",
+        # Verification: NOT (A AND B) OR C where A=True, B=False, C=True.
+        # A AND B = False. NOT False = True. True OR True = True.
+        (
+            "Evaluate the boolean expression: NOT (A AND B) OR C, "
+            "where A=True, B=False, C=True. "
+            "State ONLY 'True' or 'False' on the last line prefixed "
+            "with 'ANSWER: '."
+        ),
+        ["true"],
+    ),
+    (
+        "math_gcd",
+        # Verification: 48=2^4*3, 180=2^2*3^2*5. GCD=2^2*3=12.
+        (
+            "What is the greatest common divisor (GCD) of 48 and 180? "
+            "State ONLY the number on the last line prefixed with 'ANSWER: '."
+        ),
+        ["12"],
+    ),
+    (
+        "math_base_conversion",
+        # Verification: 255 = 15*16 + 15 = FF in hex.
+        (
+            "Convert the decimal number 255 to hexadecimal. "
+            "State ONLY the hex value (without 0x prefix) on the last line "
+            "prefixed with 'ANSWER: '."
+        ),
+        ["ff"],
+    ),
+    (
+        "logic_syllogism",
+        # Verification: All A are B. All B are C. Therefore all A are C.
+        # "Some A are not C" contradicts this. Answer: Invalid.
+        (
+            "All roses are flowers. All flowers are plants. "
+            "Conclusion: 'Some roses are not plants.' "
+            "Is this conclusion valid or invalid? "
+            "State ONLY 'Valid' or 'Invalid' on the last line prefixed "
+            "with 'ANSWER: '."
+        ),
+        ["invalid"],
+    ),
+    (
+        "math_percentage",
+        # Verification: 15% of 240 = 36. 240-36 = 204.
+        (
+            "A store offers a 15%% discount on an item priced at $240. "
+            "What is the final price after the discount? "
+            "State ONLY the dollar amount (number only, no $ sign) on "
+            "the last line prefixed with 'ANSWER: '."
+        ),
+        ["204"],
+    ),
+    (
+        "math_lcm",
+        # Verification: 12=2^2*3, 18=2*3^2. LCM=2^2*3^2=36.
+        (
+            "What is the least common multiple (LCM) of 12 and 18? "
+            "State ONLY the number on the last line prefixed with 'ANSWER: '."
+        ),
+        ["36"],
     ),
 ]
 
@@ -302,21 +432,29 @@ def run_reasoning_probes(
         List of ReasoningResult objects.
     """
     results = []
-    for probe_id, prompt, expected in REASONING_PROBES:
+    for probe_id, prompt, acceptable_answers in REASONING_PROBES:
         response = _simple_request(client, model, prompt, max_tokens=1024)
 
-        # Extract the answer line from the response.
+        # Extract the LAST answer line from the response. Using last
+        # rather than first because models sometimes restate answers.
         model_answer = ""
         for line in response.strip().split("\n"):
             if line.strip().upper().startswith("ANSWER:"):
                 model_answer = line.split(":", 1)[1].strip()
-                break
 
-        is_correct = expected.lower() in model_answer.lower()
+        # Exact match against the list of acceptable answers.
+        # Normalized to lowercase and stripped of whitespace for
+        # comparison, but no substring matching -- that produced
+        # false positives (e.g. expected "2" matching "12").
+        normalized_answer = model_answer.lower().strip()
+        is_correct = any(
+            normalized_answer == acceptable.lower().strip()
+            for acceptable in acceptable_answers
+        )
 
         results.append(ReasoningResult(
             probe_id=probe_id,
-            expected_answer=expected,
+            expected_answer=acceptable_answers[0],
             model_answer=model_answer,
             is_correct=is_correct,
             response_text=response,
@@ -327,6 +465,19 @@ def run_reasoning_probes(
 # ---------------------------------------------------------------------------
 # Probe 3: Instruction compliance
 # ---------------------------------------------------------------------------
+
+def _split_sentences(text: str) -> list[str]:
+    """
+    Split text into sentences on '.', '!', '?' boundaries.
+
+    Returns a list of non-empty, stripped sentence strings. This is
+    a naive splitter that works for the constrained compliance prompts
+    but would fail on abbreviations (e.g. "U.S.A.") in general text.
+    That is acceptable here because we control the prompt.
+    """
+    parts = re.split(r'(?<=[.!?])\s+', text.strip())
+    return [s.strip() for s in parts if s.strip()]
+
 
 COMPLIANCE_PROBES = [
     (
@@ -343,22 +494,57 @@ COMPLIANCE_PROBES = [
             "7. Include the word 'firewall' exactly once across all sentences."
         ),
         [
-            ("starts_with_network", lambda t: t.strip().startswith("Network")),
-            ("contains_number", lambda t: bool(re.search(r'\d', t))),
-            ("has_question", lambda t: "?" in t),
-            ("ends_exclamation", lambda t: t.strip().endswith("!")),
+            # Constraint 1: First sentence starts with "Network".
+            (
+                "first_sentence_starts_with_network",
+                lambda t: (
+                    len(_split_sentences(t)) >= 1
+                    and _split_sentences(t)[0].startswith("Network")
+                ),
+            ),
+            # Constraint 2: Second sentence contains a digit.
+            (
+                "second_sentence_contains_number",
+                lambda t: (
+                    len(_split_sentences(t)) >= 2
+                    and bool(re.search(r'\d', _split_sentences(t)[1]))
+                ),
+            ),
+            # Constraint 3: Third sentence is a question.
+            (
+                "third_sentence_is_question",
+                lambda t: (
+                    len(_split_sentences(t)) >= 3
+                    and _split_sentences(t)[2].rstrip().endswith("?")
+                ),
+            ),
+            # Constraint 4: Fourth sentence ends with '!'.
+            (
+                "fourth_sentence_ends_exclamation",
+                lambda t: (
+                    len(_split_sentences(t)) >= 4
+                    and _split_sentences(t)[3].rstrip().endswith("!")
+                ),
+            ),
+            # Constraint 5: No sentence exceeds 20 words.
             (
                 "max_20_words_per_sentence",
                 lambda t: all(
                     len(s.split()) <= 20
-                    for s in re.split(r'[.!?]+', t)
-                    if s.strip()
+                    for s in _split_sentences(t)
                 ),
             ),
+            # Constraint 6: Word "important" does not appear.
             ("no_word_important", lambda t: "important" not in t.lower()),
+            # Constraint 7: "firewall" appears exactly once.
             (
                 "firewall_exactly_once",
                 lambda t: t.lower().count("firewall") == 1,
+            ),
+            # Implicit: Exactly 4 sentences.
+            (
+                "exactly_4_sentences",
+                lambda t: len(_split_sentences(t)) == 4,
             ),
         ],
     ),
@@ -442,6 +628,10 @@ def run_compliance_probes(
 # Probe 4: Linguistic fingerprint
 # ---------------------------------------------------------------------------
 
+# All linguistic prompts request the same target word count (150 words)
+# to avoid the known problem where type-token ratio (TTR) naturally
+# decreases as text length increases. By controlling for length, TTR
+# comparisons across prompts and across runs become meaningful.
 LINGUISTIC_PROMPTS = [
     (
         "essay_style",
@@ -453,8 +643,16 @@ LINGUISTIC_PROMPTS = [
     (
         "technical_explanation",
         (
-            "Explain how TLS 1.3 differs from TLS 1.2. Be precise and "
-            "technical. Aim for approximately 200 words."
+            "In exactly 150 words, explain how TLS 1.3 differs from "
+            "TLS 1.2. Be precise and technical."
+        ),
+    ),
+    (
+        "analytical_style",
+        (
+            "In exactly 150 words, analyze the security implications "
+            "of zero-trust network architecture compared to traditional "
+            "perimeter-based security."
         ),
     ),
 ]

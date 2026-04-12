@@ -5,7 +5,7 @@ run_detection.py -- CLI entry point for the Claude Model Downgrade Detector.
 This tool runs a battery of behavioral probes against a specified Claude
 model and compares the results to known baselines for each model tier
 (Opus, Sonnet, Haiku). If the observed behavior does not match the
-requested model tier, a potential downgrade is flagged.
+requested model tier, a potential tier mismatch is flagged.
 
 Usage:
     # Basic detection run against Opus
@@ -28,8 +28,8 @@ Environment:
     to interact with the API.
 
 Exit codes:
-    0 -- No downgrade detected.
-    1 -- Potential downgrade detected.
+    0 -- No tier mismatch detected.
+    1 -- Potential tier mismatch detected.
     2 -- Error during execution.
 
 Author: Petteri Kosonen
@@ -40,10 +40,10 @@ import argparse
 import json
 import os
 import sys
-import time
 from dataclasses import asdict
 from datetime import datetime, timezone
 
+import numpy as np
 import anthropic
 
 from probes import (
@@ -60,8 +60,10 @@ from analyzer import analyze
 # Output formatting
 # ---------------------------------------------------------------------------
 
-def print_header(text: str) -> None:
+def print_header(text: str, quiet: bool = False) -> None:
     """Print a section header with visual separators."""
+    if quiet:
+        return
     width = 60
     print()
     print("=" * width)
@@ -69,41 +71,47 @@ def print_header(text: str) -> None:
     print("=" * width)
 
 
-def print_subheader(text: str) -> None:
+def print_subheader(text: str, quiet: bool = False) -> None:
     """Print a subsection header."""
+    if quiet:
+        return
     print(f"\n--- {text} ---")
 
 
-def print_verdict(verdict) -> None:
+def print_verdict(verdict, quiet: bool = False) -> None:
     """
     Print the detection verdict in a structured, readable format.
 
+    Always prints regardless of quiet mode -- this is the primary output.
+
     Args:
         verdict: DetectionVerdict object from the analyzer.
+        quiet:   If True, print only the verdict summary.
     """
     print_header("DETECTION VERDICT")
 
-    if verdict.is_downgrade:
-        print("\n  *** POTENTIAL DOWNGRADE DETECTED ***\n")
+    if verdict.is_tier_mismatch:
+        print("\n  *** TIER MISMATCH DETECTED ***\n")
     else:
         print("\n  Model behavior is consistent with the requested tier.\n")
 
-    print(f"  Requested model : {verdict.requested_model}")
-    print(f"  Detected tier   : {verdict.detected_tier}")
-    print(f"  Detected model  : {verdict.detected_model_id}")
-    print(f"  Confidence      : {verdict.confidence:.2%}")
+    print(f"  Requested model  : {verdict.requested_model}")
+    print(f"  Detected tier    : {verdict.detected_tier}")
+    print(f"  Detected model   : {verdict.detected_model_id}")
+    print(f"  Match strength   : {verdict.match_strength:.2%}")
 
-    print_subheader("Tier Match Scores")
-    for ts in verdict.tier_scores:
-        marker = " <-- best match" if ts["tier"] == verdict.detected_tier else ""
-        print(f"  {ts['model_id']:30s}  {ts['score']:.4f}{marker}")
+    if not quiet:
+        print_subheader("Tier Match Scores")
+        for ts in verdict.tier_scores:
+            marker = " <-- best match" if ts["tier"] == verdict.detected_tier else ""
+            print(f"  {ts['model_id']:35s}  {ts['score']:.4f}{marker}")
 
-    print_subheader("Category Breakdown (per tier)")
-    for model_id, cats in verdict.category_details.items():
-        print(f"\n  {model_id}:")
-        for cat, score in cats.items():
-            bar = "#" * int(score * 20)
-            print(f"    {cat:15s}  {score:.4f}  [{bar:20s}]")
+        print_subheader("Category Breakdown (per tier)")
+        for model_id, cats in verdict.category_details.items():
+            print(f"\n  {model_id}:")
+            for cat, score in cats.items():
+                bar = "#" * int(score * 20)
+                print(f"    {cat:15s}  {score:.4f}  [{bar:20s}]")
 
     print_subheader("Summary")
     for line in verdict.summary.split("\n"):
@@ -111,13 +119,17 @@ def print_verdict(verdict) -> None:
     print()
 
 
-def print_probe_summary(results: dict) -> None:
+def print_probe_summary(results: dict, quiet: bool = False) -> None:
     """
     Print a summary of raw probe results before analysis.
 
     Args:
         results: Dict from ProbeResults.to_dict().
+        quiet:   If True, suppress this output entirely.
     """
+    if quiet:
+        return
+
     print_header("PROBE RESULTS SUMMARY")
 
     # Latency
@@ -125,12 +137,12 @@ def print_probe_summary(results: dict) -> None:
     if latency:
         print_subheader("Latency Probes")
         ttfts = [r["ttft_ms"] for r in latency]
-        tps = [r["tokens_per_second"] for r in latency]
+        wps = [r["words_per_second"] for r in latency]
         print(f"  Samples          : {len(latency)}")
-        print(f"  Median TTFT      : {sorted(ttfts)[len(ttfts)//2]:.0f} ms")
+        print(f"  Median TTFT      : {np.median(ttfts):.0f} ms")
         print(f"  Min/Max TTFT     : {min(ttfts):.0f} / {max(ttfts):.0f} ms")
-        print(f"  Median tokens/s  : {sorted(tps)[len(tps)//2]:.1f}")
-        print(f"  Min/Max tokens/s : {min(tps):.1f} / {max(tps):.1f}")
+        print(f"  Median words/s   : {np.median(wps):.1f}")
+        print(f"  Min/Max words/s  : {min(wps):.1f} / {max(wps):.1f}")
 
     # Reasoning
     reasoning = results.get("reasoning", [])
@@ -182,6 +194,7 @@ def run_probes(
     skip_reasoning: bool = False,
     skip_compliance: bool = False,
     skip_linguistic: bool = False,
+    quiet: bool = False,
 ) -> dict:
     """
     Execute all probe categories and return structured results.
@@ -194,6 +207,7 @@ def run_probes(
         skip_reasoning:     If True, skip reasoning probes.
         skip_compliance:    If True, skip compliance probes.
         skip_linguistic:    If True, skip linguistic probes.
+        quiet:              If True, suppress progress output.
 
     Returns:
         Dict representation of ProbeResults.
@@ -204,29 +218,37 @@ def run_probes(
     )
 
     if not skip_latency:
-        print("\n  Running latency probes...")
+        if not quiet:
+            print("\n  Running latency probes...")
         latency_data = run_latency_probes(client, model, latency_iterations)
         results.latency = [asdict(r) for r in latency_data]
-        print(f"  Completed: {len(latency_data)} measurements.")
+        if not quiet:
+            print(f"  Completed: {len(latency_data)} measurements.")
 
     if not skip_reasoning:
-        print("\n  Running reasoning probes...")
+        if not quiet:
+            print("\n  Running reasoning probes...")
         reasoning_data = run_reasoning_probes(client, model)
         results.reasoning = [asdict(r) for r in reasoning_data]
         correct = sum(1 for r in reasoning_data if r.is_correct)
-        print(f"  Completed: {correct}/{len(reasoning_data)} correct.")
+        if not quiet:
+            print(f"  Completed: {correct}/{len(reasoning_data)} correct.")
 
     if not skip_compliance:
-        print("\n  Running compliance probes...")
+        if not quiet:
+            print("\n  Running compliance probes...")
         compliance_data = run_compliance_probes(client, model)
         results.compliance = [asdict(r) for r in compliance_data]
-        print(f"  Completed: {len(compliance_data)} probes.")
+        if not quiet:
+            print(f"  Completed: {len(compliance_data)} probes.")
 
     if not skip_linguistic:
-        print("\n  Running linguistic probes...")
+        if not quiet:
+            print("\n  Running linguistic probes...")
         linguistic_data = run_linguistic_probes(client, model)
         results.linguistic = [asdict(r) for r in linguistic_data]
-        print(f"  Completed: {len(linguistic_data)} samples.")
+        if not quiet:
+            print(f"  Completed: {len(linguistic_data)} samples.")
 
     return results.to_dict()
 
@@ -249,7 +271,9 @@ def save_results(results: dict, verdict_dict: dict, path: str) -> None:
         "verdict": verdict_dict,
     }
 
-    os.makedirs(os.path.dirname(path) if os.path.dirname(path) else ".", exist_ok=True)
+    parent = os.path.dirname(path)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
     with open(path, "w") as f:
         json.dump(output, f, indent=2, default=str)
     print(f"\n  Results saved to: {path}")
@@ -341,7 +365,7 @@ def main():
     parser.add_argument(
         "--quiet",
         action="store_true",
-        help="Suppress progress output. Only print the final verdict.",
+        help="Suppress progress and detail output. Print only the final verdict.",
     )
 
     args = parser.parse_args()
@@ -355,22 +379,23 @@ def main():
 
     client = anthropic.Anthropic(api_key=api_key)
 
-    print_header("CLAUDE MODEL DOWNGRADE DETECTOR")
-    print(f"  Target model     : {args.model}")
-    print(f"  Latency iterations: {args.latency_iterations}")
-    print(f"  Timestamp        : {datetime.now(timezone.utc).isoformat()}")
+    print_header("CLAUDE MODEL DOWNGRADE DETECTOR", quiet=args.quiet)
+    if not args.quiet:
+        print(f"  Target model     : {args.model}")
+        print(f"  Latency iterations: {args.latency_iterations}")
+        print(f"  Timestamp        : {datetime.now(timezone.utc).isoformat()}")
 
-    skipped = []
-    if args.skip_latency:
-        skipped.append("latency")
-    if args.skip_reasoning:
-        skipped.append("reasoning")
-    if args.skip_compliance:
-        skipped.append("compliance")
-    if args.skip_linguistic:
-        skipped.append("linguistic")
-    if skipped:
-        print(f"  Skipped probes   : {', '.join(skipped)}")
+        skipped = []
+        if args.skip_latency:
+            skipped.append("latency")
+        if args.skip_reasoning:
+            skipped.append("reasoning")
+        if args.skip_compliance:
+            skipped.append("compliance")
+        if args.skip_linguistic:
+            skipped.append("linguistic")
+        if skipped:
+            print(f"  Skipped probes   : {', '.join(skipped)}")
 
     # Run probes.
     try:
@@ -382,6 +407,7 @@ def main():
             skip_reasoning=args.skip_reasoning,
             skip_compliance=args.skip_compliance,
             skip_linguistic=args.skip_linguistic,
+            quiet=args.quiet,
         )
     except anthropic.AuthenticationError:
         print("\nERROR: Invalid API key. Check your ANTHROPIC_API_KEY.")
@@ -395,7 +421,7 @@ def main():
         sys.exit(2)
 
     # Print raw results.
-    print_probe_summary(results)
+    print_probe_summary(results, quiet=args.quiet)
 
     if args.calibrate:
         print_header("CALIBRATION MODE")
@@ -412,7 +438,7 @@ def main():
 
     # Analyze and produce verdict.
     verdict = analyze(results, args.baselines)
-    print_verdict(verdict)
+    print_verdict(verdict, quiet=args.quiet)
 
     # Save results.
     output_path = args.output or os.path.join(
@@ -424,16 +450,16 @@ def main():
         "requested_model": verdict.requested_model,
         "detected_tier": verdict.detected_tier,
         "detected_model_id": verdict.detected_model_id,
-        "confidence": verdict.confidence,
-        "is_downgrade": verdict.is_downgrade,
+        "match_strength": verdict.match_strength,
+        "is_tier_mismatch": verdict.is_tier_mismatch,
         "tier_scores": verdict.tier_scores,
         "category_details": verdict.category_details,
         "summary": verdict.summary,
     }
     save_results(results, verdict_dict, output_path)
 
-    # Exit code signals downgrade detection to CI/automation pipelines.
-    sys.exit(1 if verdict.is_downgrade else 0)
+    # Exit code signals tier mismatch to CI/automation pipelines.
+    sys.exit(1 if verdict.is_tier_mismatch else 0)
 
 
 if __name__ == "__main__":

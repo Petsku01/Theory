@@ -1,13 +1,14 @@
 {
     "_documentation": {
-        "description": "Reference baselines for Claude model tiers. These values represent expected ranges derived from empirical testing. They are used to compare against live probe results to detect potential silent model substitution.",
-        "methodology": "Baselines should be calibrated by running the detector against each known model tier (Opus, Sonnet, Haiku) under controlled conditions. The values below are starting estimates and MUST be updated with your own measurements using the --calibrate flag.",
+        "description": "Reference baselines for Claude model tiers. Used to compare against live probe results to detect potential silent model substitution.",
+        "calibration_status": "UNCALIBRATED. All values below are rough placeholders, NOT empirical measurements. You MUST run --calibrate against each model tier in your own environment and replace these values before trusting any detection results.",
+        "methodology": "Run: python run_detection.py --model <model-id> --calibrate for each tier. Review the output in results/ and update the ranges below. Repeat periodically as Anthropic updates models.",
         "last_updated": "2026-04-12",
         "units": {
             "ttft_ms": "Time to first token in milliseconds",
-            "tokens_per_second": "Output tokens generated per second",
-            "reasoning_accuracy": "Fraction of multi-step reasoning probes answered correctly (0.0-1.0)",
-            "instruction_compliance": "Fraction of complex formatting constraints followed correctly (0.0-1.0)",
+            "words_per_second": "Whitespace-split words generated per second (not tokens)",
+            "reasoning_accuracy": "Fraction of reasoning probes answered correctly (0.0-1.0)",
+            "instruction_compliance": "Fraction of formatting constraints followed (0.0-1.0)",
             "vocabulary_richness": "Type-token ratio measuring lexical diversity (0.0-1.0)"
         }
     },
@@ -19,15 +20,15 @@
                 "max": 3000,
                 "typical": 1500
             },
-            "tokens_per_second": {
-                "min": 15,
-                "max": 50,
-                "typical": 30
+            "words_per_second": {
+                "min": 10,
+                "max": 40,
+                "typical": 22
             },
             "reasoning_accuracy": {
                 "min": 0.80,
                 "max": 1.00,
-                "typical": 0.90
+                "typical": 0.93
             },
             "instruction_compliance": {
                 "min": 0.85,
@@ -47,15 +48,15 @@
                 "max": 1800,
                 "typical": 900
             },
-            "tokens_per_second": {
-                "min": 40,
-                "max": 100,
-                "typical": 70
+            "words_per_second": {
+                "min": 30,
+                "max": 80,
+                "typical": 50
             },
             "reasoning_accuracy": {
-                "min": 0.60,
-                "max": 0.90,
-                "typical": 0.75
+                "min": 0.55,
+                "max": 0.85,
+                "typical": 0.73
             },
             "instruction_compliance": {
                 "min": 0.70,
@@ -68,22 +69,22 @@
                 "typical": 0.60
             }
         },
-        "claude-haiku-4-5": {
+        "claude-haiku-4-5-20251001": {
             "tier": "haiku",
             "ttft_ms": {
                 "min": 150,
                 "max": 800,
                 "typical": 400
             },
-            "tokens_per_second": {
-                "min": 80,
-                "max": 200,
-                "typical": 130
+            "words_per_second": {
+                "min": 60,
+                "max": 160,
+                "typical": 100
             },
             "reasoning_accuracy": {
-                "min": 0.30,
-                "max": 0.70,
-                "typical": 0.50
+                "min": 0.25,
+                "max": 0.60,
+                "typical": 0.45
             },
             "instruction_compliance": {
                 "min": 0.50,
