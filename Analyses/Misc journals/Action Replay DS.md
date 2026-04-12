@@ -21,7 +21,7 @@ Action Replay (AR) codes work flawlessly in DS emulators for infinite health, ma
 
 **Key Facts (2025):**
 - **melonDS 1.1** is the gold standard: Highest accuracy, speed, DSi support.
-- Desktop: Uses **.mch files** (auto-loaded by ROM name match). **No XML import** in stable builds.
+- Desktop: Uses **.mch files** (auto-loaded by ROM name match). **melonDS 1.1 stable** also added an `usrcheat.dat` import dialog that lets you pull codes directly from R4-style databases.
 - Android: One-click **XML import**.
 - Dumped AR .nds ROMs (v1.02/1.54): Boot but empty DB—skip them.
 - Best DB: **DeadSkullzJr's** (10k+ games, updated Aug 2025).
@@ -39,7 +39,7 @@ Action Replay (AR) codes work flawlessly in DS emulators for infinite health, ma
 3. **Optional BIOS**: Config → Emulation → Use BIOS files (improves compatibility; dump from real DS).
 4. Test: File → Open ROM → Load any .nds (should run).
 
-**Pro Tip**: Update to nightly builds for usrcheat.dat import (dev branch, Oct 2025).
+**Pro Tip**: melonDS 1.1 stable supports importing codes from `usrcheat.dat` via System → Setup cheat codes → Import — no nightly build needed.
 
 ## Step 2: Obtain Cheat Databases
 | Source | Formats | Best For | Download |
