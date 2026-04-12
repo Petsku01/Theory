@@ -1,0 +1,101 @@
+{
+    "_documentation": {
+        "description": "Reference baselines for Claude model tiers. Used to compare against live probe results to detect potential silent model substitution.",
+        "calibration_status": "UNCALIBRATED. All values below are rough placeholders, NOT empirical measurements. You MUST run --calibrate against each model tier in your own environment and replace these values before trusting any detection results.",
+        "methodology": "Run: python run_detection.py --model <model-id> --calibrate for each tier. Review the output in results/ and update the ranges below. Repeat periodically as Anthropic updates models.",
+        "last_updated": "2026-04-12",
+        "units": {
+            "ttft_ms": "Time to first token in milliseconds",
+            "words_per_second": "Whitespace-split words generated per second (not tokens)",
+            "reasoning_accuracy": "Fraction of reasoning probes answered correctly (0.0-1.0)",
+            "instruction_compliance": "Fraction of formatting constraints followed (0.0-1.0)",
+            "vocabulary_richness": "Type-token ratio measuring lexical diversity (0.0-1.0)"
+        }
+    },
+    "models": {
+        "claude-opus-4-6": {
+            "tier": "opus",
+            "ttft_ms": {
+                "min": 800,
+                "max": 3000,
+                "typical": 1500
+            },
+            "words_per_second": {
+                "min": 10,
+                "max": 40,
+                "typical": 22
+            },
+            "reasoning_accuracy": {
+                "min": 0.80,
+                "max": 1.00,
+                "typical": 0.93
+            },
+            "instruction_compliance": {
+                "min": 0.85,
+                "max": 1.00,
+                "typical": 0.92
+            },
+            "vocabulary_richness": {
+                "min": 0.55,
+                "max": 0.80,
+                "typical": 0.68
+            }
+        },
+        "claude-sonnet-4-6": {
+            "tier": "sonnet",
+            "ttft_ms": {
+                "min": 400,
+                "max": 1800,
+                "typical": 900
+            },
+            "words_per_second": {
+                "min": 30,
+                "max": 80,
+                "typical": 50
+            },
+            "reasoning_accuracy": {
+                "min": 0.55,
+                "max": 0.85,
+                "typical": 0.73
+            },
+            "instruction_compliance": {
+                "min": 0.70,
+                "max": 0.95,
+                "typical": 0.82
+            },
+            "vocabulary_richness": {
+                "min": 0.48,
+                "max": 0.72,
+                "typical": 0.60
+            }
+        },
+        "claude-haiku-4-5-20251001": {
+            "tier": "haiku",
+            "ttft_ms": {
+                "min": 150,
+                "max": 800,
+                "typical": 400
+            },
+            "words_per_second": {
+                "min": 60,
+                "max": 160,
+                "typical": 100
+            },
+            "reasoning_accuracy": {
+                "min": 0.25,
+                "max": 0.60,
+                "typical": 0.45
+            },
+            "instruction_compliance": {
+                "min": 0.50,
+                "max": 0.80,
+                "typical": 0.65
+            },
+            "vocabulary_richness": {
+                "min": 0.40,
+                "max": 0.65,
+                "typical": 0.52
+            }
+        }
+    }
+}
