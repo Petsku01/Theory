@@ -1,0 +1,100 @@
+{
+    "_documentation": {
+        "description": "Reference baselines for Claude model tiers. These values represent expected ranges derived from empirical testing. They are used to compare against live probe results to detect potential silent model substitution.",
+        "methodology": "Baselines should be calibrated by running the detector against each known model tier (Opus, Sonnet, Haiku) under controlled conditions. The values below are starting estimates and MUST be updated with your own measurements using the --calibrate flag.",
+        "last_updated": "2026-04-12",
+        "units": {
+            "ttft_ms": "Time to first token in milliseconds",
+            "tokens_per_second": "Output tokens generated per second",
+            "reasoning_accuracy": "Fraction of multi-step reasoning probes answered correctly (0.0-1.0)",
+            "instruction_compliance": "Fraction of complex formatting constraints followed correctly (0.0-1.0)",
+            "vocabulary_richness": "Type-token ratio measuring lexical diversity (0.0-1.0)"
+        }
+    },
+    "models": {
+        "claude-opus-4-6": {
+            "tier": "opus",
+            "ttft_ms": {
+                "min": 800,
+                "max": 3000,
+                "typical": 1500
+            },
+            "tokens_per_second": {
+                "min": 15,
+                "max": 50,
+                "typical": 30
+            },
+            "reasoning_accuracy": {
+                "min": 0.80,
+                "max": 1.00,
+                "typical": 0.90
+            },
+            "instruction_compliance": {
+                "min": 0.85,
+                "max": 1.00,
+                "typical": 0.92
+            },
+            "vocabulary_richness": {
+                "min": 0.55,
+                "max": 0.80,
+                "typical": 0.68
+            }
+        },
+        "claude-sonnet-4-6": {
+            "tier": "sonnet",
+            "ttft_ms": {
+                "min": 400,
+                "max": 1800,
+                "typical": 900
+            },
+            "tokens_per_second": {
+                "min": 40,
+                "max": 100,
+                "typical": 70
+            },
+            "reasoning_accuracy": {
+                "min": 0.60,
+                "max": 0.90,
+                "typical": 0.75
+            },
+            "instruction_compliance": {
+                "min": 0.70,
+                "max": 0.95,
+                "typical": 0.82
+            },
+            "vocabulary_richness": {
+                "min": 0.48,
+                "max": 0.72,
+                "typical": 0.60
+            }
+        },
+        "claude-haiku-4-5": {
+            "tier": "haiku",
+            "ttft_ms": {
+                "min": 150,
+                "max": 800,
+                "typical": 400
+            },
+            "tokens_per_second": {
+                "min": 80,
+                "max": 200,
+                "typical": 130
+            },
+            "reasoning_accuracy": {
+                "min": 0.30,
+                "max": 0.70,
+                "typical": 0.50
+            },
+            "instruction_compliance": {
+                "min": 0.50,
+                "max": 0.80,
+                "typical": 0.65
+            },
+            "vocabulary_richness": {
+                "min": 0.40,
+                "max": 0.65,
+                "typical": 0.52
+            }
+        }
+    }
+}
