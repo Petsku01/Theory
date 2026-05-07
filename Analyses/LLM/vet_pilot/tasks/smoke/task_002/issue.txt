@@ -1,0 +1,1 @@
+parse_bool should accept uppercase TRUE/FALSE and surrounding whitespace.

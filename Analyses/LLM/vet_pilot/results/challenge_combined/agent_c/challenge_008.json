@@ -1,0 +1,22 @@
+{
+  "task": "challenge_008",
+  "candidate": "C:\\Users\\Pette\\Downloads\\vet_pilot_experiment_package\\vet_pilot\\candidates\\challenge_json\\agent_c\\patches\\challenge_008.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/history.py"
+  ],
+  "stdout": "...                                                                      [100%]\n3 passed in 0.02s\n",
+  "stderr": "",
+  "duration_sec": 0.4429495334625244,
+  "diff": "diff --git a/src/history.py b/src/history.py\nindex 8ec6ea8..dd36c8a 100644\n--- a/src/history.py\n+++ b/src/history.py\n@@ -1,11 +1,23 @@\n def recent_unique(items, limit):\n+    \"\"\"\n+    Return the most recent unique items up to the given limit,\n+    preserving the original chronological order of the returned items.\n+    If limit <= 0, return an empty list.\n+    \"\"\"\n     if limit <= 0:\n         return []\n+\n     seen = set()\n-    result = []\n-    for item in items:\n-        if item in seen:\n-            continue\n-        seen.add(item)\n-        result.append(item)\n-    return result[-limit:]\n+    unique_rev = []\n+\n+    # Process items from the end to keep most recent occurrences\n+    for item in reversed(items):\n+        if item not in seen:\n+            seen.add(item)\n+            unique_rev.append(item)\n+\n+    # Take at most `limit` most recent unique items\n+    unique_rev = unique_rev[:limit]\n+\n+    # Reverse to restore chronological order\n+    return list(reversed(unique_rev))\n",
+  "combined_source": "stage5",
+  "stage5_status": "ok",
+  "stage6_status": null,
+  "schema_usable": true,
+  "semantic_failure_after_apply": false
+}

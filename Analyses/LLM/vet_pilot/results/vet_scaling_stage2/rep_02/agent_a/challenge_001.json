@@ -1,0 +1,17 @@
+{
+  "task": "challenge_001",
+  "candidate": "C:\\Users\\Pette\\Downloads\\vet_pilot_experiment_package\\vet_pilot\\candidates\\vet_scaling_stage2\\rep_02\\agent_a\\patches\\challenge_001.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/users.py"
+  ],
+  "stdout": "...                                                                      [100%]\n3 passed in 0.02s\n",
+  "stderr": "",
+  "duration_sec": 0.5421240329742432,
+  "diff": "diff --git a/src/users.py b/src/users.py\nindex c7b30ef..206d477 100644\n--- a/src/users.py\n+++ b/src/users.py\n@@ -2,9 +2,8 @@ import re\n \n USERNAME_RE = re.compile(r\"^[a-z0-9_]{3,20}$\")\n \n-\n def normalize_username(username: str) -> str:\n-    candidate = username.strip().lower()\n+    candidate = username.lower()\n     if not USERNAME_RE.fullmatch(candidate):\n         raise ValueError(\"invalid username\")\n     return candidate\n"
+}

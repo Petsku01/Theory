@@ -1,0 +1,16 @@
+diff --git a/src/backend_loader.py b/src/backend_loader.py
+--- a/src/backend_loader.py
++++ b/src/backend_loader.py
+@@ -2,5 +2,11 @@
+ 
+ 
+ def load_backend(name: str):
+-    module = importlib.import_module(name)
++    try:
++        module = importlib.import_module(name)
++    except ImportError:
++        try:
++            module = importlib.import_module(f"src.backends.{name}")
++        except ImportError:
++            raise ValueError(f"Unknown backend: {name}")
+     return module.Backend()

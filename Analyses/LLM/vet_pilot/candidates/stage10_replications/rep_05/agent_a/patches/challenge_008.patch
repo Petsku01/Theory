@@ -1,0 +1,33 @@
+diff --git a/src/history.py b/src/history.py
+--- a/src/history.py
++++ b/src/history.py
+@@ -1,11 +1,21 @@
+ def recent_unique(items, limit):
++    """Return the most recent unique items up to ``limit``.
++
++    For each distinct item, only its last occurrence is kept. The items are
++    returned in the order of appearance of those last occurrences.  The
++    ``limit`` argument specifies the maximum number of items in the result.
++    ``limit <= 0`` results in an empty list.
++    """
+     if limit <= 0:
+         return []
+-    seen = set()
+-    result = []
+-    for item in items:
+-        if item in seen:
+-            continue
+-        seen.add(item)
+-        result.append(item)
+-    return result[-limit:]
++
++    # Record the last index at which each item appears.
++    last_index = {}
++    for index, item in enumerate(items):
++        last_index[item] = index
++
++    # Sort items by the index of their last occurrence (chronological order).
++    sorted_items = sorted(last_index, key=lambda x: last_index[x])
++
++    # Return only up to the requested number of items.
++    return sorted_items[-limit:]

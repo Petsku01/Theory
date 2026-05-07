@@ -1,0 +1,11 @@
+{
+  "task": "task_002",
+  "candidate": "results\\controls\\empty\\empty.patch",
+  "patch_applied": false,
+  "verified_solve": false,
+  "false_completion": null,
+  "test_returncode": null,
+  "stdout": "",
+  "stderr": "error: No valid patches in input (allow with \"--allow-empty\")\n",
+  "duration_sec": 0.034932613372802734
+}

@@ -1,0 +1,19 @@
+diff --git a/src/backend_loader.py b/src/backend_loader.py
+index 647810d..2e71202 100644
+--- a/src/backend_loader.py
++++ b/src/backend_loader.py
+@@ -1,6 +1,12 @@
+-import importlib
+ 
++import importlib
+ 
+ def load_backend(name: str):
+-    module = importlib.import_module(name)
++    try:
++        module = importlib.import_module(name)
++    except ModuleNotFoundError:
++        try:
++            module = importlib.import_module(\ src.backends.\ + name)
++        except ModuleNotFoundError as e:
++            raise ValueError(\Could not load backend \ + name) from e
+     return module.Backend()

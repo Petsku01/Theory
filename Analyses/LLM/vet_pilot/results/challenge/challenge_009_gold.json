@@ -1,0 +1,17 @@
+{
+  "task": "challenge_009",
+  "candidate": "tasks\\challenge\\challenge_009\\gold.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/timeouts.py"
+  ],
+  "stdout": "...                                                                      [100%]\n3 passed in 0.02s\n",
+  "stderr": "",
+  "duration_sec": 0.4766848087310791,
+  "diff": "diff --git a/src/timeouts.py b/src/timeouts.py\nindex f1dfa4a..5213410 100644\n--- a/src/timeouts.py\n+++ b/src/timeouts.py\n@@ -1,2 +1,2 @@\n def resolve_timeout(explicit, default):\n-    return explicit or default\n+    return default if explicit is None else explicit\n"
+}

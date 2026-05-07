@@ -1,0 +1,17 @@
+{
+  "task": "challenge_005",
+  "candidate": "C:\\Users\\Pette\\Downloads\\vet_pilot_experiment_package\\vet_pilot\\candidates\\challenge\\agent_a\\challenge_005.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/network.py"
+  ],
+  "stdout": "...                                                                      [100%]\n3 passed in 0.02s\n",
+  "stderr": "",
+  "duration_sec": 0.442333459854126,
+  "diff": "diff --git a/src/network.py b/src/network.py\nindex 7540f16..ccddbc5 100644\n--- a/src/network.py\n+++ b/src/network.py\n@@ -1,4 +1,18 @@\n+\n+\n def parse_host_port(value: str, default_port: int = 80) -> tuple[str, int]:\n+    # Handle IPv6 addresses enclosed in brackets\n+    if value.startswith(\"[\"):\n+        closing = value.find(\"]\")\n+        if closing != -1:\n+            host = value[1:closing]  # strip brackets\n+            # Check if port follows\n+            if len(value) > closing+1 and value[closing+1] == \":\":\n+                port_text = value[closing+2:]\n+                if port_text:\n+                    return host, int(port_text)\n+            return host, default_port\n+    # Fallback to simple host:port parsing for hosts without brackets\n     host, sep, port_text = value.partition(\":\")\n     if not sep:\n         return value, default_port\n"
+}

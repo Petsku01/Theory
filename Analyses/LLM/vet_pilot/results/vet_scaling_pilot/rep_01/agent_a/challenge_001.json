@@ -1,0 +1,12 @@
+{
+  "task": "challenge_001",
+  "candidate": "C:\\Users\\Pette\\Downloads\\vet_pilot_experiment_package\\vet_pilot\\candidates\\vet_scaling_pilot\\rep_01\\agent_a\\patches\\challenge_001.patch",
+  "patch_applied": false,
+  "verified_solve": false,
+  "false_completion": null,
+  "failure_type": "patch_did_not_apply",
+  "test_returncode": null,
+  "stdout": "",
+  "stderr": "error: patch failed: src/users.py:1\nerror: src/users.py: patch does not apply\n",
+  "duration_sec": 0.06560778617858887
+}

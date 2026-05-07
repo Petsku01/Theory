@@ -1,0 +1,17 @@
+{
+  "task": "challenge_005",
+  "candidate": "C:\\Users\\Pette\\Downloads\\vet_pilot_experiment_package\\vet_pilot\\candidates\\vet_scaling_stage2\\rep_02\\agent_b\\patches\\challenge_005.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/network.py"
+  ],
+  "stdout": "...                                                                      [100%]\n3 passed in 0.02s\n",
+  "stderr": "",
+  "duration_sec": 0.5595896244049072,
+  "diff": "diff --git a/src/network.py b/src/network.py\nindex 7540f16..76428e0 100644\n--- a/src/network.py\n+++ b/src/network.py\n@@ -1,7 +1,23 @@\n def parse_host_port(value: str, default_port: int = 80) -> tuple[str, int]:\n-    host, sep, port_text = value.partition(\":\")\n-    if not sep:\n-        return value, default_port\n-    if port_text == \"\":\n-        return host, default_port\n-    return host, int(port_text)\n+    if value.startswith('['):\n+        # Handle bracketed IPv6 addresses\n+        end_bracket = value.find(']')\n+        if end_bracket == -1:\n+            raise ValueError(\"Invalid bracketed IPv6 address\")\n+        host = value[1:end_bracket]\n+        rest = value[end_bracket+1:]\n+        if rest.startswith(':'):\n+            port_text = rest[1:]\n+            if port_text == \"\":\n+                return host, default_port\n+            return host, int(port_text)\n+        else:\n+            return host, default_port\n+    else:\n+        # Handle normal host:port\n+        host, sep, port_text = value.partition(\":\")\n+        if not sep:\n+            return value, default_port\n+        if port_text == \"\":\n+            return host, default_port\n+        return host, int(port_text)\n"
+}

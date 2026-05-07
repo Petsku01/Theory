@@ -1,0 +1,14 @@
+--- a/src/preferences.py
++++ b/src/preferences.py
+@@
+-def merge_preferences(defaults: dict, overrides: dict) -> dict:
+-    merged = defaults.copy()
++def merge_preferences(defaults: dict, overrides: dict) -> dict:
++    # Avoid mutating the input dictionaries by creating a deep copy of defaults
++    from copy import deepcopy
++    merged = deepcopy(defaults)
+     notifications = merged.setdefault("notifications", {})
+     notifications.update(overrides.get("notifications", {}))
+     tags = merged.setdefault("tags", [])
+     tags.extend(overrides.get("tags", []))
+     for key, value in overrides.items():

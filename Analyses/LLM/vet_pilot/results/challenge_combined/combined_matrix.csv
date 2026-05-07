@@ -1,0 +1,11 @@
+task,agent_a_outcome,agent_a_source,agent_a_schema_usable,agent_b_outcome,agent_b_source,agent_b_schema_usable,agent_c_outcome,agent_c_source,agent_c_schema_usable
+challenge_001,solve,stage5,True,patch_did_not_apply,stage5,True,patch_did_not_apply,stage6,False
+challenge_002,patch_did_not_apply,stage6,True,solve,stage5,True,solve,stage6,True
+challenge_003,solve,stage5,True,tests_failed,stage5,True,tests_failed,stage5,True
+challenge_004,patch_did_not_apply,stage6,True,solve,stage6,True,patch_did_not_apply,stage6,True
+challenge_005,syntax_error,stage5,True,patch_did_not_apply,stage5,True,solve,stage5,True
+challenge_006,solve,stage5,True,patch_did_not_apply,stage5,True,solve,stage5,True
+challenge_007,patch_did_not_apply,stage6,False,solve,stage6,True,patch_did_not_apply,stage6,True
+challenge_008,patch_did_not_apply,stage6,True,solve,stage6,True,solve,stage5,True
+challenge_009,solve,stage5,True,patch_did_not_apply,stage5,True,solve,stage5,True
+challenge_010,solve,stage5,True,patch_did_not_apply,stage5,True,solve,stage5,True

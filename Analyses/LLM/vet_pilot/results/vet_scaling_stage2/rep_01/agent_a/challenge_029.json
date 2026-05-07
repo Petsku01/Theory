@@ -1,0 +1,17 @@
+{
+  "task": "challenge_029",
+  "candidate": "C:\\Users\\Pette\\Downloads\\vet_pilot_experiment_package\\vet_pilot\\candidates\\vet_scaling_stage2\\rep_01\\agent_a\\patches\\challenge_029.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/blanklines.py"
+  ],
+  "stdout": "..                                                                       [100%]\n2 passed in 0.02s\n",
+  "stderr": "",
+  "duration_sec": 0.5203976631164551,
+  "diff": "diff --git a/src/blanklines.py b/src/blanklines.py\nindex b420bea..d75ed11 100644\n--- a/src/blanklines.py\n+++ b/src/blanklines.py\n@@ -1,11 +1,14 @@\n def collapse_blank_lines(text):\n-    lines = text.splitlines()\n+    lines = text.splitlines(True)\n     collapsed = []\n     previous_blank = False\n     for line in lines:\n-        blank = line == \"\"\n+        blank = line.strip() == \"\"\n         if blank and previous_blank:\n             continue\n-        collapsed.append(line)\n+        collapsed.append(line.rstrip('\\n'))\n         previous_blank = blank\n-    return \"\\n\".join(collapsed)\n+    result = \"\\n\".join(collapsed)\n+    if text.endswith(\"\\n\"):\n+        result += \"\\n\"\n+    return result\n"
+}

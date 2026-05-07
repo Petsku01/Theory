@@ -1,0 +1,12 @@
+diff --git a/src/domains.py b/src/domains.py
+index 2aa2d01..b298dfa 100644
+--- a/src/domains.py
++++ b/src/domains.py
+@@ -1,5 +1,6 @@
+ def parent_domain(hostname):
+-    parts = hostname.split(".")
++    normalized = hostname.rstrip(".")
++    parts = normalized.split(".")
+     if len(parts) < 2:
+         return ""
+     return ".".join(parts[1:])

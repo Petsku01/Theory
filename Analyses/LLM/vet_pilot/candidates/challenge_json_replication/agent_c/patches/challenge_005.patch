@@ -1,0 +1,29 @@
+diff --git a/src/network.py b/src/network.py
+--- a/src/network.py
++++ b/src/network.py
+@@ -2,6 +2,7 @@
+     """Parse a host[:port] string.
+ 
+     Supports IPv6 addresses in brackets, e.g. ``[::1]:8080``.
++    Also handles unbracketed IPv6 literals when a port is not specified.
+     If no port is provided, ``default_port`` is used.
+     """
+     # Handle IPv6 bracketed addresses
+@@ -20,10 +21,16 @@
+             return host, int(port_text)
+         # No port specification
+         return host, default_port
++    # Handle unbracketed IPv6 without port misspecification
++    if value.count(":") > 1 and not value.endswith(":"):
++        return value, default_port
+     # Regular hostname handling
+     host, sep, port_text = value.partition(":")
+     if not sep:
+         return value, default_port
+     if port_text == "":
+         return host, default_port
+-    return host, int(port_text)
++    if port_text.isdigit():
++        return host, int(port_text)
++    # If port part is not numeric, treat entire value as host
++    return value, default_port

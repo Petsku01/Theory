@@ -1,0 +1,11 @@
+diff --git a/src/timeouts.py b/src/timeouts.py
+--- a/src/timeouts.py
++++ b/src/timeouts.py
+@@ -5,4 +5,6 @@
+     If `explicit` is `None`, return `default`. For any other value, including
+     zero, return `explicit`.
+     """
+-    return explicit if explicit is not None else default
++    if explicit is None:
++        return default
++    return explicit

@@ -1,0 +1,13 @@
+diff --git a/src/network.py b/src/network.py
+--- a/src/network.py
++++ b/src/network.py
+@@ -21,6 +21,9 @@
+         else:
+             port = default_port
+         return host, port
++    # Treat unbracketed IPv6 literals as hosts when they contain multiple colons
++    if ':' in value and value.count(':') > 1:
++        return value, default_port
+     # Default handling for normal host:port formats
+     host, sep, port_text = value.partition(":")
+     if not sep:

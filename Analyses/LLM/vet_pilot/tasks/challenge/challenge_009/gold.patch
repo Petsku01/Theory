@@ -1,0 +1,8 @@
+diff --git a/src/timeouts.py b/src/timeouts.py
+index f1dfa4a..5213410 100644
+--- a/src/timeouts.py
++++ b/src/timeouts.py
+@@ -1,2 +1,2 @@
+ def resolve_timeout(explicit, default):
+-    return explicit or default
++    return default if explicit is None else explicit

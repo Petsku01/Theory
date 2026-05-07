@@ -1,0 +1,4 @@
+file,task,candidate,patch_applied,verified_solve,false_completion,failure_type,test_returncode,changed_files,duration_sec
+results/challenge_json_repaired/agent_b\challenge_004.json,challenge_004,candidates\challenge_json_repaired\agent_b\patches\challenge_004.patch,True,True,False,,0,src/preferences.py,0.5287277698516846
+results/challenge_json_repaired/agent_b\challenge_007.json,challenge_007,candidates\challenge_json_repaired\agent_b\patches\challenge_007.patch,True,True,False,,0,src/http_headers.py,0.5042736530303955
+results/challenge_json_repaired/agent_b\challenge_008.json,challenge_008,candidates\challenge_json_repaired\agent_b\patches\challenge_008.patch,True,True,False,,0,src/history.py,0.5173683166503906

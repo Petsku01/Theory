@@ -1,0 +1,17 @@
+{
+  "task": "challenge_027",
+  "candidate": "C:\\Users\\Pette\\Downloads\\vet_pilot_experiment_package\\vet_pilot\\candidates\\vet_scaling_stage2\\rep_02\\agent_b\\patches\\challenge_027.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/auth.py"
+  ],
+  "stdout": "...                                                                      [100%]\n3 passed in 0.02s\n",
+  "stderr": "",
+  "duration_sec": 0.5207231044769287,
+  "diff": "diff --git a/src/auth.py b/src/auth.py\nindex cfbd041..552fd2a 100644\n--- a/src/auth.py\n+++ b/src/auth.py\n@@ -1,4 +1,7 @@\n def build_auth_header(token, scheme=\"Bearer\"):\n     if not token:\n         raise ValueError(\"missing token\")\n-    return f\"{scheme} {token}\"\n+    normalized_token = token.strip()\n+    if not normalized_token:\n+        raise ValueError(\"missing token\")\n+    return f\"{scheme} {normalized_token}\"\n"
+}

@@ -1,0 +1,35 @@
+diff --git a/src/network.py b/src/network.py
+--- a/src/network.py
++++ b/src/network.py
+@@ -1,7 +1,30 @@
+ def parse_host_port(value: str, default_port: int = 80) -> tuple[str, int]:
++    if not value:
++        return value, default_port
++    # Handle bracketed IPv6 addresses like "[::1]:8080"
++    if value[0] == "[":
++        end_idx = value.find(']')
++        if end_idx == -1:
++            # No closing bracket; fall back to default behaviour
++            return value, default_port
++        host = value[1:end_idx]
++        rest = value[end_idx + 1:]
++        if rest.startswith(':'):
++            port_text = rest[1:]
++            if port_text:
++                try:
++                    port = int(port_text)
++                except ValueError:
++                    port = default_port
++            else:
++                port = default_port
++        else:
++            port = default_port
++        return host, port
++    # Default handling for normal host:port formats
+     host, sep, port_text = value.partition(":")
+     if not sep:
+-        return value, default_port
++        return host, default_port
+     if port_text == "":
+         return host, default_port
+     return host, int(port_text)

@@ -1,0 +1,91 @@
+diff --git a/src/preferences.py b/src/preferences.py
+--- a/src/preferences.py
++++ b/src/preferences.py
+@@ -10,39 +10,57 @@
+ import copy
+ 
+ 
+-def merge_preferences(defaults: dict, overrides: dict) -> dict:
+-    """Merge two preference dictionaries.
++ def _merge_dicts(dest: dict, src: dict) -> dict:
++     """Recursively merge ``src`` into ``dest``.
+ 
+-    Parameters
+-    ----------
+-    defaults: dict
+-        Default preferences.  Must not be mutated.
+-    overrides: dict
+-        User supplied overrides.  Must not be mutated.
++     ``dest`` is mutated and also returned for convenience.  All values
++     from ``src`` replace or extend those in ``dest``; nested dictionaries
++     are merged instead of overwritten.
++     """
++     for key, val in src.items():
++         if key in dest and isinstance(dest[key], dict) and isinstance(val, dict):
++             dest[key] = _merge_dicts(dest[key], val)
++         else:
++             dest[key] = copy.deepcopy(val)
++     return dest
+ 
+-    Returns
+-    -------
+-    dict
+-        A new dictionary containing values from ``defaults`` updated with
+-        ``overrides``.
+-    """
+-    # Start with a deep copy of defaults to avoid mutating nested objects.
+-    merged = copy.deepcopy(defaults)
+ 
+-    # Merge the ``notifications`` dict.
+-    overridden_notifications = overrides.get("notifications", {})
+-    # ``merged`` already contains a (deep‑copied) dict for ``notifications``.
+-    notifications = merged.setdefault("notifications", {})
+-    notifications.update(copy.deepcopy(overridden_notifications))
++ def merge_preferences(defaults: dict, overrides: dict) -> dict:
++     """Merge two preference dictionaries.
+ 
+-    # Merge the ``tags`` list.
+-    overridden_tags = overrides.get("tags", [])
+-    tags = merged.setdefault("tags", [])
+-    tags.extend(copy.deepcopy(overridden_tags))
++     Parameters
++     ----------
++     defaults: dict
++         Default preferences.  Must not be mutated.
++     overrides: dict
++         User supplied overrides.  Must not be mutated.
+ 
+-    # Merge any other keys.
+-    for key, value in overrides.items():
+-        if key not in {"notifications", "tags"}:
+-            merged[key] = copy.deepcopy(value)
++     Returns
++     -------
++     dict
++         A new dictionary containing values from ``defaults`` updated with
++         ``overrides``.
++     """
++     # Start with a deep copy of defaults to avoid mutating nested objects.
++     merged = copy.deepcopy(defaults)
+ 
+-    return merged
++     # Merge the ``notifications`` dict.
++     overridden_notifications = overrides.get("notifications", {})
++     notifications = merged.setdefault("notifications", {})
++     notifications.update(copy.deepcopy(overridden_notifications))
++
++     # Merge the ``tags`` list.
++     overridden_tags = overrides.get("tags", [])
++     tags = merged.setdefault("tags", [])
++     tags.extend(copy.deepcopy(overridden_tags))
++
++     # Merge any other keys, supporting nested dictionaries.
++     for key, value in overrides.items():
++         if key in {"notifications", "tags"}:
++             continue
++         if key in merged and isinstance(merged[key], dict) and isinstance(value, dict):
++             _merge_dicts(merged[key], value)
++         else:
++             merged[key] = copy.deepcopy(value)
++
++     return merged

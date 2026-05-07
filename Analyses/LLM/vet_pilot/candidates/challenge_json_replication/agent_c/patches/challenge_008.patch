@@ -1,0 +1,24 @@
+diff --git a/src/history.py b/src/history.py
+--- a/src/history.py
++++ b/src/history.py
+@@ -1,11 +1,16 @@
+ def recent_unique(items, limit):
++    # Return an empty list if the limit is non-positive.
+     if limit <= 0:
+         return []
+     seen = set()
+-    filtered_rev = []
++    # Keep unique items in reverse chronological order (most recent first).
++    kept_rev = []
+     for item in reversed(items):
+         if item not in seen:
+             seen.add(item)
+-            filtered_rev.append(item)
+-    filtered = list(reversed(filtered_rev))
+-    return filtered[-limit:]
++            kept_rev.append(item)
++            # Stop once we have collected the required number of items.
++            if len(kept_rev) == limit:
++                break
++    # Reverse to restore chronological order of the selected items.
++    return list(reversed(kept_rev))

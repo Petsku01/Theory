@@ -1,0 +1,26 @@
+diff --git a/src/backend_loader.py b/src/backend_loader.py
+--- a/src/backend_loader.py
++++ b/src/backend_loader.py
+@@ -8,17 +8,14 @@
+     Fully qualified module paths are imported as-is. Unknown names raise
+     ValueError.
+     """
+-    module = None
+     try:
+-        module = importlib.import_module(name)
+-    except ImportError:
+-        # Try resolving as a local backend
+-        try:
++        if "." in name:
++            module = importlib.import_module(name)
++        else:
+             module = importlib.import_module(f"src.backends.{name}")
+-        except ImportError as e:
+-            raise ValueError(f"Unknown backend '{name}'") from e
++    except ImportError as e:
++        raise ValueError(f"Unknown backend '{name}'") from e
+ 
+-    # Ensure the module contains a Backend class
+     if not hasattr(module, "Backend"):
+         raise ValueError(f"Backend '{name}' does not provide a Backend class")
+     return module.Backend()

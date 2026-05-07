@@ -1,0 +1,13 @@
+diff --git a/src/users.py b/src/users.py
+--- a/src/users.py
++++ b/src/users.py
+@@ -4,9 +4,6 @@
+ 
+ 
+ def normalize_username(username: str) -> str:
+-    # Reject usernames with leading or trailing whitespace
+-    if username != username.strip():
+-        raise ValueError("invalid username")
+     # Normalize to lowercase
+     candidate = username.lower()
+     if not USERNAME_RE.fullmatch(candidate):

@@ -1,0 +1,15 @@
+diff --git a/settings.py b/settings.py
+index 47e8ecf..e26b903 100644
+--- a/settings.py
++++ b/settings.py
+@@ -1,6 +1,7 @@
+ def parse_bool(value):
+-    if value == "true":
++    value = value.strip().lower()
++    if value == 'true':
+         return True
+-    if value == "false":
++    if value == 'false':
+         return False
+-    raise ValueError(f"invalid boolean: {value}")
++    raise ValueError(f'invalid boolean: {value}')

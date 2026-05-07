@@ -1,0 +1,11 @@
+task,n_runs,json_valid_rate,schema_usable_rate,patch_applied_rate,verified_solve_rate,solve_if_applied,false_completion_rate,recovery_observed_count,trajectory_use_observed_count
+challenge_001,8,1.0,1.0,0.5,0.5,1.0,0.0,0,0
+challenge_002,8,1.0,1.0,0.5,0.25,0.5,0.25,0,1
+challenge_003,8,1.0,1.0,0.5,0.375,0.75,0.125,1,1
+challenge_004,8,1.0,1.0,0.5,0.5,1.0,0.0,0,0
+challenge_005,8,1.0,1.0,0.5,0.5,1.0,0.0,0,0
+challenge_006,8,1.0,1.0,0.5,0.125,0.25,0.375,0,0
+challenge_007,8,1.0,1.0,0.5,0.5,1.0,0.0,0,0
+challenge_008,8,0.875,0.875,0.5,0.5,1.0,0.0,0,1
+challenge_009,8,1.0,1.0,0.5,0.5,1.0,0.0,0,0
+challenge_010,8,1.0,1.0,0.5,0.5,1.0,0.0,0,0

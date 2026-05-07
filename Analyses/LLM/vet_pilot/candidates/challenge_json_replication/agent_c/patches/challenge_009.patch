@@ -1,0 +1,28 @@
+diff --git a/src/timeouts.py b/src/timeouts.py
+--- a/src/timeouts.py
++++ b/src/timeouts.py
+@@ -1,4 +1,24 @@
++"""
++Utility to resolve a timeout value.
++
++The function returns `explicit` if it is provided, otherwise it falls back to
++`default`.  This allows callers to explicitly pass ``0`` as a timeout
++(which is a valid value) without it being treated as missing.
++
++Args:
++    explicit: The explicitly supplied timeout, or ``None`` if not supplied.
++    default: The default timeout to use when ``explicit`` is ``None``.
++
++Returns:
++    int: The resolved timeout value.
++"""
++
+ def resolve_timeout(explicit, default):
++    """Return the effective timeout value.
++
++    ``0`` is preserved as an explicit timeout, while ``None`` triggers use
++    of ``default``.
++    """
+     if explicit is None:
+         return default
+     return explicit

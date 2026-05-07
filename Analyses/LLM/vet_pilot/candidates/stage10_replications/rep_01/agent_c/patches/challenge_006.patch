@@ -1,0 +1,29 @@
+diff --git a/src/pricing.py b/src/pricing.py
+--- a/src/pricing.py
++++ b/src/pricing.py
+@@ -1,5 +1,22 @@
++from decimal import Decimal, ROUND_HALF_UP, InvalidOperation
++
+ def format_price(value) -> str:
++    """Format a numeric price value into a string with exactly two decimal places.
++
++    Handles ints, floats, strings, and :class:`decimal.Decimal` instances. Rounds
++    using the decimal library with ``ROUND_HALF_UP`` to match common financial
++    rounding rules.
++    """
+     try:
+-        return f"{float(value):.2f}"
+-    except (TypeError, ValueError) as exc:
+-        raise ValueError("invalid price") from exc
++        # Convert the input to a Decimal for precise arithmetic. Using ``str``
++        # ensures that floats are represented accurately and that strings are
++        # interpreted directly.
++        amount = Decimal(str(value))
++    except (TypeError, ValueError, InvalidOperation):
++        raise ValueError("invalid price")
++
++    # Quantize to two decimal places using ROUND_HALF_UP to handle values like
++    # 2.675 correctly (producing 2.68 instead of 2.67).
++    rounded = amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
++    # Return the formatted string without scientific notation.
++    return format(rounded, "f")

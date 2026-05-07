@@ -1,0 +1,16 @@
+diff --git a/src/preview.py b/src/preview.py
+--- a/src/preview.py
++++ b/src/preview.py
+@@ -1,6 +1,11 @@
+ def preview_text(text: str, limit: int) -> str:
+     if limit < 0:
+         raise ValueError("limit must be non-negative")
++    # If the text fits within the limit, return it unchanged
+     if len(text) <= limit:
+         return text
+-    return text[:limit] + "..."
++    # For very small limits (3 or less), we cannot add an ellipsis without exceeding the limit
++    if limit <= 3:
++        return text[:limit]
++    # Otherwise, truncate to limit-3 characters and add an ellipsis
++    return text[:limit - 3] + "..."

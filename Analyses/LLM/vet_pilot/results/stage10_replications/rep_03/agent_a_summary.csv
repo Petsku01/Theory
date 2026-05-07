@@ -1,0 +1,11 @@
+file,task,candidate,patch_applied,verified_solve,false_completion,failure_type,test_returncode,changed_files,duration_sec
+results\stage10_replications\rep_03\agent_a\challenge_001.json,challenge_001,candidates\stage10_replications\rep_03\agent_a\patches\challenge_001.patch,False,False,,patch_did_not_apply,,,0.05696439743041992
+results\stage10_replications\rep_03\agent_a\challenge_002.json,challenge_002,candidates\stage10_replications\rep_03\agent_a\patches\challenge_002.patch,True,True,False,,0,src/parsers.py;src/settings.py,0.5556507110595703
+results\stage10_replications\rep_03\agent_a\challenge_003.json,challenge_003,candidates\stage10_replications\rep_03\agent_a\patches\challenge_003.patch,False,False,,patch_did_not_apply,,,0.04872488975524902
+results\stage10_replications\rep_03\agent_a\challenge_004.json,challenge_004,candidates\stage10_replications\rep_03\agent_a\patches\challenge_004.patch,False,False,,patch_did_not_apply,,,0.05077195167541504
+results\stage10_replications\rep_03\agent_a\challenge_005.json,challenge_005,candidates\stage10_replications\rep_03\agent_a\patches\challenge_005.patch,False,False,,patch_did_not_apply,,,0.05003809928894043
+results\stage10_replications\rep_03\agent_a\challenge_006.json,challenge_006,candidates\stage10_replications\rep_03\agent_a\patches\challenge_006.patch,False,False,,patch_did_not_apply,,,0.049999237060546875
+results\stage10_replications\rep_03\agent_a\challenge_007.json,challenge_007,candidates\stage10_replications\rep_03\agent_a\patches\challenge_007.patch,True,True,False,,0,src/http_headers.py,0.450939416885376
+results\stage10_replications\rep_03\agent_a\challenge_008.json,challenge_008,candidates\stage10_replications\rep_03\agent_a\patches\challenge_008.patch,False,False,,patch_did_not_apply,,,0.05186200141906738
+results\stage10_replications\rep_03\agent_a\challenge_009.json,challenge_009,candidates\stage10_replications\rep_03\agent_a\patches\challenge_009.patch,False,False,,patch_did_not_apply,,,0.042414188385009766
+results\stage10_replications\rep_03\agent_a\challenge_010.json,challenge_010,candidates\stage10_replications\rep_03\agent_a\patches\challenge_010.patch,False,False,,patch_did_not_apply,,,0.044333696365356445

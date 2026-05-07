@@ -1,0 +1,17 @@
+{
+  "task": "challenge_009",
+  "candidate": "candidates\\stage10_replications\\rep_03\\agent_c\\patches\\challenge_009.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/timeouts.py"
+  ],
+  "stdout": "...                                                                      [100%]\n3 passed in 0.02s\n",
+  "stderr": "",
+  "duration_sec": 0.4585587978363037,
+  "diff": "diff --git a/src/timeouts.py b/src/timeouts.py\nindex f1dfa4a..922965a 100644\n--- a/src/timeouts.py\n+++ b/src/timeouts.py\n@@ -1,2 +1,8 @@\n def resolve_timeout(explicit, default):\n-    return explicit or default\n+    \"\"\"\n+    Resolve the timeout value.\n+\n+    If an explicit value is provided, it is returned verbatim (including 0).\n+    If explicit is None, the default is returned.\n+    \"\"\"\n+    return explicit if explicit is not None else default\n"
+}

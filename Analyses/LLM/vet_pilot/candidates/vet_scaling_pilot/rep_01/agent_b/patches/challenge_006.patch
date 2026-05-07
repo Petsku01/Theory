@@ -1,0 +1,16 @@
+diff --git a/src/pricing.py b/src/pricing.py
+--- a/src/pricing.py
++++ b/src/pricing.py
+@@ -1,5 +1,10 @@
++from decimal import Decimal, ROUND_HALF_UP
++
+ def format_price(value) -> str:
+     try:
+-        return f"{float(value):.2f}"
+-    except (TypeError, ValueError) as exc:
++        # Convert to Decimal and quantize to two decimal places using proper rounding
++        decimal_value = Decimal(str(value))
++        rounded_value = decimal_value.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
++        return f"{rounded_value:.2f}"
++    except (TypeError, ValueError, ArithmeticError) as exc:
+         raise ValueError("invalid price") from exc

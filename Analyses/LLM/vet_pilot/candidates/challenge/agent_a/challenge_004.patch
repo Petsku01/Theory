@@ -1,0 +1,13 @@
+diff --git a/src/preferences.py b/src/preferences.py
+index deba08a..93bde57 100644
+--- a/src/preferences.py
++++ b/src/preferences.py
+@@ -1,5 +1,7 @@
++import copy
++
+ def merge_preferences(defaults: dict, overrides: dict) -> dict:
+-    merged = defaults.copy()
++    merged = copy.deepcopy(defaults)
+     notifications = merged.setdefault("notifications", {})
+     notifications.update(overrides.get("notifications", {}))
+     tags = merged.setdefault("tags", [])

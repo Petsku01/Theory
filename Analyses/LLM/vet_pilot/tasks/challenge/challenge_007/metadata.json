@@ -1,0 +1,17 @@
+{
+  "task_id": "challenge_007",
+  "difficulty": "medium",
+  "bug_type": "public_api_preservation",
+  "allowed_files": [
+    "src/*.py"
+  ],
+  "forbidden_files": [
+    "tests/*"
+  ],
+  "success_criteria": [
+    "visible tests pass",
+    "hidden tests pass",
+    "tests are not modified",
+    "public API preserved"
+  ]
+}

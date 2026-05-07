@@ -1,0 +1,17 @@
+{
+  "task": "challenge_022",
+  "candidate": "C:\\Users\\Pette\\Downloads\\vet_pilot_experiment_package\\vet_pilot\\candidates\\vet_scaling_stage2\\rep_01\\agent_d\\patches\\challenge_022.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/events.py"
+  ],
+  "stdout": "..                                                                       [100%]\n2 passed in 0.02s\n",
+  "stderr": "",
+  "duration_sec": 0.5082368850708008,
+  "diff": "diff --git a/src/events.py b/src/events.py\nindex 22b478b..bf889d8 100644\n--- a/src/events.py\n+++ b/src/events.py\n@@ -1,5 +1,8 @@\n def take_ready_events(events):\n     ready = []\n-    while events and events[0][\"ready\"]:\n-        ready.append(events.pop(0))\n+    for event in events:\n+        if event[\"ready\"]:\n+            ready.append(event)\n+        else:\n+            break\n     return ready\n"
+}

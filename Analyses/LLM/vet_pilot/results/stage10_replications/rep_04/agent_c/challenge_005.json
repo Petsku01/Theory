@@ -1,0 +1,17 @@
+{
+  "task": "challenge_005",
+  "candidate": "candidates\\stage10_replications\\rep_04\\agent_c\\patches\\challenge_005.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/network.py"
+  ],
+  "stdout": "...                                                                      [100%]\n3 passed in 0.03s\n",
+  "stderr": "",
+  "duration_sec": 0.7129406929016113,
+  "diff": "diff --git a/src/network.py b/src/network.py\nindex 7540f16..7ffa51e 100644\n--- a/src/network.py\n+++ b/src/network.py\n@@ -1,4 +1,26 @@\n def parse_host_port(value: str, default_port: int = 80) -> tuple[str, int]:\n+    \"\"\"Parse a ``host:port`` string.\n+\n+    The function supports IPv6 addresses wrapped in brackets, e.g. ``[::1]:80``.\n+    The return value is a tuple ``(host, port)`` where ``host`` is a string\n+    without brackets and ``port`` is an integer.\n+    \"\"\"\n+    # Handle bracketed IPv6 (e.g. \"[::1]:80\" or \"[2001:db8::1]\").\n+    if value.startswith(\"[\"):\n+        close = value.find(\"]\")\n+        if close != -1:\n+            host = value[1:close]\n+            port_part = value[close + 1:]\n+            # If a colon follows the closing bracket, interpret the remainder as a port.\n+            if port_part.startswith(\":\"):\n+                port_text = port_part[1:]\n+                if port_text == \"\":\n+                    return host, default_port\n+                return host, int(port_text)\n+            # No port specified after the brackets.\n+            return host, default_port\n+\n+    # Fallback to the original simple host:port parsing logic.\n     host, sep, port_text = value.partition(\":\")\n     if not sep:\n         return value, default_port\n"
+}

@@ -1,0 +1,17 @@
+{
+  "task": "challenge_004",
+  "candidate": "candidates\\stage10_replications\\rep_04\\agent_c\\patches\\challenge_004.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/preferences.py"
+  ],
+  "stdout": "..                                                                       [100%]\n2 passed in 0.04s\n",
+  "stderr": "",
+  "duration_sec": 0.9152710437774658,
+  "diff": "diff --git a/src/preferences.py b/src/preferences.py\nindex deba08a..1e2141f 100644\n--- a/src/preferences.py\n+++ b/src/preferences.py\n@@ -1,10 +1,39 @@\n+import copy\n+\n def merge_preferences(defaults: dict, overrides: dict) -> dict:\n-    merged = defaults.copy()\n+    \"\"\"\n+    Merge two preference dictionaries.\n+\n+    The function returns a new dictionary that contains all keys from both\n+    `defaults` and `overrides`. Nested mutable structures from `defaults`\n+    are copied so that the original `defaults` dictionary is not modified.\n+\n+    Parameters\n+    ----------\n+    defaults : dict\n+        Default preference values.\n+    overrides : dict\n+        Override preference values.\n+\n+    Returns\n+    -------\n+    dict\n+        Merged preferences.\n+    \"\"\"\n+    # Create a deep copy of defaults to avoid mutating the original\n+    merged = copy.deepcopy(defaults)\n+\n+    # Merge notifications\n     notifications = merged.setdefault(\"notifications\", {})\n     notifications.update(overrides.get(\"notifications\", {}))\n+\n+    # Merge tags\n     tags = merged.setdefault(\"tags\", [])\n     tags.extend(overrides.get(\"tags\", []))\n+\n+    # Merge any other keys\n     for key, value in overrides.items():\n         if key not in {\"notifications\", \"tags\"}:\n             merged[key] = value\n+\n     return merged\n"
+}

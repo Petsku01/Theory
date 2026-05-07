@@ -1,0 +1,1 @@
+median should raise ValueError on an empty input instead of IndexError.

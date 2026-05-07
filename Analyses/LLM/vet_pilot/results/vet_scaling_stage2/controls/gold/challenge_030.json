@@ -1,0 +1,17 @@
+{
+  "task": "challenge_030",
+  "candidate": "C:\\Users\\Pette\\Downloads\\vet_pilot_experiment_package\\vet_pilot\\tasks\\challenge\\challenge_030\\gold.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/settings.py"
+  ],
+  "stdout": "...                                                                      [100%]\n3 passed in 0.03s\n",
+  "stderr": "",
+  "duration_sec": 0.5117478370666504,
+  "diff": "diff --git a/src/settings.py b/src/settings.py\nindex f1daf8d..b050ae0 100644\n--- a/src/settings.py\n+++ b/src/settings.py\n@@ -1,8 +1,20 @@\n DEFAULT_ENDPOINT = \"https://api.example.com\"\n \n \n+def _normalize_endpoint(value):\n+    if value is None:\n+        return None\n+    normalized = value.strip()\n+    if not normalized:\n+        return None\n+    return normalized.rstrip(\"/\")\n+\n+\n def load_endpoint(env, explicit=None):\n-    raw = env.get(\"APP_ENDPOINT\", explicit or DEFAULT_ENDPOINT)\n-    if not raw:\n-        return DEFAULT_ENDPOINT\n-    return raw.rstrip(\"/\")\n+    explicit_value = _normalize_endpoint(explicit)\n+    if explicit_value is not None:\n+        return explicit_value\n+    env_value = _normalize_endpoint(env.get(\"APP_ENDPOINT\"))\n+    if env_value is not None:\n+        return env_value\n+    return DEFAULT_ENDPOINT\n"
+}

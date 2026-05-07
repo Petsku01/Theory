@@ -1,0 +1,17 @@
+{
+  "task": "challenge_002",
+  "candidate": "candidates\\stage10_replications\\rep_01\\agent_c\\patches\\challenge_002.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/settings.py"
+  ],
+  "stdout": "...                                                                      [100%]\n3 passed in 0.02s\n",
+  "stderr": "",
+  "duration_sec": 0.49483466148376465,
+  "diff": "diff --git a/src/settings.py b/src/settings.py\nindex d76295c..31d5aeb 100644\n--- a/src/settings.py\n+++ b/src/settings.py\n@@ -1,16 +1,26 @@\n-from src.parsers import parse_optional_int\n+from src.parsers import parse_optional_int, parse_bool\n \n DEFAULTS = {\"debug\": False, \"port\": 8000, \"timeout\": 30}\n \n \n def load_settings(env: dict[str, str]) -> dict[str, object]:\n     settings = DEFAULTS.copy()\n+    # Handle APP_PORT\n     if \"APP_PORT\" in env:\n-        parsed_port = parse_optional_int(env[\"APP_PORT\"])\n-        if parsed_port is not None:\n-            settings[\"port\"] = parsed_port\n+        val = env[\"APP_PORT\"].strip()\n+        if val:\n+            parsed_port = parse_optional_int(val)\n+            if parsed_port is not None:\n+                settings[\"port\"] = parsed_port\n+    # Handle APP_TIMEOUT\n     if \"APP_TIMEOUT\" in env:\n-        settings[\"timeout\"] = env[\"APP_TIMEOUT\"]\n+        val = env[\"APP_TIMEOUT\"].strip()\n+        if val:\n+            parsed_timeout = parse_optional_int(val)\n+            settings[\"timeout\"] = parsed_timeout\n+    # Handle APP_DEBUG\n     if \"APP_DEBUG\" in env:\n-        settings[\"debug\"] = env[\"APP_DEBUG\"] == \"true\"\n+        val = env[\"APP_DEBUG\"].strip().lower()\n+        if val:\n+            settings[\"debug\"] = parse_bool(val)\n     return settings\n"
+}

@@ -1,0 +1,17 @@
+{
+  "task": "challenge_011",
+  "candidate": "C:\\Users\\Pette\\Downloads\\vet_pilot_experiment_package\\vet_pilot\\tasks\\challenge\\challenge_011\\gold.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/batches.py"
+  ],
+  "stdout": "..                                                                       [100%]\n2 passed in 0.03s\n",
+  "stderr": "",
+  "duration_sec": 0.5714492797851562,
+  "diff": "diff --git a/src/batches.py b/src/batches.py\nindex 1af4067..54c2128 100644\n--- a/src/batches.py\n+++ b/src/batches.py\n@@ -1,4 +1,4 @@\n def split_batches(items, size):\n-    if size == 0:\n-        return [list(items)]\n+    if size <= 0:\n+        raise ValueError(\"size must be positive\")\n     return [list(items[index:index + size]) for index in range(0, len(items), size)]\n"
+}

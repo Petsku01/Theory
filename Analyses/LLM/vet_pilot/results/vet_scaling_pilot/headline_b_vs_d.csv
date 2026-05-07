@@ -1,0 +1,5 @@
+metric,agent_b_final_patch,agent_d_full_trajectory,difference
+Verified solve,0.40,0.50,+0.10
+Patch applied,0.50,0.55,+0.05
+False completion,0.10,0.05,-0.05
+JSON valid,0.95,1.00,+0.05

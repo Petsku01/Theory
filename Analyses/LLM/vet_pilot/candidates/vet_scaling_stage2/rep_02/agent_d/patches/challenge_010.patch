@@ -1,0 +1,19 @@
+diff --git a/src/backend_loader.py b/src/backend_loader.py
+--- a/src/backend_loader.py
++++ b/src/backend_loader.py
+@@ -2,5 +2,14 @@
+ 
+ 
+ def load_backend(name: str):
+-    module = importlib.import_module(name)
++    try:
++        # First, try to import as a short name from the backends package
++        module = importlib.import_module(f"src.backends.{name}")
++    except ModuleNotFoundError:
++        try:
++            # If that fails, try importing as a fully qualified module path
++            module = importlib.import_module(name)
++        except ModuleNotFoundError:
++            # If both fail, raise ValueError as per requirements
++            raise ValueError(f"Unknown backend: {name}")
+     return module.Backend()

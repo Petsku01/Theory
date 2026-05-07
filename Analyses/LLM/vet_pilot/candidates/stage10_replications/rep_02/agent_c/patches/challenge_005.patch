@@ -1,0 +1,52 @@
+diff --git a/src/network.py b/src/network.py
+--- a/src/network.py
++++ b/src/network.py
+@@ -1,7 +1,46 @@
++"""
++Module providing network parsing utilities.
++"""
++
+ def parse_host_port(value: str, default_port: int = 80) -> tuple[str, int]:
+-    host, sep, port_text = value.partition(":")
++    """Parse a host and port string.
++
++    Supports simple hostnames, default ports, and bracketed IPv6 addresses.
++
++    Parameters
++    ----------
++    value : str
++        The host:port string to parse.
++    default_port : int, optional
++        The port to return if none is specified.
++
++    Returns
++    -------
++    tuple[str, int]
++        A tuple containing the host and the parsed port.
++    """
++    # Handle bracketed IPv6 addresses first
++    if value.startswith('['):
++        close_index = value.find(']')
++        if close_index != -1:
++            host = value[1:close_index]
++            rest = value[close_index + 1 :]
++            if rest.startswith(':'):
++                port_text = rest[1:]
++                if port_text:
++                    try:
++                        port = int(port_text)
++                    except ValueError:
++                        port = default_port
++                else:
++                    port = default_port
++                return host, port
++            else:
++                return host, default_port
++    # Fallback to simple parsing for non-bracketed hosts
++    host, sep, port_text = value.partition(':')
+     if not sep:
+         return value, default_port
+-    if port_text == "":
++    if port_text == '':
+         return host, default_port
+     return host, int(port_text)

@@ -1,0 +1,54 @@
+diff --git a/src/preferences.py b/src/preferences.py
+--- a/src/preferences.py
++++ b/src/preferences.py
+@@ -2,26 +2,38 @@
+ 
+ 
+ def merge_preferences(defaults: dict, overrides: dict) -> dict:
+-    \"\"\"Merge two preference dictionaries without mutating the input defaults.\n\n    Parameters
++    """Merge two preference dictionaries without mutating the input defaults.
++
++    Parameters
+     ----------
+     defaults: dict
+         The default preferences.
+     overrides: dict
+         Preference overrides that take precedence over defaults.
+-\n    Returns
++
++    Returns
+     -------
+     dict
+-        A new dictionary containing the merged preferences.\n    \"\"\"
+-    # Create a deep copy to avoid mutating defaults
++        A new dictionary containing the merged preferences.
++    """
++    # Start with a deep copy of defaults to avoid side effects
+     merged = copy.deepcopy(defaults)
+-    # Merge notifications
+-    notifications = merged.setdefault("notifications", {})
+-    notifications.update(overrides.get("notifications", {}))
+-    # Merge tags
+-    tags = merged.setdefault("tags", [])
+-    tags.extend(overrides.get("tags", []))
+-    # Merge other keys
++
++    # Merge notifications: combine dictionaries, creating new dicts
++    default_notifications = copy.deepcopy(defaults.get("notifications", {}))
++    override_notifications = copy.deepcopy(overrides.get("notifications", {}))
++    merged_notifications = {**default_notifications, **override_notifications}
++    merged["notifications"] = merged_notifications
++
++    # Merge tags: concatenate lists, creating new list
++    default_tags = copy.deepcopy(defaults.get("tags", []))
++    override_tags = copy.deepcopy(overrides.get("tags", []))
++    merged_tags = default_tags + override_tags
++    merged["tags"] = merged_tags
++
++    # Merge remaining keys, overwriting defaults where applicable
+     for key, value in overrides.items():
+         if key not in {"notifications", "tags"}:
+-            merged[key] = value
++            merged[key] = copy.deepcopy(value)
++
+     return merged

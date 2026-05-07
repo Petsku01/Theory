@@ -1,0 +1,13 @@
+diff --git a/src/preview.py b/src/preview.py
+--- a/src/preview.py
++++ b/src/preview.py
+@@ -3,4 +3,8 @@
+         raise ValueError("limit must be non-negative")
+     if len(text) <= limit:
+         return text
+-    return text[:limit] + "..."
++    # For limits 0 to 3, simply return the slice without ellipsis
++    if limit <= 3:
++        return text[:limit]
++    # For larger limits, truncate to (limit - 3) characters and append ellipsis
++    return text[:limit - 3] + "..."

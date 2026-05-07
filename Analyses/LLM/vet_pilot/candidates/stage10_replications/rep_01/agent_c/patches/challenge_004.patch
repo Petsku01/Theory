@@ -1,0 +1,58 @@
+diff --git a/src/preferences.py b/src/preferences.py
+--- a/src/preferences.py
++++ b/src/preferences.py
+@@ -1,29 +1,38 @@
+ import copy
++
+ 
+ def merge_preferences(defaults: dict, overrides: dict) -> dict:
+     """Merge user preferences with default preferences.
+ 
+-    The function returns a new dictionary that contains the merged
+-    preferences, without mutating the input dictionaries.  Nested
+-    structures are deep‑copied to ensure that changes to the returned
+-    object do not affect ``defaults`` or ``overrides``.
++    This function returns a completely new dictionary that contains the merged
++    preferences.  Neither ``defaults`` nor ``overrides`` are modified and the
++    nested state inside the result is independent of the inputs.
+     """
+-    # Create a deep copy of defaults so that modifications do not
+-    # affect the original mapping.
++    # Start with a deep copy of the defaults to avoid mutating the original.
+     merged = copy.deepcopy(defaults)
+ 
+-    # Merge notifications dictionary
+-    notifications = merged.setdefault("notifications", {})
+-    notifications.update(overrides.get("notifications", {}))
+-    merged["notifications"] = notifications
++    # Merge notifications – combine the default dict with any overrides.
++    default_notifications = merged.get("notifications", {})
++    overrides_notifications = overrides.get("notifications", {})
++    # Ensure we are working with our own copy of the defaults.
++    notifs = copy.deepcopy(default_notifications)
++    # Update with overrides, also deepcopy to avoid shared references.
++    notifs.update(copy.deepcopy(overrides_notifications))
++    merged["notifications"] = notifs
+ 
+-    # Merge tags list
+-    tags = merged.setdefault("tags", [])
+-    tags.extend(overrides.get("tags", []))
++    # Merge tags – concatenate the default list with any override list.
++    default_tags = merged.get("tags", [])
++    overrides_tags = overrides.get("tags", [])
++    tags = copy.deepcopy(default_tags)
++    tags.extend(copy.deepcopy(overrides_tags))
+     merged["tags"] = tags
+ 
+-    # Handle all other keys in overrides; they override the defaults.
++    # Merge any other keys – the value from overrides completely replaces the
++    # default value, but the override value itself is deep‑copied to avoid
++    # shared mutable objects.
+     for key, value in overrides.items():
+-        if key not in {"notifications", "tags"}:
+-            merged[key] = value
++        if key in {"notifications", "tags"}:
++            continue
++        merged[key] = copy.deepcopy(value)
++
+     return merged

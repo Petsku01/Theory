@@ -1,0 +1,14 @@
+diff --git a/src/timeouts.py b/src/timeouts.py
+--- a/src/timeouts.py
++++ b/src/timeouts.py
+@@ -1,2 +1,9 @@
+ def resolve_timeout(explicit, default):
+-    return explicit or default
++    """
++    Resolve the timeout value.
++    If `explicit` is provided (even if 0), return it.
++    Otherwise, return the `default`.
++    """
++    if explicit is None:
++        return default
++    return explicit

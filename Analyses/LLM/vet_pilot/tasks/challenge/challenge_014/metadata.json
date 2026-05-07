@@ -1,0 +1,17 @@
+{
+  "task_id": "challenge_014",
+  "difficulty": "hard",
+  "bug_type": "multi_file",
+  "allowed_files": [
+    "src/*.py"
+  ],
+  "forbidden_files": [
+    "tests/*"
+  ],
+  "success_criteria": [
+    "visible tests pass",
+    "hidden tests pass",
+    "tests are not modified",
+    "public API preserved"
+  ]
+}

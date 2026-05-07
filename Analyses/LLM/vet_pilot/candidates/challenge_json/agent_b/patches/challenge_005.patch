@@ -1,0 +1,42 @@
+diff --git a/src/network.py b/src/network.py
+--- a/src/network.py
++++ b/src/network.py
+@@ -1 +1,37 @@
+-<content>
++def parse_host_port(address, default_port=80):
++    """Parse a host and port from an address string.
++
++    Supports plain hostnames, IPv4, and bracketed IPv6 addresses.
++    Returns a tuple (host, port) where port is an int.
++    """
++    # Handle bracketed IPv6 addresses
++    if address.startswith('['):
++        end_idx = address.find(']')
++        if end_idx == -1:
++            raise ValueError("Invalid IPv6 address: missing closing bracket")
++        host = address[1:end_idx]
++        # Remaining part after ']' may include ':port'
++        rest = address[end_idx + 1:]
++        if rest.startswith(':'):
++            port_str = rest[1:]
++            if port_str != '':
++                port = int(port_str)
++            else:
++                port = default_port
++        elif rest == '':
++            port = default_port
++        else:
++            raise ValueError("Invalid address format after IPv6 host")
++        return host, port
++
++    # Non-bracketed addresses (hostname or IPv4)
++    if ':' in address:
++        host_part, port_part = address.rsplit(':', 1)
++        if port_part == '':
++            port = default_port
++        else:
++            port = int(port_part)
++        return host_part, port
++
++    # No port specified
++    return address, default_port

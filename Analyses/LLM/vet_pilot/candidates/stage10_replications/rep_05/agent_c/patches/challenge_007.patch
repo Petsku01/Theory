@@ -1,0 +1,31 @@
+diff --git a/src/http_headers.py b/src/http_headers.py
+--- a/src/http_headers.py
++++ b/src/http_headers.py
+@@ -1,6 +1,25 @@
++import copy
++
+ def build_headers(token, extra=None):
+-    # Create a new dictionary to avoid mutating caller-provided mapping
+-    headers = dict(extra) if extra else {}
++    """Build HTTP headers for an API request.
++
++    Parameters
++    ----------
++    token: str | None
++        Bearer token to use for authorization. If ``None`` or empty, the
++        ``Authorization`` header will not be added.
++    extra: Mapping | None
++        Optional mapping of additional headers to include. The mapping will
++        not be mutated; a deep copy is performed to avoid unintended side
++        effects on nested objects.
++
++    Returns
++    -------
++    dict
++        Dictionary containing the combined headers.
++    """
++    # Create a new dictionary to avoid mutating caller‑provided mapping
++    headers = copy.deepcopy(extra) if extra else {}
+     headers.setdefault("Accept", "application/json")
+     if token:
+         headers["Authorization"] = f"Bearer {token}"

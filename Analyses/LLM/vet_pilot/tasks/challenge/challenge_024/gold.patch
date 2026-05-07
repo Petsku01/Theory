@@ -1,0 +1,13 @@
+diff --git a/src/flatten.py b/src/flatten.py
+index 6f1c2f2..34829ca 100644
+--- a/src/flatten.py
++++ b/src/flatten.py
+@@ -1,7 +1,7 @@
+ def flatten_once(values):
+     flattened = []
+     for value in values:
+-        if isinstance(value, (list, tuple, str, bytes)):
++        if isinstance(value, (list, tuple)):
+             flattened.extend(value)
+         else:
+             flattened.append(value)

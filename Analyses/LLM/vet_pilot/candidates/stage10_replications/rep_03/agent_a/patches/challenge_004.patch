@@ -1,0 +1,51 @@
+diff --git a/src/preferences.py b/src/preferences.py
+--- a/src/preferences.py
++++ b/src/preferences.py
+@@ -1,30 +1,32 @@
++import copy
++
++
+ def merge_preferences(defaults: dict, overrides: dict) -> dict:
+     """Merge two preference dictionaries safely.
+ 
+-    Performs a shallow copy of :pycode:`defaults` and deep copies any mutable
+-    nested structures so the original inputs are never mutated. The return value
+-    contains the merged preferences.
++    Performs a deep copy of :pycode:`defaults` and merges :pycode:`overrides` into
++    it without mutating the original inputs. Nested mutable structures are
++    duplicated so that changes to the returned dictionary do not affect
++    ``defaults`` or ``overrides``.
+     """
+-    # Start with a shallow copy of defaults – nested structures must be
+-    # duplicated explicitly.
+-    merged = defaults.copy()
++    # Start with a deep copy so that all nested mutable objects are copied
++    merged = copy.deepcopy(defaults)
+ 
+-    # Handle notifications dict – create a copy of the default if present
+-    default_notifs = defaults.get("notifications", {})
+-    merged_notifs = default_notifs.copy()
+-    # Merge overrides into the copied notifications dict
++    # Handle "notifications" – merge into a new dictionary
++    default_notifs = merged.get("notifications", {})
++    merged_notifs = copy.deepcopy(default_notifs)
+     merged_notifs.update(overrides.get("notifications", {}))
+     merged["notifications"] = merged_notifs
+ 
+-    # Handle tags list – create a copy of the default if present
+-    default_tags = defaults.get("tags", [])
++    # Handle "tags" – merge into a new list
++    default_tags = merged.get("tags", [])
+     merged_tags = list(default_tags)
+-    # Extend with overrides tags
+     merged_tags.extend(overrides.get("tags", []))
+     merged["tags"] = merged_tags
+ 
+-    # Copy any other keys from overrides
++    # Copy any other keys from overrides, deep copying mutable values
+     for key, value in overrides.items():
+         if key not in {"notifications", "tags"}:
+-            merged[key] = value
++            merged[key] = copy.deepcopy(value)
++
+     return merged

@@ -1,0 +1,22 @@
+diff --git a/src/pathjoin.py b/src/pathjoin.py
+--- a/src/pathjoin.py
++++ b/src/pathjoin.py
+@@ -1,3 +1,16 @@
+ def join_segments(segments):
+-    cleaned = [segment.strip("/") for segment in segments if segment]
+-    return "/".join(cleaned)
++    if not segments:
++        return ""
++    
++    # Handle absolute paths starting with empty string
++    if segments[0] == "":
++        cleaned = ["", *[segment.strip("/") for segment in segments[1:] if segment]]
++        result = "/".join(cleaned)
++        # Avoid double slash at start
++        if result.startswith("//"):
++            result = result[1:]
++        return result
++    else:
++        # Relative paths
++        cleaned = [segment.strip("/") for segment in segments if segment]
++        return "/".join(cleaned)

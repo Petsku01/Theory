@@ -1,0 +1,5 @@
+file,task,candidate,patch_applied,verified_solve,false_completion,failure_type,test_returncode,changed_files,duration_sec
+results/challenge_json_repaired/agent_a\challenge_002.json,challenge_002,candidates\challenge_json_repaired\agent_a\patches\challenge_002.patch,False,False,,patch_did_not_apply,,,0.040625810623168945
+results/challenge_json_repaired/agent_a\challenge_004.json,challenge_004,candidates\challenge_json_repaired\agent_a\patches\challenge_004.patch,False,False,,patch_did_not_apply,,,0.040048837661743164
+results/challenge_json_repaired/agent_a\challenge_007.json,challenge_007,candidates\challenge_json_repaired\agent_a\patches\challenge_007.patch,False,False,,patch_did_not_apply,,,0.036873579025268555
+results/challenge_json_repaired/agent_a\challenge_008.json,challenge_008,candidates\challenge_json_repaired\agent_a\patches\challenge_008.patch,False,False,,patch_did_not_apply,,,0.04549551010131836

@@ -1,0 +1,17 @@
+{
+  "task": "challenge_003",
+  "candidate": "candidates\\stage10_replications\\rep_03\\agent_c\\patches\\challenge_003.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/preview.py"
+  ],
+  "stdout": "....                                                                     [100%]\n4 passed in 0.03s\n",
+  "stderr": "",
+  "duration_sec": 0.5003020763397217,
+  "diff": "diff --git a/src/preview.py b/src/preview.py\nindex 09f54fe..516017a 100644\n--- a/src/preview.py\n+++ b/src/preview.py\n@@ -1,6 +1,14 @@\n def preview_text(text: str, limit: int) -> str:\n+    \"\"\"\n+    Return a truncated preview of text at most limit characters long, adding an ellipsis\n+    when truncation occurs and the limit allows for it.\n+    \"\"\"\n     if limit < 0:\n         raise ValueError(\"limit must be non-negative\")\n     if len(text) <= limit:\n         return text\n-    return text[:limit] + \"...\"\n+    # If limit is too small to include ellipsis, return truncated text only\n+    if limit <= 3:\n+        return text[:limit]\n+    # Truncate to fit ellipsis\n+    return text[:limit - 3] + \"...\"\n"
+}

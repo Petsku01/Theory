@@ -1,0 +1,81 @@
+rep,task,condition,recovery_observed,trajectory_use_observed,evidence,notes
+rep_01,challenge_001,agent_a,,,,
+rep_01,challenge_001,agent_b,,,,
+rep_01,challenge_001,agent_c,,,,
+rep_01,challenge_001,agent_d,false,false,solved but Agent B also solved this replicate,No differential trajectory advantage is isolated on challenge_001
+rep_01,challenge_002,agent_a,,,,
+rep_01,challenge_002,agent_b,,,,
+rep_01,challenge_002,agent_c,,,,
+rep_01,challenge_002,agent_d,,,,
+rep_01,challenge_003,agent_a,false,false,no verified recovery signal in retained artifact,Instruction-only baseline ended with no effective change on challenge_003
+rep_01,challenge_003,agent_b,false,false,false completion with tests_failed and no retained recovery trace,Final-patch baseline applied a patch but did not verify the fix on challenge_003
+rep_01,challenge_003,agent_c,false,false,patch did not apply and no verified recovery signal is retained,Verified-lessons condition did not convert challenge_003 into a working patch
+rep_01,challenge_003,agent_d,true,true,used failed-attempt/verifier pattern to avoid shallow truncation fix,Agent D uniquely solved this replicate while Agents A B and C failed on challenge_003
+rep_01,challenge_004,agent_a,,,,
+rep_01,challenge_004,agent_b,,,,
+rep_01,challenge_004,agent_c,,,,
+rep_01,challenge_004,agent_d,false,false,solved but Agent B also solved this replicate,Tie with final-patch baseline on challenge_004
+rep_01,challenge_005,agent_a,,,,
+rep_01,challenge_005,agent_b,,,,
+rep_01,challenge_005,agent_c,,,,
+rep_01,challenge_005,agent_d,false,false,solved but Agent B also solved this replicate,Tie with final-patch baseline on challenge_005
+rep_01,challenge_006,agent_a,,,,
+rep_01,challenge_006,agent_b,,,,
+rep_01,challenge_006,agent_c,,,,
+rep_01,challenge_006,agent_d,,,,
+rep_01,challenge_007,agent_a,,,,
+rep_01,challenge_007,agent_b,,,,
+rep_01,challenge_007,agent_c,,,,
+rep_01,challenge_007,agent_d,,,,
+rep_01,challenge_008,agent_a,,,,
+rep_01,challenge_008,agent_b,,,,
+rep_01,challenge_008,agent_c,,,,
+rep_01,challenge_008,agent_d,false,true,Agent D solved while Agent B generation failed in the same replicate,Cross-condition contrast suggests full trajectories improved robustness on challenge_008
+rep_01,challenge_009,agent_a,,,,
+rep_01,challenge_009,agent_b,,,,
+rep_01,challenge_009,agent_c,,,,
+rep_01,challenge_009,agent_d,false,false,solved but Agent B also solved this replicate,Tie with final-patch baseline on challenge_009
+rep_01,challenge_010,agent_a,,,,
+rep_01,challenge_010,agent_b,,,,
+rep_01,challenge_010,agent_c,,,,
+rep_01,challenge_010,agent_d,,,,
+rep_02,challenge_001,agent_a,,,,
+rep_02,challenge_001,agent_b,,,,
+rep_02,challenge_001,agent_c,,,,
+rep_02,challenge_001,agent_d,,,,
+rep_02,challenge_002,agent_a,,,,
+rep_02,challenge_002,agent_b,false,false,false completion with tests_failed and no retained recovery trace,Final-patch baseline applied a patch but did not verify the fix on challenge_002
+rep_02,challenge_002,agent_c,,,,
+rep_02,challenge_002,agent_d,false,true,Agent D solved while Agent B false-completed in the same replicate,Cross-condition contrast suggests full trajectories reduced false completion on challenge_002
+rep_02,challenge_003,agent_a,false,false,no verified recovery signal in retained artifact,Instruction-only baseline ended with no effective change on challenge_003
+rep_02,challenge_003,agent_b,false,false,solved but no recovery trace is retained in the final-patch artifact,Final-patch baseline solved challenge_003 in rep_02
+rep_02,challenge_003,agent_c,false,false,no verified recovery signal in retained artifact,Verified-lessons condition ended with no effective change on challenge_003
+rep_02,challenge_003,agent_d,false,false,solved challenge_003 but Agent B also solved this replicate,Full-trajectory condition solved challenge_003 in rep_02 without a unique contrast signal
+rep_02,challenge_004,agent_a,,,,
+rep_02,challenge_004,agent_b,,,,
+rep_02,challenge_004,agent_c,,,,
+rep_02,challenge_004,agent_d,,,,
+rep_02,challenge_005,agent_a,,,,
+rep_02,challenge_005,agent_b,,,,
+rep_02,challenge_005,agent_c,,,,
+rep_02,challenge_005,agent_d,,,,
+rep_02,challenge_006,agent_a,,,,
+rep_02,challenge_006,agent_b,,,,
+rep_02,challenge_006,agent_c,,,,
+rep_02,challenge_006,agent_d,,,,
+rep_02,challenge_007,agent_a,,,,
+rep_02,challenge_007,agent_b,,,,
+rep_02,challenge_007,agent_c,,,,
+rep_02,challenge_007,agent_d,false,false,solved but Agent B also solved this replicate,Tie with final-patch baseline on challenge_007
+rep_02,challenge_008,agent_a,,,,
+rep_02,challenge_008,agent_b,,,,
+rep_02,challenge_008,agent_c,,,,
+rep_02,challenge_008,agent_d,,,,
+rep_02,challenge_009,agent_a,,,,
+rep_02,challenge_009,agent_b,,,,
+rep_02,challenge_009,agent_c,,,,
+rep_02,challenge_009,agent_d,,,,
+rep_02,challenge_010,agent_a,,,,
+rep_02,challenge_010,agent_b,,,,
+rep_02,challenge_010,agent_c,,,,
+rep_02,challenge_010,agent_d,false,false,solved but Agent B also solved this replicate,Tie with final-patch baseline on challenge_010

@@ -1,0 +1,17 @@
+{
+  "task": "challenge_007",
+  "candidate": "candidates\\challenge_json_replication\\agent_c\\patches\\challenge_007.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/http_headers.py"
+  ],
+  "stdout": "...                                                                      [100%]\n3 passed in 0.02s\n",
+  "stderr": "",
+  "duration_sec": 0.441403865814209,
+  "diff": "diff --git a/src/http_headers.py b/src/http_headers.py\nindex 65417cd..f17b5d6 100644\n--- a/src/http_headers.py\n+++ b/src/http_headers.py\n@@ -1,6 +1,9 @@\n def build_headers(token, extra=None):\n-    extra = extra or {}\n-    extra.setdefault(\"Accept\", \"application/json\")\n+    # Create a new dictionary to avoid mutating the caller's mapping\n+    new_headers = dict(extra or {})\n+    # Ensure the default Accept header is set only if not already present\n+    new_headers.setdefault(\"Accept\", \"application/json\")\n+    # Add the Authorization header in the correct Bearer format when a token is provided\n     if token:\n-        extra[\"Authorization\"] = token\n-    return extra\n+        new_headers[\"Authorization\"] = f\"Bearer {token}\"\n+    return new_headers\n"
+}

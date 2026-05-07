@@ -1,0 +1,17 @@
+{
+  "task": "challenge_010",
+  "candidate": "candidates\\stage10_replications\\rep_02\\agent_c\\patches\\challenge_010.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/backend_loader.py"
+  ],
+  "stdout": "...                                                                      [100%]\n3 passed in 0.04s\n",
+  "stderr": "",
+  "duration_sec": 0.4774308204650879,
+  "diff": "diff --git a/src/backend_loader.py b/src/backend_loader.py\nindex 647810d..9d5917a 100644\n--- a/src/backend_loader.py\n+++ b/src/backend_loader.py\n@@ -2,5 +2,17 @@ import importlib\n \n \n def load_backend(name: str):\n-    module = importlib.import_module(name)\n-    return module.Backend()\n+    \"\"\"Load a backend by name.\n+\n+    Supports short names referring to modules inside ``src.backends`` and fully\n+    qualified module paths.\n+    If the backend cannot be imported, a :class:`ValueError` is raised.\n+    \"\"\"\n+    try:\n+        if \".\" in name:\n+            module = importlib.import_module(name)\n+        else:\n+            module = importlib.import_module(f\"src.backends.{name}\")\n+        return module.Backend()\n+    except ImportError as exc:\n+        raise ValueError(f\"Unknown backend: {name}\") from exc\n"
+}

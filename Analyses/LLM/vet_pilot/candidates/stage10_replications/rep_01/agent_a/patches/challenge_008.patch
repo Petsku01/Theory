@@ -1,0 +1,28 @@
+diff --git a/src/history.py b/src/history.py
+--- a/src/history.py
++++ b/src/history.py
+@@ -1,11 +1,16 @@
+ def recent_unique(items, limit):
++    # Return up to limit most recent unique items, preserving the chronological order
+     if limit <= 0:
+         return []
+-    seen = set()
+-    result = []
+-    for item in items:
+-        if item in seen:
+-            continue
+-        seen.add(item)
+-        result.append(item)
+-    return result[-limit:]
++    # Determine the most recent index for each item
++    last_index = {}
++    for idx, item in enumerate(items):
++        last_index[item] = idx
++    # Sort items by their most recent index in descending order
++    recent_items = sorted(last_index.items(), key=lambda kv: kv[1], reverse=True)
++    # Take up to limit items
++    selected = recent_items[:limit]
++    # Sort the selected items by their most recent index in ascending order to preserve chronological order
++    selected_sorted = sorted(selected, key=lambda kv: kv[1])
++    # Extract the items
++    return [item for item, _ in selected_sorted]

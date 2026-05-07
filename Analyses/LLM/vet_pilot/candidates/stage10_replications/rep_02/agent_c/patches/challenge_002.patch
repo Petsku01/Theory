@@ -1,0 +1,48 @@
+diff --git a/src/parsers.py b/src/parsers.py
+--- a/src/parsers.py
++++ b/src/parsers.py
+@@ -1,12 +1,16 @@
+ def parse_bool(value: str) -> bool:
+-    if value == "true":
++    v = value.strip().lower()
++    if v == "true":
+         return True
+-    if value == "false":
++    if v == "false":
+         return False
+     raise ValueError(f"invalid boolean: {value}")
+ 
+ 
+ def parse_optional_int(value: str | None) -> int | None:
+-    if value is None or value == "":
++    if value is None:
+         return None
+-    return int(value)
++    v = value.strip()
++    if v == "":
++        return None
++    return int(v)
+
+diff --git a/src/settings.py b/src/settings.py
+--- a/src/settings.py
++++ b/src/settings.py
+@@ -1,4 +1,4 @@
+-from src.parsers import parse_optional_int
++from src.parsers import parse_optional_int, parse_bool
+ 
+ DEFAULTS = {"debug": False, "port": 8000, "timeout": 30}
+ 
+@@ -10,7 +10,11 @@
+         if parsed_port is not None:
+             settings["port"] = parsed_port
+     if "APP_TIMEOUT" in env:
+-        settings["timeout"] = env["APP_TIMEOUT"]
++        raw = env["APP_TIMEOUT"].strip()
++        if raw != "":
++            settings["timeout"] = int(raw)
+     if "APP_DEBUG" in env:
+-        settings["debug"] = env["APP_DEBUG"] == "true"
++        raw = env["APP_DEBUG"].strip()
++        if raw != "":
++            settings["debug"] = parse_bool(raw)
+     return settings

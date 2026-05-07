@@ -1,0 +1,37 @@
+diff --git a/src/pricing.py b/src/pricing.py
+--- a/src/pricing.py
++++ b/src/pricing.py
+@@ -1,5 +1,31 @@
++from decimal import Decimal, InvalidOperation
++
+ def format_price(value) -> str:
++    """Format a numeric value as a string with exactly two decimal places.
++
++    Parameters
++    ----------
++    value : int | str | Decimal
++        The value to format.  ``str`` and ``Decimal`` are parsed directly.
++        ``int`` values are converted to ``Decimal`` safely.
++
++    Returns
++    -------
++    str
++        The formatted value with two decimal places.
++
++    Raises
++    ------
++    ValueError
++        If *value* cannot be parsed as a number.
++    """
+     try:
+-        return f"{float(value):.2f}"
+-    except (TypeError, ValueError) as exc:
++        # Convert the input to a Decimal. ``Decimal`` handles int, str, and
++        # Decimal inputs natively; ``Decimal`` will raise ``InvalidOperation``
++        # for invalid strings.
++        d = Decimal(str(value)) if not isinstance(value, Decimal) else value
++        # Quantize to two decimal places using default rounding (half-even).
++        d = d.quantize(Decimal("0.01"))
++        return str(d)
++    except (TypeError, ValueError, InvalidOperation) as exc:
+         raise ValueError("invalid price") from exc

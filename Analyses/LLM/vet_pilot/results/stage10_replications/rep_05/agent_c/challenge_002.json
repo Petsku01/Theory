@@ -1,0 +1,12 @@
+{
+  "task": "challenge_002",
+  "candidate": "candidates\\stage10_replications\\rep_05\\agent_c\\patches\\challenge_002.patch",
+  "patch_applied": false,
+  "verified_solve": false,
+  "false_completion": null,
+  "failure_type": "patch_did_not_apply",
+  "test_returncode": null,
+  "stdout": "",
+  "stderr": "error: patch failed: src/settings.py:8\nerror: src/settings.py: patch does not apply\n",
+  "duration_sec": 0.052606821060180664
+}

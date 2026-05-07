@@ -1,0 +1,17 @@
+{
+  "task": "challenge_005",
+  "candidate": "candidates\\stage10_replications\\rep_03\\agent_b\\patches\\challenge_005.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/network.py"
+  ],
+  "stdout": "...                                                                      [100%]\n3 passed in 0.03s\n",
+  "stderr": "",
+  "duration_sec": 0.4888439178466797,
+  "diff": "diff --git a/src/network.py b/src/network.py\nindex 7540f16..2f77a4e 100644\n--- a/src/network.py\n+++ b/src/network.py\n@@ -1,7 +1,41 @@\n def parse_host_port(value: str, default_port: int = 80) -> tuple[str, int]:\n+    \"\"\"Parse a host and optional port string.\n+\n+    Supports plain ``host`` and ``host:port`` forms as well as\n+    IPv6 addresses surrounded by ``[]``.  ``value`` should be a string\n+    that contains a host name or IP and optionally a port.  If no\n+    port is specified, ``default_port`` is returned.\n+\n+    Examples\n+    --------\n+    >>> parse_host_port(\"example.com:443\")\n+    ('example.com', 443)\n+    >>> parse_host_port(\"[::1]:8080\")\n+    ('::1', 8080)\n+    >>> parse_host_port(\"[2001:db8::1]\")\n+    ('2001:db8::1', 80)\n+    \"\"\"\n+    # Handle IPv6 addresses written with brackets.\n+    if value.startswith(\"[\"):\n+        # Find the closing bracket.\n+        end_idx = value.find(\"]\")\n+        if end_idx == -1:\n+            # Malformed, fall back to the whole string as host.\n+            return value, default_port\n+        host = value[1:end_idx]\n+        remaining = value[end_idx + 1 :]\n+        if remaining.startswith(\":\"):\n+            port_text = remaining[1:]\n+        else:\n+            port_text = \"\"\n+        if not port_text:\n+            return host, default_port\n+        return host, int(port_text)\n+\n+    # Standard ``host`` or ``host:port`` format.\n     host, sep, port_text = value.partition(\":\")\n     if not sep:\n         return value, default_port\n-    if port_text == \"\":\n+    if not port_text:\n         return host, default_port\n     return host, int(port_text)\n"
+}

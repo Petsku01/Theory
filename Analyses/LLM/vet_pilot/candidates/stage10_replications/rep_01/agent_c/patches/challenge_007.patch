@@ -1,0 +1,35 @@
+diff --git a/src/http_headers.py b/src/http_headers.py
+--- a/src/http_headers.py
++++ b/src/http_headers.py
+@@ -1,12 +1,28 @@
+ def build_headers(token, extra=None):
+-    # Create a new headers mapping to avoid mutating the caller's `extra`
++    """Return a new headers mapping.
++
++    Parameters
++    ----------
++    token : Optional[str]
++        The authentication token. When provided, the mapping will include an
++        ``Authorization`` header in the ``Bearer`` format. If the token only
++        consists of whitespace, it is treated as empty and the header is not
++        added.
++    extra : Mapping, optional
++        Additional header key/value pairs to include. The supplied mapping is
++        not modified.
++    """
++    # Create a new headers mapping to avoid mutating the caller's ``extra``
+     headers = {}
+     if extra:
+         # Copy the provided mapping
+         headers.update(extra)
+     # Ensure the default Accept header is present
+     headers.setdefault("Accept", "application/json")
+-    # If a token is supplied, use the correct Bearer format
++    # If a token is supplied and is non‑whitespace, use the correct Bearer format
+     if token:
+-        headers["Authorization"] = f"Bearer {token}"
++        # Handle non‑string tokens by converting to string
++        token_str = token if not isinstance(token, str) else token.strip()
++        if token_str:
++            headers["Authorization"] = f"Bearer {token_str}"
+     return headers

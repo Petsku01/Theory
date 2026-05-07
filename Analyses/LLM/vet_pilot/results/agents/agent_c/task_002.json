@@ -1,0 +1,13 @@
+{
+  "task": "task_002",
+  "candidate": "C:\\Users\\Pette\\Downloads\\vet_pilot_experiment_package\\vet_pilot\\candidates\\agent_c\\task_002.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "test_returncode": 0,
+  "stdout": "..                                                                       [100%]\n2 passed in 0.02s\n",
+  "stderr": "",
+  "duration_sec": 0.42882776260375977,
+  "diff": "diff --git a/settings.py b/settings.py\nindex 47e8ecf..7a114ad 100644\n--- a/settings.py\n+++ b/settings.py\n@@ -1,4 +1,5 @@\n def parse_bool(value):\n+    value = value.strip().lower()\n     if value == \"true\":\n         return True\n     if value == \"false\":\n"
+}

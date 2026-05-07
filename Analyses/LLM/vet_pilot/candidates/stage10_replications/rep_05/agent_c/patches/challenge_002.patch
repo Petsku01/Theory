@@ -1,0 +1,40 @@
+diff --git a/src/settings.py b/src/settings.py
+--- a/src/settings.py
++++ b/src/settings.py
+@@ -8,20 +8,29 @@
+     port_env = env.get("APP_PORT")
+     if port_env is not None:
+         trimmed = port_env.strip()
+-        parsed_port = parse_optional_int(trimmed)
+-        if parsed_port is not None:
+-            settings["port"] = parsed_port
++        try:
++            parsed_port = parse_optional_int(trimmed)
++            if parsed_port is not None:
++                settings["port"] = parsed_port
++        except ValueError:
++            pass
+     # Parse APP_TIMEOUT
+     timeout_env = env.get("APP_TIMEOUT")
+     if timeout_env is not None:
+         trimmed = timeout_env.strip()
+-        parsed_timeout = parse_optional_int(trimmed)
+-        if parsed_timeout is not None:
+-            settings["timeout"] = parsed_timeout
++        try:
++            parsed_timeout = parse_optional_int(trimmed)
++            if parsed_timeout is not None:
++                settings["timeout"] = parsed_timeout
++        except ValueError:
++            pass
+     # Parse APP_DEBUG
+     debug_env = env.get("APP_DEBUG")
+     if debug_env is not None:
+         trimmed = debug_env.strip().lower()
+         if trimmed:
+-            settings["debug"] = parse_bool(trimmed)
++            try:
++                settings["debug"] = parse_bool(trimmed)
++            except ValueError:
++                pass
+     return settings

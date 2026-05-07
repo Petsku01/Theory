@@ -1,0 +1,13 @@
+diff --git a/src/blanklines.py b/src/blanklines.py
+index b420bea..46fccca 100644
+--- a/src/blanklines.py
++++ b/src/blanklines.py
+@@ -8,4 +8,7 @@ def collapse_blank_lines(text):
+             continue
+         collapsed.append(line)
+         previous_blank = blank
+-    return "\n".join(collapsed)
++    result = "\n".join(collapsed)
++    if text.endswith("\n"):
++        result += "\n"
++    return result

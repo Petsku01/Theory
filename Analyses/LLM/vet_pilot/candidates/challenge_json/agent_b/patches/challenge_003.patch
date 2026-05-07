@@ -1,0 +1,17 @@
+diff --git a/src/preview.py b/src/preview.py
+--- a/src/preview.py
++++ b/src/preview.py
+@@ -1,4 +1,13 @@
+ def preview_text(text: str, limit: int) -> str:
++    """Return a truncated preview of *text*.
++
++    If *text* is longer than *limit*, the result will be truncated to
++    ``limit`` characters *including* the ellipsis ``...``.
++    For very small limits (0, 1, 2) where the ellipsis cannot be
++    accommodated, the function simply returns a slice of *text*.
++    """
++    if not isinstance(limit, int):
++        raise TypeError("limit must be an integer")
+     if limit < 0:
+         raise ValueError("limit must be non-negative")
+     if len(text) <= limit:

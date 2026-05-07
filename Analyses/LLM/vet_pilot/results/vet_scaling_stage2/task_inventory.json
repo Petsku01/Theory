@@ -1,0 +1,212 @@
+[
+  {
+    "task_id": "challenge_001",
+    "difficulty": "medium",
+    "bug_type": "edge_case",
+    "category": "edge cases",
+    "summary": "The function `normalize_username` currently accepts usernames with leading or trailing spaces by stripping them before validation. That behavior is incorrect."
+  },
+  {
+    "task_id": "challenge_002",
+    "difficulty": "medium",
+    "bug_type": "multi_file",
+    "category": "multi-file bugs",
+    "summary": "Environment overrides in `load_settings` are not consistently parsed. Some values stay as strings, some bypass the shared parser helpers, and blank values should not overwrite defaults."
+  },
+  {
+    "task_id": "challenge_003",
+    "difficulty": "medium",
+    "bug_type": "misleading_obvious_fix",
+    "category": "misleading obvious fixes",
+    "summary": "`preview_text` adds an ellipsis when truncating, but the current implementation uses the requested limit incorrectly."
+  },
+  {
+    "task_id": "challenge_004",
+    "difficulty": "hard",
+    "bug_type": "state_mutation",
+    "category": "state mutation bugs",
+    "summary": "`merge_preferences` returns the right shape, but it mutates nested state from the defaults input while building the result."
+  },
+  {
+    "task_id": "challenge_005",
+    "difficulty": "hard",
+    "bug_type": "hidden_edge_case",
+    "category": "hidden edge cases",
+    "summary": "`parse_host_port` works for simple hostnames but mishandles bracketed IPv6 addresses."
+  },
+  {
+    "task_id": "challenge_006",
+    "difficulty": "hard",
+    "bug_type": "type_or_format",
+    "category": "type or format",
+    "summary": "`format_price` currently rounds by converting through `float`, which produces the wrong result for some decimal values."
+  },
+  {
+    "task_id": "challenge_007",
+    "difficulty": "medium",
+    "bug_type": "public_api_preservation",
+    "category": "public API preservation",
+    "summary": "`build_headers` is returning a mutated copy of the caller-provided `extra` mapping and uses the token in the wrong authorization format."
+  },
+  {
+    "task_id": "challenge_008",
+    "difficulty": "hard",
+    "bug_type": "regression_trap",
+    "category": "regression traps",
+    "summary": "`recent_unique` should keep the most recent occurrence of each item while preserving the chronological order of the kept items. The current implementation keeps the earliest occurrence instead."
+  },
+  {
+    "task_id": "challenge_009",
+    "difficulty": "medium",
+    "bug_type": "minimal_patch",
+    "category": "minimal patch",
+    "summary": "`resolve_timeout` treats `0` as if the caller had not provided a value. That is incorrect: `0` is a valid explicit timeout."
+  },
+  {
+    "task_id": "challenge_010",
+    "difficulty": "hard",
+    "bug_type": "dependency_or_config_behavior",
+    "category": "dependency/config behavior",
+    "summary": "`load_backend` uses a config value to import a backend implementation, but short backend names such as `memory` should resolve to the package-local backend modules. Unknown backends should raise `ValueError` instead of leaking import errors."
+  },
+  {
+    "task_id": "challenge_011",
+    "difficulty": "medium",
+    "bug_type": "edge_case",
+    "category": "edge cases",
+    "summary": "`split_batches` should reject non-positive batch sizes. The current implementation quietly returns incorrect output for `size == 0` and negative sizes."
+  },
+  {
+    "task_id": "challenge_012",
+    "difficulty": "medium",
+    "bug_type": "edge_case",
+    "category": "edge cases",
+    "summary": "`previous_month` does not handle the January rollover correctly. It currently stays in January instead of returning December of the previous year."
+  },
+  {
+    "task_id": "challenge_013",
+    "difficulty": "medium",
+    "bug_type": "edge_case",
+    "category": "edge cases",
+    "summary": "`format_port_range` should render a singleton range as a single port. The current implementation always returns `start-end`, even when both ends are the same port."
+  },
+  {
+    "task_id": "challenge_014",
+    "difficulty": "hard",
+    "bug_type": "multi_file",
+    "category": "multi-file bugs",
+    "summary": "The timeout key rename from `timeout` to `connect_timeout` is only partially applied. The helper still returns the old key and the request builder still looks up the old key."
+  },
+  {
+    "task_id": "challenge_015",
+    "difficulty": "hard",
+    "bug_type": "multi_file",
+    "category": "multi-file bugs",
+    "summary": "Tag normalization is inconsistent across files. `parse_tags` leaves whitespace and empty entries intact, and `normalize_tag_list` bypasses the shared parser helper entirely."
+  },
+  {
+    "task_id": "challenge_016",
+    "difficulty": "hard",
+    "bug_type": "multi_file",
+    "category": "multi-file bugs",
+    "summary": "Alias normalization is inconsistent across files. The helper keeps untrimmed targets, and the resolver rebuilds its own lookup instead of using the shared normalization path."
+  },
+  {
+    "task_id": "challenge_017",
+    "difficulty": "medium",
+    "bug_type": "misleading_obvious_fix",
+    "category": "misleading obvious fixes",
+    "summary": "`render_preview` should never exceed the requested character limit. The obvious slice-only fix is incomplete because very small limits cannot fit an ellipsis."
+  },
+  {
+    "task_id": "challenge_018",
+    "difficulty": "medium",
+    "bug_type": "misleading_obvious_fix",
+    "category": "misleading obvious fixes",
+    "summary": "`join_url` is collapsing every double slash, which also corrupts the `http://` and `https://` scheme separator. The fix needs to normalize boundaries without rewriting the scheme."
+  },
+  {
+    "task_id": "challenge_019",
+    "difficulty": "hard",
+    "bug_type": "misleading_obvious_fix",
+    "category": "misleading obvious fixes",
+    "summary": "`split_csv_line` uses a naive comma split. The bug is not just whitespace trimming: quoted commas must stay inside the same field."
+  },
+  {
+    "task_id": "challenge_020",
+    "difficulty": "medium",
+    "bug_type": "state_mutation",
+    "category": "state mutation bugs",
+    "summary": "`collect_recent` mutates the caller-provided history list. It should behave like a pure helper and return the recent view without changing the original list."
+  },
+  {
+    "task_id": "challenge_021",
+    "difficulty": "hard",
+    "bug_type": "state_mutation",
+    "category": "state mutation bugs",
+    "summary": "`merge_preferences` mutates nested dictionaries from the base configuration. The merged result should be a new structure that leaves the original inputs unchanged."
+  },
+  {
+    "task_id": "challenge_022",
+    "difficulty": "hard",
+    "bug_type": "state_mutation",
+    "category": "state mutation bugs",
+    "summary": "`take_ready_events` currently removes items from the input list as it collects the ready prefix. The function should return the ready events without mutating the caller's list."
+  },
+  {
+    "task_id": "challenge_023",
+    "difficulty": "medium",
+    "bug_type": "hidden_edge_case",
+    "category": "hidden edge cases",
+    "summary": "`parent_domain` mishandles fully-qualified hostnames with a trailing dot. The trailing dot should not leak into the parent domain result."
+  },
+  {
+    "task_id": "challenge_024",
+    "difficulty": "medium",
+    "bug_type": "hidden_edge_case",
+    "category": "hidden edge cases",
+    "summary": "`flatten_once` should flatten lists and tuples, but it should not explode strings or bytes into character-level output."
+  },
+  {
+    "task_id": "challenge_025",
+    "difficulty": "medium",
+    "bug_type": "hidden_edge_case",
+    "category": "hidden edge cases",
+    "summary": "`split_qualified_name` currently splits on the first dot. Qualified names with nested modules should split on the final dot instead."
+  },
+  {
+    "task_id": "challenge_026",
+    "difficulty": "medium",
+    "bug_type": "public_api_preservation",
+    "category": "public API preservation",
+    "summary": "`build_report` treats entries without an explicit `archived` flag as archived. Missing flags should behave like active entries, and the public function signature must stay unchanged."
+  },
+  {
+    "task_id": "challenge_027",
+    "difficulty": "medium",
+    "bug_type": "public_api_preservation",
+    "category": "public API preservation",
+    "summary": "`build_auth_header` should reject blank tokens after trimming and return a header without stray whitespace, while preserving the public API and default scheme."
+  },
+  {
+    "task_id": "challenge_028",
+    "difficulty": "hard",
+    "bug_type": "regression_trap",
+    "category": "regression traps",
+    "summary": "`join_segments` drops the leading root marker when the first segment is empty. The fix needs to preserve absolute paths without introducing duplicate separators."
+  },
+  {
+    "task_id": "challenge_029",
+    "difficulty": "hard",
+    "bug_type": "regression_trap",
+    "category": "regression traps",
+    "summary": "`collapse_blank_lines` loses the trailing newline whenever it normalizes a text block. The fix needs to preserve the previous no-extra-newline behavior for inputs that did not end with a newline."
+  },
+  {
+    "task_id": "challenge_030",
+    "difficulty": "hard",
+    "bug_type": "dependency_or_config_behavior",
+    "category": "dependency/config behavior",
+    "summary": "`load_endpoint` uses environment configuration even when an explicit endpoint is provided, and blank environment values still override the default path. Explicit configuration should win over environment configuration."
+  }
+]

@@ -1,0 +1,29 @@
+--- a/src/history.py
++++ b/src/history.py
+@@
+ def recent_unique(items, limit):
+-    if limit <= 0:
+-        return []
+-    seen = set()
+-    result = []
+-    for item in items:
+-        if item in seen:
+-            continue
+-        seen.add(item)
+-        result.append(item)
+-    return result[-limit:]
++    if limit <= 0:
++        return []
++    seen = set()
++    # Traverse the list in reverse to capture the most recent occurrence of each item
++    recent_rev = []
++    for item in reversed(items):
++        if item in seen:
++            continue
++        seen.add(item)
++        recent_rev.append(item)
++    # recent_rev contains items in order of most recent to least recent
++    # Select up to 'limit' most recent items
++    selected_rev = recent_rev[:limit]
++    # Reverse again to restore chronological order of the selected items
++    return list(reversed(selected_rev))

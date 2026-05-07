@@ -1,0 +1,24 @@
+# Example pilot task manifest.
+# Replace toy tasks with fresh real tasks for a credible experiment.
+
+tasks:
+  - id: task_001
+    path: tasks/toy/task_001
+    issue_file: issue.txt
+    visible_test_command: python -m pytest -q
+  - id: task_002
+    path: tasks/toy/task_002
+    issue_file: issue.txt
+    visible_test_command: python -m pytest -q
+  - id: task_003
+    path: tasks/toy/task_003
+    issue_file: issue.txt
+    visible_test_command: python -m pytest -q
+
+conditions:
+  - id: A
+    prompt: prompts/agent_a_instruction_only.md
+  - id: B
+    prompt: prompts/agent_b_final_patch.md
+  - id: C
+    prompt: prompts/agent_c_vet.md

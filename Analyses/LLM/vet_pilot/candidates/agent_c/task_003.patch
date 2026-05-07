@@ -1,0 +1,13 @@
+diff --git a/stats.py b/stats.py
+index dc47422..15dfc3d 100644
+--- a/stats.py
++++ b/stats.py
+@@ -1,6 +1,8 @@
+ def median(values):
+     values = sorted(values)
+     n = len(values)
++    if n == 0:
++        raise ValueError("median requires at least one value")
+     mid = n // 2
+     if n % 2:
+         return values[mid]

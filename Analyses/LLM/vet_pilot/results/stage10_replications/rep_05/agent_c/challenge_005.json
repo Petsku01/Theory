@@ -1,0 +1,17 @@
+{
+  "task": "challenge_005",
+  "candidate": "candidates\\stage10_replications\\rep_05\\agent_c\\patches\\challenge_005.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/network.py"
+  ],
+  "stdout": "...                                                                      [100%]\n3 passed in 0.02s\n",
+  "stderr": "",
+  "duration_sec": 0.47312307357788086,
+  "diff": "diff --git a/src/network.py b/src/network.py\nindex 7540f16..55102cd 100644\n--- a/src/network.py\n+++ b/src/network.py\n@@ -1,4 +1,29 @@\n def parse_host_port(value: str, default_port: int = 80) -> tuple[str, int]:\n+    \"\"\"Parse a host[:port] string.\n+\n+    Supports IPv6 addresses wrapped in brackets. The function returns a tuple\n+    of (host, port). Brackets are stripped from the host part. If a port is\n+    not specified the `default_port` is used.\n+    \"\"\"\n+    # Handle IPv6 addresses enclosed in brackets.\n+    if value.startswith(\"[\"):\n+        # Find the closing bracket.\n+        end_idx = value.find(\"]\")\n+        if end_idx == -1:\n+            # Malformed input \u00e2\u20ac\u201c fall back to the default behavior.\n+            host_part = value\n+            port_text = \"\"\n+        else:\n+            host_part = value[1:end_idx]\n+            rest = value[end_idx + 1:]\n+            if rest.startswith(\":\"):\n+                port_text = rest[1:]\n+            else:\n+                port_text = \"\"\n+        if port_text == \"\":\n+            return host_part, default_port\n+        return host_part, int(port_text)\n+    # Non\u00e2\u20ac\u2018bracketed input.\n     host, sep, port_text = value.partition(\":\")\n     if not sep:\n         return value, default_port\n"
+}

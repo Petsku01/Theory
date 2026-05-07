@@ -1,0 +1,13 @@
+diff --git a/src/csvline.py b/src/csvline.py
+--- a/src/csvline.py
++++ b/src/csvline.py
+@@ -1,2 +1,8 @@
++import csv
++
+ def split_csv_line(line):
+-    return [part.strip() for part in line.split(",")]
++    reader = csv.reader([line])
++    rows = list(reader)
++    if not rows:
++        return []
++    return rows[0]

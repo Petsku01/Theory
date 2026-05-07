@@ -1,0 +1,13 @@
+diff --git a/src/network.py b/src/network.py
+--- a/src/network.py
++++ b/src/network.py
+@@ -24,5 +24,8 @@
+         if not sep:
+             port_text = ''
+     if port_text:
+-        return host, int(port_text)
++        try:
++            return host, int(port_text)
++        except ValueError:
++            return host, default_port
+     return host, default_port

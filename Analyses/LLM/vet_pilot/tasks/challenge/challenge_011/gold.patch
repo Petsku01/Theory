@@ -1,0 +1,11 @@
+diff --git a/src/batches.py b/src/batches.py
+index 1af4067..54c2128 100644
+--- a/src/batches.py
++++ b/src/batches.py
+@@ -1,4 +1,4 @@
+ def split_batches(items, size):
+-    if size == 0:
+-        return [list(items)]
++    if size <= 0:
++        raise ValueError("size must be positive")
+     return [list(items[index:index + size]) for index in range(0, len(items), size)]

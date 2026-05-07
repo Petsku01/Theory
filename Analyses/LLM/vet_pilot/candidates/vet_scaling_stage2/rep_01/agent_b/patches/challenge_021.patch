@@ -1,0 +1,11 @@
+diff --git a/src/preferences.py b/src/preferences.py
+--- a/src/preferences.py
++++ b/src/preferences.py
+@@ -2,6 +2,7 @@
+     result = dict(base)
+     for key, value in overrides.items():
+         if isinstance(result.get(key), dict) and isinstance(value, dict):
++            result[key] = dict(result[key])
+             result[key].update(value)
+         else:
+             result[key] = value

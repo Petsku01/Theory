@@ -1,0 +1,12 @@
+{
+  "task": "challenge_009",
+  "candidate": "candidates\\challenge_json_replication\\agent_c\\patches\\challenge_009.patch",
+  "patch_applied": false,
+  "verified_solve": false,
+  "false_completion": null,
+  "failure_type": "patch_did_not_apply",
+  "test_returncode": null,
+  "stdout": "",
+  "stderr": "C:/Users/Pette/Downloads/vet_pilot_experiment_package/vet_pilot/candidates/challenge_json_replication/agent_c/patches/challenge_009.patch:5: trailing whitespace.\n\"\"\"\nC:/Users/Pette/Downloads/vet_pilot_experiment_package/vet_pilot/candidates/challenge_json_replication/agent_c/patches/challenge_009.patch:6: trailing whitespace.\nUtility to resolve a timeout value.\nC:/Users/Pette/Downloads/vet_pilot_experiment_package/vet_pilot/candidates/challenge_json_replication/agent_c/patches/challenge_009.patch:7: trailing whitespace.\n\nC:/Users/Pette/Downloads/vet_pilot_experiment_package/vet_pilot/candidates/challenge_json_replication/agent_c/patches/challenge_009.patch:8: trailing whitespace.\nThe function returns `explicit` if it is provided, otherwise it falls back to\nC:/Users/Pette/Downloads/vet_pilot_experiment_package/vet_pilot/candidates/challenge_json_replication/agent_c/patches/challenge_009.patch:9: trailing whitespace.\n`default`.  This allows callers to explicitly pass ``0`` as a timeout\nerror: patch failed: src/timeouts.py:1\nerror: src/timeouts.py: patch does not apply\n",
+  "duration_sec": 0.050543785095214844
+}

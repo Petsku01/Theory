@@ -1,0 +1,19 @@
+diff --git a/src/network.py b/src/network.py
+--- a/src/network.py
++++ b/src/network.py
+@@ -15,9 +15,10 @@
+             return host, default_port
+     else:
+         # Handle normal host:port
+-        host, sep, port_text = value.partition(":")
+-        if not sep:
++        if ':' in value:
++            host, port_text = value.rsplit(':', 1)
++            if port_text == "":
++                return host, default_port
++            return host, int(port_text)
++        else:
+             return value, default_port
+-        if port_text == "":
+-            return host, default_port
+-        return host, int(port_text)

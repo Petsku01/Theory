@@ -1,0 +1,37 @@
+diff --git a/src/backend_loader.py b/src/backend_loader.py
+--- a/src/backend_loader.py
++++ b/src/backend_loader.py
+@@ -5,15 +5,26 @@
+     """Load a backend module by name or short alias.
+ 
+     If *name* is a short backend name such as ``"memory"``, it attempts
+-    to import ``src.backends.<name>``.  Fully qualified module paths are
+-    also supported.  Unknown backends raise :class:`ValueError`.
++    to import ``src.backends.<name>``.  Fully qualified module paths
++    are also supported.  Unknown backends raise :class:`ValueError`.
+     """
+-    try:
+-        return importlib.import_module(name).Backend()
+-    except ImportError:
+-        # Try the package‑local name.
++    # If the name contains a dot, treat it as a full module path.
++    if "." in name:
++        try:
++            module = importlib.import_module(name)
++        except ImportError as e:
++            # Import error for fully qualified name: unknown backend.
++            raise ValueError(f"Backend '{name}' not found") from e
++    else:
++        # Only try package‑local name for short aliases.
+         pkg_name = f"src.backends.{name}"
+         try:
+-            return importlib.import_module(pkg_name).Backend()
++            module = importlib.import_module(pkg_name)
+         except ImportError as e:
+             raise ValueError(f"Backend '{name}' not found") from e
++
++    try:
++        return module.Backend()
++    except AttributeError as e:
++        # Backend class not defined in the module
++        raise ValueError(f"Backend '{name}' does not define a 'Backend' class") from e

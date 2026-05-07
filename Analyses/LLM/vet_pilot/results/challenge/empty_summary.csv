@@ -1,0 +1,11 @@
+file,task,candidate,patch_applied,verified_solve,false_completion,failure_type,test_returncode,changed_files,duration_sec
+c:/Users/Pette/Downloads/vet_pilot_experiment_package/vet_pilot/results/challenge\challenge_001_empty.json,challenge_001,results\challenge\empty.patch,False,False,,patch_did_not_apply,,,0.037194252014160156
+c:/Users/Pette/Downloads/vet_pilot_experiment_package/vet_pilot/results/challenge\challenge_002_empty.json,challenge_002,results\challenge\empty.patch,False,False,,patch_did_not_apply,,,0.034354209899902344
+c:/Users/Pette/Downloads/vet_pilot_experiment_package/vet_pilot/results/challenge\challenge_003_empty.json,challenge_003,results\challenge\empty.patch,False,False,,patch_did_not_apply,,,0.03586769104003906
+c:/Users/Pette/Downloads/vet_pilot_experiment_package/vet_pilot/results/challenge\challenge_004_empty.json,challenge_004,results\challenge\empty.patch,False,False,,patch_did_not_apply,,,0.03676795959472656
+c:/Users/Pette/Downloads/vet_pilot_experiment_package/vet_pilot/results/challenge\challenge_005_empty.json,challenge_005,results\challenge\empty.patch,False,False,,patch_did_not_apply,,,0.03285479545593262
+c:/Users/Pette/Downloads/vet_pilot_experiment_package/vet_pilot/results/challenge\challenge_006_empty.json,challenge_006,results\challenge\empty.patch,False,False,,patch_did_not_apply,,,0.033522844314575195
+c:/Users/Pette/Downloads/vet_pilot_experiment_package/vet_pilot/results/challenge\challenge_007_empty.json,challenge_007,results\challenge\empty.patch,False,False,,patch_did_not_apply,,,0.03328108787536621
+c:/Users/Pette/Downloads/vet_pilot_experiment_package/vet_pilot/results/challenge\challenge_008_empty.json,challenge_008,results\challenge\empty.patch,False,False,,patch_did_not_apply,,,0.03322792053222656
+c:/Users/Pette/Downloads/vet_pilot_experiment_package/vet_pilot/results/challenge\challenge_009_empty.json,challenge_009,results\challenge\empty.patch,False,False,,patch_did_not_apply,,,0.03514528274536133
+c:/Users/Pette/Downloads/vet_pilot_experiment_package/vet_pilot/results/challenge\challenge_010_empty.json,challenge_010,results\challenge\empty.patch,False,False,,patch_did_not_apply,,,0.03605937957763672

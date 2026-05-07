@@ -1,0 +1,12 @@
+diff --git a/src/settings.py b/src/settings.py
+--- a/src/settings.py
++++ b/src/settings.py
+@@ -13,5 +13,7 @@
+         if parsed_timeout is not None:
+             settings["timeout"] = parsed_timeout
+     if "APP_DEBUG" in env:
+-        settings["debug"] = parse_bool(env["APP_DEBUG"].strip())
++        raw_value = env["APP_DEBUG"].strip()
++        if raw_value:
++            settings["debug"] = parse_bool(raw_value)
+     return settings

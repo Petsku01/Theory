@@ -1,0 +1,35 @@
+diff --git a/src/preferences.py b/src/preferences.py
+--- a/src/preferences.py
++++ b/src/preferences.py
+@@ -7,6 +7,9 @@
+     The function returns a new dictionary that contains all keys from both
+     `defaults` and `overrides`. Nested mutable structures from `defaults`
+     are copied so that the original `defaults` dictionary is not modified.
++    This implementation also ensures that modifications to nested structures
++    in the result do not affect other keys that may share the same nested
++    objects in the original defaults.
+ 
+     Parameters
+     ----------
+@@ -23,13 +26,15 @@
+     # Create a deep copy of defaults to avoid mutating the original
+     merged = copy.deepcopy(defaults)
+ 
+-    # Merge notifications
+-    notifications = merged.setdefault("notifications", {})
+-    notifications.update(overrides.get("notifications", {}))
++    # Merge notifications - create a fresh dict to avoid sharing nested objects
++    default_notifs = merged.get("notifications", {})
++    override_notifs = overrides.get("notifications", {})
++    merged["notifications"] = {**default_notifs, **override_notifs}
+ 
+-    # Merge tags
+-    tags = merged.setdefault("tags", [])
+-    tags.extend(overrides.get("tags", []))
++    # Merge tags - create a fresh list to avoid sharing nested objects
++    default_tags = merged.get("tags", [])
++    override_tags = overrides.get("tags", [])
++    merged["tags"] = default_tags + override_tags
+ 
+     # Merge any other keys
+     for key, value in overrides.items():

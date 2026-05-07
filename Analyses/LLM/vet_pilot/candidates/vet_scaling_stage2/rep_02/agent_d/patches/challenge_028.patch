@@ -1,0 +1,17 @@
+diff --git a/src/pathjoin.py b/src/pathjoin.py
+--- a/src/pathjoin.py
++++ b/src/pathjoin.py
+@@ -1,3 +1,11 @@
+ def join_segments(segments):
+-    cleaned = [segment.strip("/") for segment in segments if segment]
+-    return "/".join(cleaned)
++    if not segments:
++        return ""
++    if segments[0] == "":
++        # Absolute path: start with root
++        cleaned = ["" if i == 0 else segment.strip("/") for i, segment in enumerate(segments) if segment or i == 0]
++        return "/".join(cleaned)
++    else:
++        # Relative path: remove empty segments and strip slashes
++        cleaned = [segment.strip("/") for segment in segments if segment]
++        return "/".join(cleaned)

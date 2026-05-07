@@ -1,0 +1,23 @@
+condition,task,original_failure,subtype,candidate_state,candidate_bytes,run_status,run_exit_code,notes
+agent_a,challenge_001,patch_did_not_apply,interactive_loop_no_final_patch,empty,0,,,Interactive loop executed 4 shell commands but never produced a final patch; parse misses=11.
+agent_a,challenge_002,tests_failed,semantic_fix_incomplete,nonempty,1241,,,Patch applied but at least one behavioral test still failed.
+agent_a,challenge_007,patch_did_not_apply,interactive_loop_no_final_patch,empty,0,,,Interactive loop executed 4 shell commands but never produced a final patch; parse misses=11.
+agent_a,challenge_008,patch_did_not_apply,interactive_loop_no_final_patch,empty,0,,,Interactive loop executed 4 shell commands but never produced a final patch; parse misses=11.
+agent_a,challenge_010,syntax_error,invalid_python_after_patch,nonempty,613,,,"Patch applied, but the resulting code did not parse or import cleanly."
+agent_b,challenge_001,patch_did_not_apply,interactive_loop_no_final_patch,empty,0,,,Interactive loop executed 6 shell commands but never produced a final patch; parse misses=9.
+agent_b,challenge_002,patch_did_not_apply,backend_or_transport_error,empty,0,agent_loop_failed,1,Wrapper recorded agent_loop_failed with exit code 1 before any patch was written.
+agent_b,challenge_003,patch_did_not_apply,backend_or_transport_error,empty,0,agent_loop_failed,1,Wrapper recorded agent_loop_failed with exit code 1 before any patch was written.
+agent_b,challenge_004,patch_did_not_apply,backend_timeout_or_wrapper_kill,empty,0,agent_loop_failed,-1,Wrapper recorded agent_loop_failed with exit code -1 before any patch was written.
+agent_b,challenge_005,patch_did_not_apply,backend_timeout_or_wrapper_kill,empty,0,agent_loop_failed,-1,Wrapper recorded agent_loop_failed with exit code -1 before any patch was written.
+agent_b,challenge_006,patch_did_not_apply,backend_timeout_or_wrapper_kill,empty,0,agent_loop_failed,-1,Wrapper recorded agent_loop_failed with exit code -1 before any patch was written.
+agent_b,challenge_007,patch_did_not_apply,backend_or_transport_error,empty,0,agent_loop_failed,1,Wrapper recorded agent_loop_failed with exit code 1 before any patch was written.
+agent_b,challenge_008,patch_did_not_apply,backend_timeout_or_wrapper_kill,empty,0,agent_loop_failed,-1,Wrapper recorded agent_loop_failed with exit code -1 before any patch was written.
+agent_b,challenge_009,patch_did_not_apply,backend_timeout_or_wrapper_kill,empty,0,agent_loop_failed,-1,Wrapper recorded agent_loop_failed with exit code -1 before any patch was written.
+agent_b,challenge_010,patch_did_not_apply,backend_timeout_or_wrapper_kill,empty,0,agent_loop_failed,-1,Wrapper recorded agent_loop_failed with exit code -1 before any patch was written.
+agent_c,challenge_001,patch_did_not_apply,backend_or_transport_error,empty,0,agent_loop_failed,1,Wrapper recorded agent_loop_failed with exit code 1 before any patch was written.
+agent_c,challenge_002,patch_did_not_apply,backend_timeout_or_wrapper_kill,empty,0,agent_loop_failed,-1,Wrapper recorded agent_loop_failed with exit code -1 before any patch was written.
+agent_c,challenge_003,patch_did_not_apply,backend_timeout_or_wrapper_kill,empty,0,agent_loop_failed,-1,Wrapper recorded agent_loop_failed with exit code -1 before any patch was written.
+agent_c,challenge_004,patch_did_not_apply,backend_timeout_or_wrapper_kill,empty,0,agent_loop_failed,-1,Wrapper recorded agent_loop_failed with exit code -1 before any patch was written.
+agent_c,challenge_005,patch_did_not_apply,backend_timeout_or_wrapper_kill,empty,0,agent_loop_failed,-1,Wrapper recorded agent_loop_failed with exit code -1 before any patch was written.
+agent_c,challenge_009,patch_did_not_apply,backend_timeout_or_wrapper_kill,empty,0,agent_loop_failed,-1,Wrapper recorded agent_loop_failed with exit code -1 before any patch was written.
+agent_c,challenge_010,patch_did_not_apply,backend_timeout_or_wrapper_kill,empty,0,agent_loop_failed,-1,Wrapper recorded agent_loop_failed with exit code -1 before any patch was written.

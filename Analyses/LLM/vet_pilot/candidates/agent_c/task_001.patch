@@ -1,0 +1,10 @@
+diff --git a/textutils.py b/textutils.py
+index 583e147..d3fc57e 100644
+--- a/textutils.py
++++ b/textutils.py
+@@ -3,4 +3,5 @@ import re
+ def slugify(text):
+     text = text.lower().strip()
+     text = re.sub(r"[^a-z0-9]+", "-", text)
++    text = re.sub(r"-+", "-", text).strip("-")
+     return text

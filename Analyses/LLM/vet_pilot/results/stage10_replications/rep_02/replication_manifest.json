@@ -1,0 +1,67 @@
+{
+  "model": "gpt-oss:20b-cloud",
+  "model_transport": "ollama-cli",
+  "tasks": [
+    "challenge_001",
+    "challenge_002",
+    "challenge_003",
+    "challenge_004",
+    "challenge_005",
+    "challenge_006",
+    "challenge_007",
+    "challenge_008",
+    "challenge_009",
+    "challenge_010"
+  ],
+  "conditions": [
+    "agent_b",
+    "agent_c",
+    "agent_a"
+  ],
+  "results_root": "results\\stage10_replications\\rep_02",
+  "candidates_root": "candidates\\stage10_replications\\rep_02",
+  "runs": [
+    {
+      "condition": "agent_b",
+      "step": "run_json_rerun",
+      "returncode": 0,
+      "stdout": "[\n  {\n    \"task\": \"challenge_001\",\n    \"status\": \"skipped\",\n    \"result\": \"results\\\\stage10_replications\\\\rep_02\\\\agent_b\\\\challenge_001.json\"\n  },\n  {\n    \"task\": \"challenge_002\",\n    \"status\": \"skipped\",\n    \"result\": \"results\\\\stage10_replications\\\\rep_02\\\\agent_b\\\\challenge_002.json\"\n  },\n  {\n    \"task\": \"challenge_003\",\n    \"status\": \"skipped\",\n    \"result\": \"results\\\\stage10_replications\\\\rep_02\\\\agent_b\\\\challenge_003.json\"\n  },\n  {\n    \"task\": \"challenge_004\",\n    \"status\": \"skipped\",\n    \"result\": \"results\\\\stage10_replications\\\\rep_02\\\\agent_b\\\\challenge_004.json\"\n  },\n  {\n    \"task\": \"challenge_005\",\n    \"status\": \"skipped\",\n    \"result\": \"results\\\\stage10_replications\\\\rep_02\\\\agent_b\\\\challenge_005.json\"\n  },\n  {\n    \"task\": \"challenge_006\",\n    \"status\": \"skipped\",\n    \"result\": \"results\\\\stage10_replications\\\\rep_02\\\\agent_b\\\\challenge_006.json\"\n  },\n  {\n    \"task\": \"challenge_007\",\n    \"status\": \"skipped\",\n    \"result\": \"results\\\\stage10_replications\\\\rep_02\\\\agent_b\\\\challenge_007.json\"\n  },\n  {\n    \"task\": \"challenge_008\",\n    \"status\": \"skipped\",\n    \"result\": \"results\\\\stage10_replications\\\\rep_02\\\\agent_b\\\\challenge_008.json\"\n  },\n  {\n    \"task\": \"challenge_009\",\n    \"status\": \"skipped\",\n    \"result\": \"results\\\\stage10_replications\\\\rep_02\\\\agent_b\\\\challenge_009.json\"\n  },\n  {\n    \"task\": \"challenge_010\",\n    \"status\": \"skipped\",\n    \"result\": \"results\\\\stage10_replications\\\\rep_02\\\\agent_b\\\\challenge_010.json\"\n  }\n]\n",
+      "stderr": ""
+    },
+    {
+      "condition": "agent_b",
+      "step": "aggregate_results",
+      "returncode": 0,
+      "stdout": "{\n  \"n\": 10,\n  \"valid_patch_rate\": 0.1,\n  \"verified_solve_rate\": 0.1,\n  \"conditional_solve_rate\": 1.0,\n  \"false_completion_rate\": 0.0,\n  \"patch_applied_count\": 1,\n  \"verified_solve_count\": 1,\n  \"false_completion_count\": 0,\n  \"failure_type_counts\": {\n    \"patch_did_not_apply\": 9\n  }\n}\n",
+      "stderr": ""
+    },
+    {
+      "condition": "agent_c",
+      "step": "run_json_rerun",
+      "returncode": 0,
+      "stdout": "[\n  {\n    \"task\": \"challenge_001\",\n    \"status\": \"skipped\",\n    \"result\": \"results\\\\stage10_replications\\\\rep_02\\\\agent_c\\\\challenge_001.json\"\n  },\n  {\n    \"task\": \"challenge_002\",\n    \"status\": \"skipped\",\n    \"result\": \"results\\\\stage10_replications\\\\rep_02\\\\agent_c\\\\challenge_002.json\"\n  },\n  {\n    \"task\": \"challenge_003\",\n    \"status\": \"skipped\",\n    \"result\": \"results\\\\stage10_replications\\\\rep_02\\\\agent_c\\\\challenge_003.json\"\n  },\n  {\n    \"task\": \"challenge_004\",\n    \"status\": \"skipped\",\n    \"result\": \"results\\\\stage10_replications\\\\rep_02\\\\agent_c\\\\challenge_004.json\"\n  },\n  {\n    \"task\": \"challenge_005\",\n    \"status\": \"skipped\",\n    \"result\": \"results\\\\stage10_replications\\\\rep_02\\\\agent_c\\\\challenge_005.json\"\n  },\n  {\n    \"task\": \"challenge_006\",\n    \"status\": \"skipped\",\n    \"result\": \"results\\\\stage10_replications\\\\rep_02\\\\agent_c\\\\challenge_006.json\"\n  },\n  {\n    \"task\": \"challenge_007\",\n    \"status\": \"skipped\",\n    \"result\": \"results\\\\stage10_replications\\\\rep_02\\\\agent_c\\\\challenge_007.json\"\n  },\n  {\n    \"task\": \"challenge_008\",\n    \"status\": \"skipped\",\n    \"result\": \"results\\\\stage10_replications\\\\rep_02\\\\agent_c\\\\challenge_008.json\"\n  },\n  {\n    \"task\": \"challenge_009\",\n    \"status\": \"skipped\",\n    \"result\": \"results\\\\stage10_replications\\\\rep_02\\\\agent_c\\\\challenge_009.json\"\n  },\n  {\n    \"task\": \"challenge_010\",\n    \"status\": \"skipped\",\n    \"result\": \"results\\\\stage10_replications\\\\rep_02\\\\agent_c\\\\challenge_010.json\"\n  }\n]\n",
+      "stderr": ""
+    },
+    {
+      "condition": "agent_c",
+      "step": "aggregate_results",
+      "returncode": 0,
+      "stdout": "{\n  \"n\": 10,\n  \"valid_patch_rate\": 0.9,\n  \"verified_solve_rate\": 0.8,\n  \"conditional_solve_rate\": 0.8888888888888888,\n  \"false_completion_rate\": 0.1,\n  \"patch_applied_count\": 9,\n  \"verified_solve_count\": 8,\n  \"false_completion_count\": 1,\n  \"failure_type_counts\": {\n    \"tests_failed\": 1,\n    \"patch_did_not_apply\": 1\n  }\n}\n",
+      "stderr": ""
+    },
+    {
+      "condition": "agent_a",
+      "step": "run_json_rerun",
+      "returncode": 0,
+      "stdout": "[\n  {\n    \"task\": \"challenge_001\",\n    \"status\": \"skipped\",\n    \"result\": \"results\\\\stage10_replications\\\\rep_02\\\\agent_a\\\\challenge_001.json\"\n  },\n  {\n    \"task\": \"challenge_002\",\n    \"status\": \"skipped\",\n    \"result\": \"results\\\\stage10_replications\\\\rep_02\\\\agent_a\\\\challenge_002.json\"\n  },\n  {\n    \"task\": \"challenge_003\",\n    \"status\": \"skipped\",\n    \"result\": \"results\\\\stage10_replications\\\\rep_02\\\\agent_a\\\\challenge_003.json\"\n  },\n  {\n    \"task\": \"challenge_004\",\n    \"status\": \"skipped\",\n    \"result\": \"results\\\\stage10_replications\\\\rep_02\\\\agent_a\\\\challenge_004.json\"\n  },\n  {\n    \"task\": \"challenge_005\",\n    \"status\": \"skipped\",\n    \"result\": \"results\\\\stage10_replications\\\\rep_02\\\\agent_a\\\\challenge_005.json\"\n  },\n  {\n    \"task\": \"challenge_006\",\n    \"status\": \"skipped\",\n    \"result\": \"results\\\\stage10_replications\\\\rep_02\\\\agent_a\\\\challenge_006.json\"\n  },\n  {\n    \"task\": \"challenge_007\",\n    \"status\": \"skipped\",\n    \"result\": \"results\\\\stage10_replications\\\\rep_02\\\\agent_a\\\\challenge_007.json\"\n  },\n  {\n    \"task\": \"challenge_008\",\n    \"status\": \"skipped\",\n    \"result\": \"results\\\\stage10_replications\\\\rep_02\\\\agent_a\\\\challenge_008.json\"\n  },\n  {\n    \"task\": \"challenge_009\",\n    \"status\": \"skipped\",\n    \"result\": \"results\\\\stage10_replications\\\\rep_02\\\\agent_a\\\\challenge_009.json\"\n  },\n  {\n    \"task\": \"challenge_010\",\n    \"status\": \"skipped\",\n    \"result\": \"results\\\\stage10_replications\\\\rep_02\\\\agent_a\\\\challenge_010.json\"\n  }\n]\n",
+      "stderr": ""
+    },
+    {
+      "condition": "agent_a",
+      "step": "aggregate_results",
+      "returncode": 0,
+      "stdout": "{\n  \"n\": 10,\n  \"valid_patch_rate\": 0.1,\n  \"verified_solve_rate\": 0.1,\n  \"conditional_solve_rate\": 1.0,\n  \"false_completion_rate\": 0.0,\n  \"patch_applied_count\": 1,\n  \"verified_solve_count\": 1,\n  \"false_completion_count\": 0,\n  \"failure_type_counts\": {\n    \"patch_did_not_apply\": 9\n  }\n}\n",
+      "stderr": ""
+    }
+  ]
+}

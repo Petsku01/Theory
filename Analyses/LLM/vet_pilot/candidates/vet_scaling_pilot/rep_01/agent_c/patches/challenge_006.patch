@@ -1,0 +1,11 @@
+diff --git a/src/pricing.py b/src/pricing.py
+--- a/src/pricing.py
++++ b/src/pricing.py
+@@ -5,6 +5,6 @@
+         # Convert to Decimal and quantize to two decimal places using proper rounding
+         decimal_value = Decimal(str(value))
+         rounded_value = decimal_value.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+-        return f"{rounded_value:.2f}"
++        return f"{rounded_value}"
+     except (TypeError, ValueError, ArithmeticError) as exc:
+         raise ValueError("invalid price") from exc

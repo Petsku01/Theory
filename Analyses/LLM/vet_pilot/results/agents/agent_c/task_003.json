@@ -1,0 +1,13 @@
+{
+  "task": "task_003",
+  "candidate": "candidates\\agent_c\\task_003.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "test_returncode": 0,
+  "stdout": "..                                                                       [100%]\n2 passed in 0.02s\n",
+  "stderr": "",
+  "duration_sec": 0.4189770221710205,
+  "diff": "diff --git a/stats.py b/stats.py\nindex dc47422..15dfc3d 100644\n--- a/stats.py\n+++ b/stats.py\n@@ -1,6 +1,8 @@\n def median(values):\n     values = sorted(values)\n     n = len(values)\n+    if n == 0:\n+        raise ValueError(\"median requires at least one value\")\n     mid = n // 2\n     if n % 2:\n         return values[mid]\n"
+}

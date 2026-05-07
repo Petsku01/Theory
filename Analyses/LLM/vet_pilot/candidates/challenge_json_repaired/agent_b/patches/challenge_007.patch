@@ -1,0 +1,19 @@
+diff --git a/src/http_headers.py b/src/http_headers.py
+--- a/src/http_headers.py
++++ b/src/http_headers.py
+@@ -1,6 +1,11 @@
+ def build_headers(token, extra=None):
+-    extra = extra or {}
+-    extra.setdefault("Accept", "application/json")
++    # Create a new mapping to avoid mutating the caller-provided mapping
++    headers = {}
++    if extra:
++        headers.update(extra)
++    # Ensure the default Accept header is present
++    headers.setdefault("Accept", "application/json")
++    # Add the Authorization header in the correct format if a token is provided
+     if token:
+-        extra["Authorization"] = token
+-    return extra
++        headers["Authorization"] = f"Bearer {token}"
++    return headers

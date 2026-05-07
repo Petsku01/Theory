@@ -1,0 +1,26 @@
+diff --git a/src/backend_loader.py b/src/backend_loader.py
+--- a/src/backend_loader.py
++++ b/src/backend_loader.py
+@@ -5,15 +5,16 @@
+     """Load and return a backend instance specified by *name*.
+ 
+     Supports short names (e.g., "memory") which resolve to modules under
+-    ``src.backends``, fully qualified module paths, and raises a
++    :mod:`src.backends`, fully qualified module paths, and raises a
+     :class:`ValueError` for unknown backends.
+     """
+-    # Resolve short names to package path
+-    module_name = name
+-    if '.' not in name:
+-        module_name = f'src.backends.{name}'
++    module_name = name if '.' in name else f'src.backends.{name}'
+     try:
+         module = importlib.import_module(module_name)
+     except ImportError as exc:
+         raise ValueError(f'Unknown backend: {name}') from exc
+-    return module.Backend()
++    try:
++        backend_cls = getattr(module, 'Backend')
++    except AttributeError as exc:
++        raise ValueError(f'Unknown backend: {name}') from exc
++    return backend_cls()

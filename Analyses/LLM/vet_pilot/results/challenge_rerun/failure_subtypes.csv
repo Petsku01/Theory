@@ -1,0 +1,21 @@
+condition,task,original_failure,subtype,candidate_state,candidate_bytes,run_status,run_exit_code,notes
+agent_a,challenge_001,patch_did_not_apply,nonempty_patch_rejected_by_git_apply,nonempty,664,completed,0,Patch artifact exists but git apply rejected it.
+agent_a,challenge_007,patch_did_not_apply,nonempty_patch_rejected_by_git_apply,nonempty,968,completed,0,Patch artifact exists but git apply rejected it.
+agent_a,challenge_008,patch_did_not_apply,no_extractable_diff,empty,0,completed,0,"Model returned raw text, but extract_patch found no unified diff."
+agent_b,challenge_001,patch_did_not_apply,nonempty_patch_rejected_by_git_apply,nonempty,235,completed,0,Patch artifact exists but git apply rejected it.
+agent_b,challenge_002,patch_did_not_apply,nonempty_patch_rejected_by_git_apply,nonempty,1094,completed,0,Patch artifact exists but git apply rejected it.
+agent_b,challenge_003,patch_did_not_apply,nonempty_patch_rejected_by_git_apply,nonempty,654,completed,0,Patch artifact exists but git apply rejected it.
+agent_b,challenge_004,patch_did_not_apply,nonempty_patch_rejected_by_git_apply,nonempty,622,completed,0,Patch artifact exists but git apply rejected it.
+agent_b,challenge_005,patch_did_not_apply,nonempty_patch_rejected_by_git_apply,nonempty,1439,completed,0,Patch artifact exists but git apply rejected it.
+agent_b,challenge_006,patch_did_not_apply,no_extractable_diff,empty,0,completed,0,"Model returned raw text, but extract_patch found no unified diff."
+agent_b,challenge_007,patch_did_not_apply,no_extractable_diff,empty,0,completed,0,"Model returned raw text, but extract_patch found no unified diff."
+agent_b,challenge_008,patch_did_not_apply,nonempty_patch_rejected_by_git_apply,nonempty,912,completed,0,Patch artifact exists but git apply rejected it.
+agent_b,challenge_009,patch_did_not_apply,nonempty_patch_rejected_by_git_apply,nonempty,370,completed,0,Patch artifact exists but git apply rejected it.
+agent_b,challenge_010,patch_did_not_apply,nonempty_patch_rejected_by_git_apply,nonempty,1055,completed,0,Patch artifact exists but git apply rejected it.
+agent_c,challenge_001,patch_did_not_apply,nonempty_patch_rejected_by_git_apply,nonempty,593,completed,0,Patch artifact exists but git apply rejected it.
+agent_c,challenge_002,patch_did_not_apply,nonempty_patch_rejected_by_git_apply,nonempty,1112,completed,0,Patch artifact exists but git apply rejected it.
+agent_c,challenge_003,patch_did_not_apply,nonempty_patch_rejected_by_git_apply,nonempty,706,completed,0,Patch artifact exists but git apply rejected it.
+agent_c,challenge_004,patch_did_not_apply,nonempty_patch_rejected_by_git_apply,nonempty,4092,completed,0,Patch artifact exists but git apply rejected it.
+agent_c,challenge_005,patch_did_not_apply,nonempty_patch_rejected_by_git_apply,nonempty,1789,completed,0,Patch artifact exists but git apply rejected it.
+agent_c,challenge_009,patch_did_not_apply,nonempty_patch_rejected_by_git_apply,nonempty,413,completed,0,Patch artifact exists but git apply rejected it.
+agent_c,challenge_010,patch_did_not_apply,nonempty_patch_rejected_by_git_apply,nonempty,673,completed,0,Patch artifact exists but git apply rejected it.

@@ -1,0 +1,42 @@
+diff --git a/src/network.py b/src/network.py
+--- a/src/network.py
++++ b/src/network.py
+@@ -1,17 +1,18 @@
+ def parse_host_port(value: str, default_port: int = 80) -> tuple[str, int]:
++    """Parse a host[:port] string.
++
++    Supports normal hostnames, IP addresses, and IPv6 addresses in brackets.
++    If the port is omitted, ``default_port`` is used.
++    Abruptly missing ``]`` is treated as a plain host without a port.
++    """
+     if value.startswith("["):
+-        try:
+-            close_idx = value.index("]")
+-        except ValueError:
+-            # malformed, fallback to original split
+-            host, sep, port_text = value.partition(":")
+-            if not sep:
+-                return value, default_port
+-            if port_text == "":
+-                return host, default_port
+-            return host, int(port_text)
++        close_idx = value.find("]")
++        if close_idx == -1:
++            # Malformed bracketed address, fall back to treating the whole
++            # string as the host without a port.
++            return value, default_port
+         host = value[1:close_idx]
+-        remaining = value[close_idx+1:]
++        remaining = value[close_idx + 1 :]
+         if remaining.startswith(":"):
+             port_text = remaining[1:]
+             if port_text == "":
+@@ -28,4 +29,7 @@
+             return value, default_port
+         if port_text == "":
+             return host, default_port
+-        return host, int(port_text)
++        try:
++            return host, int(port_text)
++        except ValueError:
++            return host, default_port

@@ -1,0 +1,21 @@
+diff --git a/src/history.py b/src/history.py
+index 8ec6ea8..c3da52c 100644
+--- a/src/history.py
++++ b/src/history.py
+@@ -2,10 +2,12 @@ def recent_unique(items, limit):
+     if limit <= 0:
+         return []
+     seen = set()
+-    result = []
+-    for item in items:
++    collected = []
++    for item in reversed(items):
+         if item in seen:
+             continue
+         seen.add(item)
+-        result.append(item)
+-    return result[-limit:]
++        collected.append(item)
++        if len(collected) == limit:
++            break
++    return list(reversed(collected))

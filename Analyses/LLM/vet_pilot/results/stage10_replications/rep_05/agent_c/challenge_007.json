@@ -1,0 +1,12 @@
+{
+  "task": "challenge_007",
+  "candidate": "candidates\\stage10_replications\\rep_05\\agent_c\\patches\\challenge_007.patch",
+  "patch_applied": false,
+  "verified_solve": false,
+  "false_completion": null,
+  "failure_type": "patch_did_not_apply",
+  "test_returncode": null,
+  "stdout": "",
+  "stderr": "C:/Users/Pette/Downloads/vet_pilot_experiment_package/vet_pilot/candidates/stage10_replications/rep_05/agent_c/patches/challenge_007.patch:5: trailing whitespace.\nimport copy\nC:/Users/Pette/Downloads/vet_pilot_experiment_package/vet_pilot/candidates/stage10_replications/rep_05/agent_c/patches/challenge_007.patch:6: trailing whitespace.\n\nerror: patch failed: src/http_headers.py:1\nerror: src/http_headers.py: patch does not apply\n",
+  "duration_sec": 0.05617666244506836
+}

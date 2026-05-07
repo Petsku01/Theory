@@ -1,0 +1,46 @@
+diff --git a/src/settings.py b/src/settings.py
+--- a/src/settings.py
++++ b/src/settings.py
+@@ -2,20 +2,34 @@
+ 
+ DEFAULTS = {"debug": False, "port": 8000, "timeout": 30}
+ 
+-
+ def load_settings(env: dict[str, str]) -> dict[str, object]:
+     settings = DEFAULTS.copy()
++    # APP_PORT
+     if "APP_PORT" in env:
+         trimmed = env["APP_PORT"].strip()
+-        parsed_port = parse_optional_int(trimmed)
+-        if parsed_port is not None:
+-            settings["port"] = parsed_port
++        if trimmed != "":
++            try:
++                parsed_port = parse_optional_int(trimmed)
++                if parsed_port is not None:
++                    settings["port"] = parsed_port
++            except ValueError:
++                pass
++    # APP_TIMEOUT
+     if "APP_TIMEOUT" in env:
+         trimmed = env["APP_TIMEOUT"].strip()
+-        parsed_timeout = parse_optional_int(trimmed)
+-        if parsed_timeout is not None:
+-            settings["timeout"] = parsed_timeout
++        if trimmed != "":
++            try:
++                parsed_timeout = parse_optional_int(trimmed)
++                if parsed_timeout is not None:
++                    settings["timeout"] = parsed_timeout
++            except ValueError:
++                pass
++    # APP_DEBUG
+     if "APP_DEBUG" in env:
+         trimmed = env["APP_DEBUG"].strip().lower()
+-        settings["debug"] = parse_bool(trimmed)
++        if trimmed != "":
++            try:
++                settings["debug"] = parse_bool(trimmed)
++            except ValueError:
++                pass
+     return settings

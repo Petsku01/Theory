@@ -1,0 +1,23 @@
+diff --git a/src/backend_loader.py b/src/backend_loader.py
+--- a/src/backend_loader.py
++++ b/src/backend_loader.py
+@@ -12,9 +12,16 @@
+         module = importlib.import_module(name)
+     except ModuleNotFoundError:
+         # Attempt to resolve short backend names relative to the backends
+-        # package.  If this still fails, raise ValueError.
++        # package. If this still fails, raise ValueError.
+         try:
+             module = importlib.import_module(f"src.backends.{name}")
+-        except Exception:
++        except ModuleNotFoundError:
+             raise ValueError(f"Unknown backend: {name}")
+-    return module.Backend()
++    # After importing, ensure the module provides a Backend class.
++    try:
++        backend_cls = getattr(module, 'Backend')
++    except AttributeError:
++        raise ValueError(f"Unknown backend: {name}")
++    if not callable(backend_cls):
++        raise ValueError(f"Unknown backend: {name}")
++    return backend_cls()

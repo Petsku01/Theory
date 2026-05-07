@@ -1,0 +1,17 @@
+diff --git a/src/http_headers.py b/src/http_headers.py
+--- a/src/http_headers.py
++++ b/src/http_headers.py
+@@ -1,6 +1,9 @@
+ def build_headers(token, extra=None):
+-    extra = extra or {}
+-    extra.setdefault("Accept", "application/json")
++    # Create a new headers dictionary without mutating the caller's input
++    headers = dict(extra) if extra else {}
++    # Ensure default headers
++    headers.setdefault("Accept", "application/json")
++    # Add Authorization header if token provided
+     if token:
+-        extra["Authorization"] = token
+-    return extra
++        headers["Authorization"] = f"Bearer {token}"
++    return headers

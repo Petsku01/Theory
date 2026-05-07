@@ -1,0 +1,17 @@
+{
+  "task": "challenge_004",
+  "candidate": "candidates\\stage10_replications\\rep_05\\agent_c\\patches\\challenge_004.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/preferences.py"
+  ],
+  "stdout": "..                                                                       [100%]\n2 passed in 0.02s\n",
+  "stderr": "",
+  "duration_sec": 0.48647308349609375,
+  "diff": "diff --git a/src/preferences.py b/src/preferences.py\nindex deba08a..7fccd0b 100644\n--- a/src/preferences.py\n+++ b/src/preferences.py\n@@ -1,10 +1,24 @@\n def merge_preferences(defaults: dict, overrides: dict) -> dict:\n+    # Make a shallow copy of defaults first\n     merged = defaults.copy()\n+\n+    # Ensure nested structures are duplicated so that defaults are not mutated\n+    if \"notifications\" in merged and isinstance(merged[\"notifications\"], dict):\n+        merged[\"notifications\"] = merged[\"notifications\"].copy()\n+    if \"tags\" in merged and isinstance(merged[\"tags\"], list):\n+        merged[\"tags\"] = merged[\"tags\"][:]\n+\n+    # Merge notifications\n     notifications = merged.setdefault(\"notifications\", {})\n     notifications.update(overrides.get(\"notifications\", {}))\n+\n+    # Merge tags\n     tags = merged.setdefault(\"tags\", [])\n     tags.extend(overrides.get(\"tags\", []))\n+\n+    # Merge other keys\n     for key, value in overrides.items():\n         if key not in {\"notifications\", \"tags\"}:\n             merged[key] = value\n+\n     return merged\n"
+}

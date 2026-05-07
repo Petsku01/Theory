@@ -1,0 +1,48 @@
+diff --git a/src/history.py b/src/history.py
+--- a/src/history.py
++++ b/src/history.py
+@@ -1,15 +1,32 @@
+ def recent_unique(items, limit):
++    """Return at most ``limit`` unique items from ``items`` keeping only the most recent
++    occurrence of each object while preserving chronological order.
++
++    Parameters
++    ----------
++    items : Iterable
++        The sequence of items to process.
++    limit : int
++        The maximum number of items to return.  ``limit <= 0`` results in an
++        empty list.
++
++    Returns
++    -------
++    List
++        A list of the most recent unique items, ordered as they appear in the
++        original list, truncated to ``limit`` elements.
++    """
+     if limit <= 0:
+         return []
+-    # Find the last index of each item
+-    last_index = {}
+-    for idx, item in enumerate(items):
+-        last_index[item] = idx
+-    # Reconstruct list keeping only the last occurrence of each item,
+-    # preserving original order
+-    result = []
+-    for idx, item in enumerate(items):
+-        if last_index[item] == idx:
+-            result.append(item)
+-    # Return the most recent 'limit' items
+-    return result[-limit:]
++
++    # Collect unique items in reverse order to preserve most recent
++    seen = []  # use list for unhashable items
++    unique_rev = []
++    for item in reversed(items):
++        if item not in seen:
++            seen.append(item)
++            unique_rev.append(item)
++
++    # Reverse to restore chronological order
++    unique_list = list(reversed(unique_rev))
++    return unique_list[-limit:]

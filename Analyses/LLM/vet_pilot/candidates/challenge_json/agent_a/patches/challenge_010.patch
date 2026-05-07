@@ -1,0 +1,36 @@
+diff --git a/src/backend_loader.py b/src/backend_loader.py
+--- a/src/backend_loader.py
++++ b/src/backend_loader.py
+@@ -2,5 +2,31 @@
+ 
+ 
+ def load_backend(name: str):
+-    module = importlib.import_module(name)
++    """Load a backend implementation.
++
++    Parameters
++    ----------
++    name : str
++        The backend name. This can be either a short name such as ``"memory"``
++        or a fully-qualified module path such as ``"src.backends.file_backend"``.
++
++    Returns
++    -------
++    Backend
++        The backend class instance.
++
++    Raises
++    ------
++    ValueError
++        If the backend cannot be found.
++    """
++    try:
++        module = importlib.import_module(name)
++    except ImportError:
++        # Attempt to resolve short names by prefacing with the local backends
++        try:
++            module = importlib.import_module(f"src.backends.{name}")
++        except ImportError:
++            # Suppress the original ImportError and raise ValueError
++            raise ValueError(f"Unknown backend '{name}'") from None
+     return module.Backend()

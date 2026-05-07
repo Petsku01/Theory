@@ -1,0 +1,12 @@
+diff --git a/src/network.py b/src/network.py
+--- a/src/network.py
++++ b/src/network.py
+@@ -19,6 +19,8 @@
+                 return host, int(port_text)
+             # No port specified after the brackets.
+             return host, default_port
++        # Malformed bracketed address: treat the whole string as host with default port.
++        return value, default_port
+ 
+     # Fallback to the original simple host:port parsing logic.
+     host, sep, port_text = value.partition(":")
