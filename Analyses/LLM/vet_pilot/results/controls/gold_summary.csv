@@ -1,0 +1,4 @@
+file,task,candidate,patch_applied,verified_solve,false_completion,test_returncode,duration_sec
+results/controls/gold\task_001.json,task_001,C:\Users\Pette\Downloads\vet_pilot_experiment_package\vet_pilot\tasks\toy\task_001\gold.patch,True,True,False,0,0.47733640670776367
+results/controls/gold\task_002.json,task_002,C:\Users\Pette\Downloads\vet_pilot_experiment_package\vet_pilot\tasks\toy\task_002\gold.patch,True,True,False,0,0.4873311519622803
+results/controls/gold\task_003.json,task_003,C:\Users\Pette\Downloads\vet_pilot_experiment_package\vet_pilot\tasks\toy\task_003\gold.patch,True,True,False,0,0.44799184799194336

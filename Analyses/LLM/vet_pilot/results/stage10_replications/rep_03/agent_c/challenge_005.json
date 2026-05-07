@@ -1,0 +1,17 @@
+{
+  "task": "challenge_005",
+  "candidate": "candidates\\stage10_replications\\rep_03\\agent_c\\patches\\challenge_005.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/network.py"
+  ],
+  "stdout": "...                                                                      [100%]\n3 passed in 0.02s\n",
+  "stderr": "",
+  "duration_sec": 0.4609489440917969,
+  "diff": "diff --git a/src/network.py b/src/network.py\nindex 7540f16..44809a7 100644\n--- a/src/network.py\n+++ b/src/network.py\n@@ -1,7 +1,28 @@\n def parse_host_port(value: str, default_port: int = 80) -> tuple[str, int]:\n-    host, sep, port_text = value.partition(\":\")\n-    if not sep:\n-        return value, default_port\n-    if port_text == \"\":\n-        return host, default_port\n-    return host, int(port_text)\n+    \"\"\"Parse a host and optional port from a string.\n+\n+    Supports:\n+    - plain host:port\n+    - host: no port defaults to `default_port`\n+    - IPv6 in brackets e.g. \"[::1]:8080\" -> (\"::1\", 8080)\n+    \"\"\"\n+    if value.startswith('['):\n+        end_bracket = value.find(']')\n+        if end_bracket == -1:\n+            # No closing bracket; treat whole string as host\n+            host = value\n+            port_text = ''\n+        else:\n+            host = value[1:end_bracket]\n+            rest = value[end_bracket + 1:]\n+            if rest.startswith(':'):\n+                port_text = rest[1:]\n+            else:\n+                port_text = ''\n+    else:\n+        host, sep, port_text = value.partition(':')\n+        if not sep:\n+            port_text = ''\n+    if port_text:\n+        return host, int(port_text)\n+    return host, default_port\n"
+}

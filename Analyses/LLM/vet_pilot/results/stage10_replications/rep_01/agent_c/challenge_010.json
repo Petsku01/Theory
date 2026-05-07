@@ -1,0 +1,17 @@
+{
+  "task": "challenge_010",
+  "candidate": "candidates\\stage10_replications\\rep_01\\agent_c\\patches\\challenge_010.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/backend_loader.py"
+  ],
+  "stdout": "...                                                                      [100%]\n3 passed in 0.04s\n",
+  "stderr": "",
+  "duration_sec": 0.5178015232086182,
+  "diff": "diff --git a/src/backend_loader.py b/src/backend_loader.py\nindex 647810d..a08313c 100644\n--- a/src/backend_loader.py\n+++ b/src/backend_loader.py\n@@ -2,5 +2,26 @@ import importlib\n \n \n def load_backend(name: str):\n-    module = importlib.import_module(name)\n+    \"\"\"Load a backend implementation.\n+\n+    If ``name`` is a short backend name (e.g. ``\"memory\"``) the function will\n+    attempt to import the corresponding module from ``src.backends``.  If\n+    ``name`` is already a fully\u00e2\u20ac\u2018qualified module path it will be imported\n+    directly.\n+\n+    For unknown backends a ``ValueError`` is raised instead of leaking the\n+    underlying import error.\n+    \"\"\"\n+    try:\n+        module = importlib.import_module(name)\n+    except ModuleNotFoundError:\n+        # If the name does not contain a dot it is considered a short name.\n+        if \".\" not in name:\n+            try:\n+                module = importlib.import_module(f\"src.backends.{name}\")\n+            except ModuleNotFoundError:\n+                raise ValueError(f\"Unknown backend: {name}\") from None\n+        else:\n+            # A fully qualified name was supplied but the import failed.\n+            raise ValueError(f\"Unknown backend: {name}\") from None\n     return module.Backend()\n"
+}

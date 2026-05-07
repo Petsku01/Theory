@@ -1,0 +1,9 @@
+diff --git a/src/pricing.py b/src/pricing.py
+--- a/src/pricing.py
++++ b/src/pricing.py
+@@ -5,4 +5,4 @@
+     except (InvalidOperation, TypeError, ValueError) as exc:
+         raise ValueError("invalid price") from exc
+     price = price.quantize(Decimal("0.01"))
+-    return f"{price:.2f}"
++    return str(price)

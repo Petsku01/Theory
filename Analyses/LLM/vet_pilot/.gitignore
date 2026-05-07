@@ -1,0 +1,32 @@
+# Python caches and local environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Secret and credential files
+.env
+.env.*
+.secrets/
+secrets.*
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Local logs and probe artifacts
+*.log
+results/**/_probe/
+candidates/**/_probe/
+
+# Bulky raw model outputs; keep candidate patches and evaluated artifacts tracked
+candidates/**/raw/
+
+# Smoke-only outputs; keep main experiment artifacts tracked
+results/**/*smoke*
+candidates/**/*smoke*
+
+# Optional local protocol attachments
+VET_Pilot_Protocol.docx
+VET_Pilot_Protocol.pdf

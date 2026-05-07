@@ -1,0 +1,49 @@
+diff --git a/src/network.py b/src/network.py
+--- a/src/network.py
++++ b/src/network.py
+@@ -2,7 +2,7 @@
+     """Parse a host and optional port string.
+ 
+     Supports plain ``host`` and ``host:port`` forms as well as
+-    IPv6 addresses surrounded by ``[]``.  ``value`` should be a string
++    IPv6 addresses surrounded by ``[]``. ``value`` should be a string
+     that contains a host name or IP and optionally a port.  If no
+     port is specified, ``default_port`` is returned.
+ 
+@@ -15,6 +15,8 @@
+     >>> parse_host_port("[2001:db8::1]")
+     ('2001:db8::1', 80)
+     """
++    # Strip surrounding whitespace to allow e.g. " [::1]:8080 "
++    value = value.strip()
+     # Handle IPv6 addresses written with brackets.
+     if value.startswith("["):
+         # Find the closing bracket.
+@@ -24,18 +26,21 @@
+             return value, default_port
+         host = value[1:end_idx]
+         remaining = value[end_idx + 1 :]
++        # If there's a colon after the closing bracket, attempt to parse port.
+         if remaining.startswith(":"):
+-            port_text = remaining[1:]
+-        else:
+-            port_text = ""
+-        if not port_text:
++            port_text = remaining[1:].strip()
++            if port_text.isdigit():
++                return host, int(port_text)
+             return host, default_port
+-        return host, int(port_text)
++        return host, default_port
+ 
+     # Standard ``host`` or ``host:port`` format.
+     host, sep, port_text = value.partition(":")
+     if not sep:
+         return value, default_port
++    port_text = port_text.strip()
+     if not port_text:
+         return host, default_port
+-    return host, int(port_text)
++    if port_text.isdigit():
++        return host, int(port_text)
++    return host, default_port

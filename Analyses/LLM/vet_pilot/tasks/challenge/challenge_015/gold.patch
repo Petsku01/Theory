@@ -1,0 +1,19 @@
+diff --git a/src/parsers.py b/src/parsers.py
+index bd941b3..f0da590 100644
+--- a/src/parsers.py
++++ b/src/parsers.py
+@@ -1,2 +1,2 @@
+ def parse_tags(text):
+-    return [part for part in text.split(",")]
++    return [part.strip() for part in text.split(",") if part.strip()]
+diff --git a/src/service.py b/src/service.py
+index ab3abe2..a3498da 100644
+--- a/src/service.py
++++ b/src/service.py
+@@ -1,2 +1,5 @@
++from src.parsers import parse_tags
++
++
+ def normalize_tag_list(text):
+-    return sorted({part.lower() for part in text.split(",") if part})
++    return sorted({part.lower() for part in parse_tags(text)})

@@ -1,0 +1,27 @@
+diff --git a/src/backend_loader.py b/src/backend_loader.py
+index 647810d..b98829a 100644
+--- a/src/backend_loader.py
++++ b/src/backend_loader.py
+@@ -2,5 +2,20 @@ import importlib
+ 
+ 
+ def load_backend(name: str):
+-    module = importlib.import_module(name)
+-    return module.Backend()
++    module_names = [name]
++    if "." not in name:
++        suffix = name if name.endswith("_backend") else f"{name}_backend"
++        module_names = [f"src.backends.{name}", f"src.backends.{suffix}"]
++
++    last_error = None
++    for module_name in module_names:
++        try:
++            module = importlib.import_module(module_name)
++        except ModuleNotFoundError as exc:
++            last_error = exc
++            continue
++        if not hasattr(module, "Backend"):
++            raise ValueError(f"backend module has no Backend class: {module_name}")
++        return module.Backend()
++
++    raise ValueError(f"unknown backend: {name}") from last_error

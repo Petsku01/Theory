@@ -1,0 +1,13 @@
+{
+  "task": "task_001",
+  "candidate": "tasks\\smoke\\task_001\\gold.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "test_returncode": 0,
+  "stdout": "..                                                                       [100%]\n2 passed in 0.03s\n",
+  "stderr": "",
+  "duration_sec": 1.3140509128570557,
+  "diff": "diff --git a/textutils.py b/textutils.py\nindex 583e147..d3fc57e 100644\n--- a/textutils.py\n+++ b/textutils.py\n@@ -3,4 +3,5 @@ import re\n def slugify(text):\n     text = text.lower().strip()\n     text = re.sub(r\"[^a-z0-9]+\", \"-\", text)\n+    text = re.sub(r\"-+\", \"-\", text).strip(\"-\")\n     return text\n"
+}

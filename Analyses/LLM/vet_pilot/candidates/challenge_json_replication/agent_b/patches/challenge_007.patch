@@ -1,0 +1,10 @@
+diff --git a/src/http_headers.py b/src/http_headers.py
+--- a/src/http_headers.py
++++ b/src/http_headers.py
+@@ -3,5 +3,5 @@
+     headers = dict(extra or {})
+     headers.setdefault("Accept", "application/json")
+     if token:
+-        headers["Authorization"] = f"Bearer {token}"
++        headers["Authorization"] = f"Token {token}"
+     return headers

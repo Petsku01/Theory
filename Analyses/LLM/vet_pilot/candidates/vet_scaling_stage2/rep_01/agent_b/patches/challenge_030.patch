@@ -1,0 +1,15 @@
+diff --git a/src/settings.py b/src/settings.py
+--- a/src/settings.py
++++ b/src/settings.py
+@@ -2,7 +2,9 @@
+ 
+ 
+ def load_endpoint(env, explicit=None):
+-    raw = env.get("APP_ENDPOINT", explicit or DEFAULT_ENDPOINT)
+-    if not raw:
++    if explicit is not None:
++        return explicit.rstrip("/")
++    raw = env.get("APP_ENDPOINT", "")
++    if not raw.strip():
+         return DEFAULT_ENDPOINT
+     return raw.rstrip("/")

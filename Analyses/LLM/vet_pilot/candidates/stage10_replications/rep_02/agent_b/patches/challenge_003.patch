@@ -1,0 +1,14 @@
+diff --git a/src/preview.py b/src/preview.py
+--- a/src/preview.py
++++ b/src/preview.py
+@@ -10,7 +10,10 @@
+     :param text: The input string to preview.
+     :param limit: The maximum length of the returned string.
+     :raises ValueError: If ``limit`` is negative.
++    :raises TypeError: If ``text`` is not a string.
+     """
++    if not isinstance(text, str):
++        raise TypeError("text must be a string")
+     if limit < 0:
+         raise ValueError("limit must be non-negative")
+     if len(text) <= limit:

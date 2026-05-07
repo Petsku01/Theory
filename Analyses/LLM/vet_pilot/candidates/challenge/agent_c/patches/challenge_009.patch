@@ -1,0 +1,13 @@
+--- a/src/timeouts.py
++++ b/src/timeouts.py
+@@
+-def resolve_timeout(explicit, default):
+-    return explicit or default
++def resolve_timeout(explicit, default):
++    """
++    Resolve a timeout value, preferring an explicit value if provided.
++    Explicit 0 is considered a valid value and should be returned as is.
++    """
++    if explicit is not None:
++        return explicit
++    return default

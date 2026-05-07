@@ -1,0 +1,21 @@
+diff --git a/src/pathjoin.py b/src/pathjoin.py
+--- a/src/pathjoin.py
++++ b/src/pathjoin.py
+@@ -1,3 +1,15 @@
+ def join_segments(segments):
+-    cleaned = [segment.strip("/") for segment in segments if segment]
+-    return "/".join(cleaned)
++    if not segments:
++        return ""
++    # Check if the path is absolute (first segment is empty)
++    is_absolute = segments[0] == ""
++    # Filter out empty segments except for the leading empty string which indicates absolute path
++    cleaned = [segment for segment in segments if segment != ""]
++    joined = "/".join(cleaned)
++    # If it's absolute, prepend '/' unless it's already there
++    if is_absolute and not joined.startswith("/"):
++        joined = "/" + joined
++    elif not is_absolute and joined.startswith("/"):
++        # This case shouldn't happen with proper input but just in case
++        joined = joined.lstrip("/")
++    return joined

@@ -1,0 +1,23 @@
+diff --git a/src/pricing.py b/src/pricing.py
+--- a/src/pricing.py
++++ b/src/pricing.py
+@@ -7,11 +7,8 @@
+     Uses Decimal arithmetic to avoid binary floating point rounding issues.
+     """
+     try:
+-        if isinstance(value, float):
+-            # Convert float to string to avoid binary representation issues
+-            dec = Decimal(str(value))
+-        else:
+-            dec = Decimal(value)
++        # Use string conversion for all non-Decimal types to avoid binary representation
++        dec = value if isinstance(value, Decimal) else Decimal(str(value))
+     except Exception as exc:
+         raise ValueError("invalid price") from exc
+ 
+@@ -20,4 +17,5 @@
+     except Exception as exc:
+         raise ValueError("invalid price") from exc
+ 
++    # Ensure the string has exactly two decimal places
+     return f"{quantized:.2f}"

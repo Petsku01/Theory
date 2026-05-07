@@ -1,0 +1,12 @@
+diff --git a/src/http_headers.py b/src/http_headers.py
+--- a/src/http_headers.py
++++ b/src/http_headers.py
+@@ -19,7 +19,7 @@
+         in the format 'Bearer <token>'.
+     """
+     # Create a shallow copy of extra to avoid mutating the caller's dict
+-    headers = dict(extra) if extra is not None else {}
++    headers = {} if extra is None else extra.copy()
+ 
+     # Ensure the Accept header is set to application/json by default
+     headers.setdefault("Accept", "application/json")

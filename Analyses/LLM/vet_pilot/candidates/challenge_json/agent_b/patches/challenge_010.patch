@@ -1,0 +1,13 @@
+diff --git a/src/backend_loader.py b/src/backend_loader.py
+--- a/src/backend_loader.py
++++ b/src/backend_loader.py
+@@ -29,4 +29,8 @@
+         except ImportError:
+             # Suppress the original ImportError and raise ValueError
+             raise ValueError(f"Unknown backend '{name}'") from None
+-    return module.Backend()
++    try:
++        backend_cls = getattr(module, "Backend")
++    except AttributeError:
++        raise ValueError(f"Backend class not found for '{name}'") from None
++    return backend_cls()

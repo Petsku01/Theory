@@ -1,0 +1,17 @@
+{
+  "task": "challenge_025",
+  "candidate": "C:\\Users\\Pette\\Downloads\\vet_pilot_experiment_package\\vet_pilot\\candidates\\vet_scaling_stage2\\rep_02\\agent_a\\patches\\challenge_025.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/qualified.py"
+  ],
+  "stdout": "..                                                                       [100%]\n2 passed in 0.02s\n",
+  "stderr": "",
+  "duration_sec": 0.5179576873779297,
+  "diff": "diff --git a/src/qualified.py b/src/qualified.py\nindex 366e5b0..a369478 100644\n--- a/src/qualified.py\n+++ b/src/qualified.py\n@@ -1,5 +1,5 @@\n def split_qualified_name(name):\n     if \".\" not in name:\n         return \"\", name\n-    module, item = name.split(\".\", 1)\n-    return module, item\n+    parts = name.split(\".\")\n+    return \".\".join(parts[:-1]), parts[-1]\n"
+}

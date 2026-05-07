@@ -1,0 +1,33 @@
+diff --git a/src/settings.py b/src/settings.py
+--- a/src/settings.py
++++ b/src/settings.py
+@@ -1,16 +1,25 @@
+-from src.parsers import parse_optional_int
++from src.parsers import parse_optional_int, parse_bool
+ 
+ DEFAULTS = {"debug": False, "port": 8000, "timeout": 30}
+ 
+ 
+ def load_settings(env: dict[str, str]) -> dict[str, object]:
+     settings = DEFAULTS.copy()
++    # parse APP_PORT
+     if "APP_PORT" in env:
+-        parsed_port = parse_optional_int(env["APP_PORT"])
++        value = env["APP_PORT"].strip()
++        parsed_port = parse_optional_int(value)
+         if parsed_port is not None:
+             settings["port"] = parsed_port
++    # parse APP_TIMEOUT
+     if "APP_TIMEOUT" in env:
+-        settings["timeout"] = env["APP_TIMEOUT"]
++        value = env["APP_TIMEOUT"].strip()
++        parsed_timeout = parse_optional_int(value)
++        if parsed_timeout is not None:
++            settings["timeout"] = parsed_timeout
++    # parse APP_DEBUG
+     if "APP_DEBUG" in env:
+-        settings["debug"] = env["APP_DEBUG"] == "true"
++        raw = env["APP_DEBUG"].strip()
++        if raw:
++            settings["debug"] = parse_bool(raw.lower())
+     return settings

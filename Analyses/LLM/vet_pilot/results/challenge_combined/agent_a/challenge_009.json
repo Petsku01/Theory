@@ -1,0 +1,22 @@
+{
+  "task": "challenge_009",
+  "candidate": "C:\\Users\\Pette\\Downloads\\vet_pilot_experiment_package\\vet_pilot\\candidates\\challenge_json\\agent_a\\patches\\challenge_009.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/timeouts.py"
+  ],
+  "stdout": "...                                                                      [100%]\n3 passed in 0.02s\n",
+  "stderr": "",
+  "duration_sec": 0.4561898708343506,
+  "diff": "diff --git a/src/timeouts.py b/src/timeouts.py\nindex f1dfa4a..5213410 100644\n--- a/src/timeouts.py\n+++ b/src/timeouts.py\n@@ -1,2 +1,2 @@\n def resolve_timeout(explicit, default):\n-    return explicit or default\n+    return default if explicit is None else explicit\n",
+  "combined_source": "stage5",
+  "stage5_status": "ok",
+  "stage6_status": null,
+  "schema_usable": true,
+  "semantic_failure_after_apply": false
+}

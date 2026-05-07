@@ -1,0 +1,23 @@
+diff --git a/src/history.py b/src/history.py
+--- a/src/history.py
++++ b/src/history.py
+@@ -1,11 +1,11 @@
+ def recent_unique(items, limit):
+     if limit <= 0:
+         return []
+-    seen = set()
+-    result = []
+-    for item in items:
+-        if item in seen:
+-            continue
+-        seen.add(item)
+-        result.append(item)
+-    return result[-limit:]
++    # Build a mapping from item to its last occurrence index
++    last_index = {}
++    for idx, item in enumerate(items):
++        last_index[item] = idx
++    # Sort items by the index of their last occurrence (ascending)
++    sorted_items = sorted(last_index.keys(), key=lambda x: last_index[x])
++    # Keep the most recent 'limit' items from the sorted list
++    return sorted_items[-limit:]

@@ -1,0 +1,12 @@
+{
+  "task": "challenge_001",
+  "candidate": "candidates\\challenge_json_repaired\\agent_c\\patches\\challenge_001.patch",
+  "patch_applied": false,
+  "verified_solve": false,
+  "false_completion": null,
+  "failure_type": "patch_did_not_apply",
+  "test_returncode": null,
+  "stdout": "",
+  "stderr": "error: No valid patches in input (allow with \"--allow-empty\")\n",
+  "duration_sec": 0.042153120040893555
+}

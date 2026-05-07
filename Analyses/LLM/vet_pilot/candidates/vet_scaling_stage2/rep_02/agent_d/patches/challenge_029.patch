@@ -1,0 +1,27 @@
+diff --git a/src/blanklines.py b/src/blanklines.py
+--- a/src/blanklines.py
++++ b/src/blanklines.py
+@@ -1,4 +1,10 @@
+ def collapse_blank_lines(text):
++    if not text:
++        return text
++    
++    # Check if original text ends with newline
++    ends_with_newline = text.endswith('\n')
++    
+     lines = text.splitlines()
+     collapsed = []
+     previous_blank = False
+@@ -8,4 +14,11 @@
+             continue
+         collapsed.append(line)
+         previous_blank = blank
+-    return "\n".join(collapsed)
++    
++    result = "\n".join(collapsed)
++    
++    # Restore trailing newline if it was present in original
++    if ends_with_newline and not result.endswith('\n'):
++        result += '\n'
++    
++    return result

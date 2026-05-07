@@ -1,0 +1,20 @@
+--- src/backend_loader.py
++++ src/backend_loader.py
+@@
+ import importlib
+ 
+ 
+ def load_backend(name: str):
+-    module = importlib.import_module(name)
+-    return module.Backend()
++    # Resolve short backend names to the package-local backends module
++    try:
++        if "." not in name:
++            module_name = f"src.backends.{name}"
++            module = importlib.import_module(module_name)
++        else:
++            module = importlib.import_module(name)
++    except ImportError as exc:
++        # Normalize errors for unknown backends
++        raise ValueError(f"Backend '{name}' could not be loaded") from exc
++    return module.Backend()

@@ -1,0 +1,4 @@
+file,task,candidate,patch_applied,verified_solve,false_completion,test_returncode,duration_sec
+results/agents/agent_b\task_001.json,task_001,C:\Users\Pette\Downloads\vet_pilot_experiment_package\vet_pilot\candidates\agent_b\task_001.patch,True,True,False,0,0.42661428451538086
+results/agents/agent_b\task_002.json,task_002,C:\Users\Pette\Downloads\vet_pilot_experiment_package\vet_pilot\candidates\agent_b\task_002.patch,True,True,False,0,0.420485258102417
+results/agents/agent_b\task_003.json,task_003,candidates\agent_b\task_003.patch,True,True,False,0,0.45581746101379395

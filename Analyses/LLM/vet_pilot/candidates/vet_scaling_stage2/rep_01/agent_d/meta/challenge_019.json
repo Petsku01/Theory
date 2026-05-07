@@ -1,0 +1,11 @@
+{
+  "task": "challenge_019",
+  "model": "qwen3-coder:480b-cloud",
+  "backend": "ollama-cli",
+  "prompt_file": "C:\\Users\\Pette\\Downloads\\vet_pilot_experiment_package\\vet_pilot\\prompts\\vet_scaling_pilot\\agent_d_full_verified_trajectory.md",
+  "prompt_char_count": 3943,
+  "raw_output_char_count": 227,
+  "generation_duration_sec": 9.310373067855835,
+  "backend_timeout": 300,
+  "response_format": "json-edits"
+}

@@ -1,0 +1,17 @@
+{
+  "task": "challenge_005",
+  "candidate": "candidates\\stage10_replications\\rep_02\\agent_c\\patches\\challenge_005.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/network.py"
+  ],
+  "stdout": "...                                                                      [100%]\n3 passed in 0.02s\n",
+  "stderr": "",
+  "duration_sec": 0.46021366119384766,
+  "diff": "diff --git a/src/network.py b/src/network.py\nindex 7540f16..599da05 100644\n--- a/src/network.py\n+++ b/src/network.py\n@@ -1,7 +1,46 @@\n+\"\"\"\n+Module providing network parsing utilities.\n+\"\"\"\n+\n def parse_host_port(value: str, default_port: int = 80) -> tuple[str, int]:\n-    host, sep, port_text = value.partition(\":\")\n+    \"\"\"Parse a host and port string.\n+\n+    Supports simple hostnames, default ports, and bracketed IPv6 addresses.\n+\n+    Parameters\n+    ----------\n+    value : str\n+        The host:port string to parse.\n+    default_port : int, optional\n+        The port to return if none is specified.\n+\n+    Returns\n+    -------\n+    tuple[str, int]\n+        A tuple containing the host and the parsed port.\n+    \"\"\"\n+    # Handle bracketed IPv6 addresses first\n+    if value.startswith('['):\n+        close_index = value.find(']')\n+        if close_index != -1:\n+            host = value[1:close_index]\n+            rest = value[close_index + 1 :]\n+            if rest.startswith(':'):\n+                port_text = rest[1:]\n+                if port_text:\n+                    try:\n+                        port = int(port_text)\n+                    except ValueError:\n+                        port = default_port\n+                else:\n+                    port = default_port\n+                return host, port\n+            else:\n+                return host, default_port\n+    # Fallback to simple parsing for non-bracketed hosts\n+    host, sep, port_text = value.partition(':')\n     if not sep:\n         return value, default_port\n-    if port_text == \"\":\n+    if port_text == '':\n         return host, default_port\n     return host, int(port_text)\n"
+}

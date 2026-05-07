@@ -1,0 +1,38 @@
+diff --git a/src/network.py b/src/network.py
+--- a/src/network.py
++++ b/src/network.py
+@@ -1,7 +1,28 @@
+ def parse_host_port(value: str, default_port: int = 80) -> tuple[str, int]:
+-    host, sep, port_text = value.partition(":")
+-    if not sep:
+-        return value, default_port
+-    if port_text == "":
+-        return host, default_port
+-    return host, int(port_text)
++    """Parse a host and optional port from a string.
++
++    Supports:
++    - plain host:port
++    - host: no port defaults to `default_port`
++    - IPv6 in brackets e.g. "[::1]:8080" -> ("::1", 8080)
++    """
++    if value.startswith('['):
++        end_bracket = value.find(']')
++        if end_bracket == -1:
++            # No closing bracket; treat whole string as host
++            host = value
++            port_text = ''
++        else:
++            host = value[1:end_bracket]
++            rest = value[end_bracket + 1:]
++            if rest.startswith(':'):
++                port_text = rest[1:]
++            else:
++                port_text = ''
++    else:
++        host, sep, port_text = value.partition(':')
++        if not sep:
++            port_text = ''
++    if port_text:
++        return host, int(port_text)
++    return host, default_port

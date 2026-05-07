@@ -1,0 +1,28 @@
+--- a/src/backend_loader.py
++++ b/src/backend_loader.py
+@@
+-import importlib
++import importlib
+ 
+ 
+ def load_backend(name: str):
+-    module = importlib.import_module(name)
+-    return module.Backend()
++    """
++    Load a backend implementation by name.
++    Supports short names (e.g., "memory") that are resolved to the package-local
++    backend modules under src.backends, as well as fully-qualified module paths.
++    Raises ValueError for unknown backends instead of leaking ImportError.
++    """
++    try:
++        module = importlib.import_module(name)
++    except ImportError:
++        # If the name doesn't contain a dot, attempt to import from the local backends package
++        if "." not in name:
++            try:
++                module = importlib.import_module(f"src.backends.{name}")
++            except ImportError:
++                raise ValueError(f"Backend '{name}' not found") from None
++        else:
++            raise ValueError(f"Backend '{name}' not found") from None
++    return module.Backend()

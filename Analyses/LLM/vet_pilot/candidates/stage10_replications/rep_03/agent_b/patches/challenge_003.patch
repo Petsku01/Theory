@@ -1,0 +1,18 @@
+diff --git a/src/preview.py b/src/preview.py
+--- a/src/preview.py
++++ b/src/preview.py
+@@ -1,6 +1,13 @@
+ def preview_text(text: str, limit: int) -> str:
++    """Return a preview of the text, truncated to at most `limit` characters.
++    If truncation is needed and the limit is greater than 3, the preview
++    will consist of the first `limit-3` characters followed by an ellipsis.
++    If the limit is 3 or less, the preview simply contains the first
++    `limit` characters (or the whole string if it is shorter)."""
+     if limit < 0:
+         raise ValueError("limit must be non-negative")
+     if len(text) <= limit:
+         return text
+-    return text[:limit] + "..."
++    if limit <= 3:
++        return text[:limit]
++    return text[:limit - 3] + "..."

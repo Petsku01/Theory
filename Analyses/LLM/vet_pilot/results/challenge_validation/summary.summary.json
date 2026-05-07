@@ -1,0 +1,8 @@
+{
+  "n": 2,
+  "verified_solve_rate": 0.5,
+  "false_completion_rate": 0.0,
+  "failure_type_counts": {
+    "patch_did_not_apply": 1
+  }
+}

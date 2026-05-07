@@ -1,0 +1,12 @@
+{
+  "task": "challenge_014",
+  "candidate": "C:\\Users\\Pette\\Downloads\\vet_pilot_experiment_package\\vet_pilot\\results\\vet_scaling_stage2\\controls\\empty.patch",
+  "patch_applied": false,
+  "verified_solve": false,
+  "false_completion": null,
+  "failure_type": "patch_did_not_apply",
+  "test_returncode": null,
+  "stdout": "",
+  "stderr": "error: No valid patches in input (allow with \"--allow-empty\")\n",
+  "duration_sec": 0.05485725402832031
+}

@@ -1,0 +1,28 @@
+diff --git a/src/settings.py b/src/settings.py
+index 0000000..1111111 100644
+--- a/src/settings.py
++++ b/src/settings.py
+@@
+-from src.parsers import parse_optional_int
++from src.parsers import parse_bool, parse_optional_int
+@@
+-    if "APP_PORT" in env:
+-        parsed_port = parse_optional_int(env["APP_PORT"])
+-        if parsed_port is not None:
+-            settings["port"] = parsed_port
+-    if "APP_TIMEOUT" in env:
+-        settings["timeout"] = env["APP_TIMEOUT"]
+-    if "APP_DEBUG" in env:
+-        settings["debug"] = env["APP_DEBUG"] == "true"
++    if "APP_PORT" in env:
++        raw = env["APP_PORT"].strip()
++        parsed_port = parse_optional_int(raw)
++        if parsed_port is not None:
++            settings["port"] = parsed_port
++    if "APP_TIMEOUT" in env:
++        raw = env["APP_TIMEOUT"].strip()
++        parsed_timeout = parse_optional_int(raw)
++        if parsed_timeout is not None:
++            settings["timeout"] = parsed_timeout
++    if "APP_DEBUG" in env:
++        settings["debug"] = parse_bool(env["APP_DEBUG"].strip().lower())

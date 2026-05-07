@@ -1,0 +1,36 @@
+diff --git a/src/http_headers.py b/src/http_headers.py
+--- a/src/http_headers.py
++++ b/src/http_headers.py
+@@ -1,6 +1,31 @@
+ def build_headers(token, extra=None):
++    """Construct HTTP headers for API requests.
++
++    Creates a new dictionary that contains the provided ``extra`` items
++    (if any), ensures the default ``Accept`` header is present, and adds
++    an ``Authorization`` header using the supplied ``token``.
++
++    The function never mutates the caller‑supplied ``extra`` mapping and
++    always returns a fresh dictionary.
++
++    Parameters
++    ----------
++    token: str|None
++        The bearer token to include in the ``Authorization`` header.  If
++        ``None`` or empty, no ``Authorization`` header is added.
++    extra: Mapping|None
++        Optional mapping of additional headers to include.
++
++    Returns
++    -------
++    dict
++        A new dictionary containing the merged headers.
++    """
++    # Make a shallow copy so we don't modify ``extra``.
+     headers = dict(extra) if extra is not None else {}
++    # Ensure the default ``Accept`` header.
+     headers.setdefault("Accept", "application/json")
+     if token:
+-        headers["Authorization"] = f"Bearer {token}"
++        # Use the correct authorization format.
++        headers["Authorization"] = f"Token {token}"
+     return headers

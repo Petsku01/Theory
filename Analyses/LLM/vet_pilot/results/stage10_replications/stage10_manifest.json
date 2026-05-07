@@ -1,0 +1,75 @@
+{
+  "results_root": "results\\stage10_replications",
+  "candidates_root": "candidates\\stage10_replications",
+  "tasks": [
+    "challenge_001",
+    "challenge_002",
+    "challenge_003",
+    "challenge_004",
+    "challenge_005",
+    "challenge_006",
+    "challenge_007",
+    "challenge_008",
+    "challenge_009",
+    "challenge_010"
+  ],
+  "model": "gpt-oss:20b-cloud",
+  "model_transport": "ollama-cli",
+  "replications": [
+    {
+      "rep": "rep_01",
+      "condition_order": [
+        "agent_a",
+        "agent_b",
+        "agent_c"
+      ],
+      "returncode": 0,
+      "stdout": "{\n  \"results_root\": \"results\\\\stage10_replications\\\\rep_01\",\n  \"candidates_root\": \"candidates\\\\stage10_replications\\\\rep_01\",\n  \"conditions\": [\n    \"agent_a\",\n    \"agent_b\",\n    \"agent_c\"\n  ],\n  \"tasks\": [\n    \"challenge_001\",\n    \"challenge_002\",\n    \"challenge_003\",\n    \"challenge_004\",\n    \"challenge_005\",\n    \"challenge_006\",\n    \"challenge_007\",\n    \"challenge_008\",\n    \"challenge_009\",\n    \"challenge_010\"\n  ]\n}\n",
+      "stderr": ""
+    },
+    {
+      "rep": "rep_02",
+      "condition_order": [
+        "agent_b",
+        "agent_c",
+        "agent_a"
+      ],
+      "returncode": 0,
+      "stdout": "{\n  \"results_root\": \"results\\\\stage10_replications\\\\rep_02\",\n  \"candidates_root\": \"candidates\\\\stage10_replications\\\\rep_02\",\n  \"conditions\": [\n    \"agent_b\",\n    \"agent_c\",\n    \"agent_a\"\n  ],\n  \"tasks\": [\n    \"challenge_001\",\n    \"challenge_002\",\n    \"challenge_003\",\n    \"challenge_004\",\n    \"challenge_005\",\n    \"challenge_006\",\n    \"challenge_007\",\n    \"challenge_008\",\n    \"challenge_009\",\n    \"challenge_010\"\n  ]\n}\n",
+      "stderr": ""
+    },
+    {
+      "rep": "rep_03",
+      "condition_order": [
+        "agent_c",
+        "agent_a",
+        "agent_b"
+      ],
+      "returncode": 0,
+      "stdout": "{\n  \"results_root\": \"results\\\\stage10_replications\\\\rep_03\",\n  \"candidates_root\": \"candidates\\\\stage10_replications\\\\rep_03\",\n  \"conditions\": [\n    \"agent_c\",\n    \"agent_a\",\n    \"agent_b\"\n  ],\n  \"tasks\": [\n    \"challenge_001\",\n    \"challenge_002\",\n    \"challenge_003\",\n    \"challenge_004\",\n    \"challenge_005\",\n    \"challenge_006\",\n    \"challenge_007\",\n    \"challenge_008\",\n    \"challenge_009\",\n    \"challenge_010\"\n  ]\n}\n",
+      "stderr": ""
+    },
+    {
+      "rep": "rep_04",
+      "condition_order": [
+        "agent_a",
+        "agent_c",
+        "agent_b"
+      ],
+      "returncode": 0,
+      "stdout": "{\n  \"results_root\": \"results\\\\stage10_replications\\\\rep_04\",\n  \"candidates_root\": \"candidates\\\\stage10_replications\\\\rep_04\",\n  \"conditions\": [\n    \"agent_a\",\n    \"agent_c\",\n    \"agent_b\"\n  ],\n  \"tasks\": [\n    \"challenge_001\",\n    \"challenge_002\",\n    \"challenge_003\",\n    \"challenge_004\",\n    \"challenge_005\",\n    \"challenge_006\",\n    \"challenge_007\",\n    \"challenge_008\",\n    \"challenge_009\",\n    \"challenge_010\"\n  ]\n}\n",
+      "stderr": ""
+    },
+    {
+      "rep": "rep_05",
+      "condition_order": [
+        "agent_b",
+        "agent_a",
+        "agent_c"
+      ],
+      "returncode": 0,
+      "stdout": "{\n  \"results_root\": \"results\\\\stage10_replications\\\\rep_05\",\n  \"candidates_root\": \"candidates\\\\stage10_replications\\\\rep_05\",\n  \"conditions\": [\n    \"agent_b\",\n    \"agent_a\",\n    \"agent_c\"\n  ],\n  \"tasks\": [\n    \"challenge_001\",\n    \"challenge_002\",\n    \"challenge_003\",\n    \"challenge_004\",\n    \"challenge_005\",\n    \"challenge_006\",\n    \"challenge_007\",\n    \"challenge_008\",\n    \"challenge_009\",\n    \"challenge_010\"\n  ]\n}\n",
+      "stderr": ""
+    }
+  ]
+}

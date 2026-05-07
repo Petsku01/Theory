@@ -1,0 +1,12 @@
+diff --git a/src/preview.py b/src/preview.py
+index 4d0a62b..4fefc7c 100644
+--- a/src/preview.py
++++ b/src/preview.py
+@@ -3,4 +3,6 @@ def render_preview(text, limit):
+         raise ValueError("limit must be non-negative")
+     if len(text) <= limit:
+         return text
+-    return text[:limit] + "..."
++    if limit <= 3:
++        return text[:limit]
++    return text[: limit - 3] + "..."

@@ -1,0 +1,23 @@
+diff --git a/src/history.py b/src/history.py
+--- a/src/history.py
++++ b/src/history.py
+@@ -1,11 +1,11 @@
+ def recent_unique(items, limit):
+     if limit <= 0:
+         return []
+-    last_indices = {}
+-    for idx, item in enumerate(items):
+-        last_indices[item] = idx
+-    result = []
+-    for idx, item in enumerate(items):
+-        if idx == last_indices[item]:
+-            result.append(item)
+-    return result[-limit:]
++    seen = set()
++    unique_rev = []
++    for item in reversed(items):
++        if item not in seen:
++            seen.add(item)
++            unique_rev.append(item)
++    unique = list(reversed(unique_rev))
++    return unique[-limit:]

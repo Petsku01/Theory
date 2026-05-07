@@ -1,0 +1,11 @@
+diff --git a/settings.py b/settings.py
+index 47e8ecf..7a114ad 100644
+--- a/settings.py
++++ b/settings.py
+@@ -1,4 +1,5 @@
+ def parse_bool(value):
++    value = value.strip().lower()
+     if value == "true":
+         return True
+     if value == "false":
+         return False

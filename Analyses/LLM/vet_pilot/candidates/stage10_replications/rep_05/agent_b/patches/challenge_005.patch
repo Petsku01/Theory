@@ -1,0 +1,41 @@
+diff --git a/src/network.py b/src/network.py
+--- a/src/network.py
++++ b/src/network.py
+@@ -1,7 +1,31 @@
+ def parse_host_port(value: str, default_port: int = 80) -> tuple[str, int]:
+-    host, sep, port_text = value.partition(":")
+-    if not sep:
+-        return value, default_port
+-    if port_text == "":
+-        return host, default_port
+-    return host, int(port_text)
++    if value.startswith("["):
++        try:
++            close_idx = value.index("]")
++        except ValueError:
++            # malformed, fallback to original split
++            host, sep, port_text = value.partition(":")
++            if not sep:
++                return value, default_port
++            if port_text == "":
++                return host, default_port
++            return host, int(port_text)
++        host = value[1:close_idx]
++        remaining = value[close_idx+1:]
++        if remaining.startswith(":"):
++            port_text = remaining[1:]
++            if port_text == "":
++                return host, default_port
++            try:
++                return host, int(port_text)
++            except ValueError:
++                return host, default_port
++        else:
++            return host, default_port
++    else:
++        host, sep, port_text = value.partition(":")
++        if not sep:
++            return value, default_port
++        if port_text == "":
++            return host, default_port
++        return host, int(port_text)

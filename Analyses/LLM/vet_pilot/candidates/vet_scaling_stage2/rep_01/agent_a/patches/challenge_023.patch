@@ -1,0 +1,12 @@
+diff --git a/src/domains.py b/src/domains.py
+--- a/src/domains.py
++++ b/src/domains.py
+@@ -1,4 +1,8 @@
+ def parent_domain(hostname):
++    # Strip trailing dot if present
++    if hostname.endswith('.'):
++        hostname = hostname[:-1]
++    
+     parts = hostname.split(".")
+     if len(parts) < 2:
+         return ""

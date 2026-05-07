@@ -1,0 +1,11 @@
+diff --git a/src/preview.py b/src/preview.py
+--- a/src/preview.py
++++ b/src/preview.py
+@@ -3,4 +3,6 @@
+         raise ValueError("limit must be non-negative")
+     if len(text) <= limit:
+         return text
+-    return text[:limit] + "..."
++    if limit == 0:
++        return ""
++    return text[:limit-1] + "..."

@@ -1,0 +1,17 @@
+{
+  "task_id": "challenge_030",
+  "difficulty": "hard",
+  "bug_type": "dependency_or_config_behavior",
+  "allowed_files": [
+    "src/*.py"
+  ],
+  "forbidden_files": [
+    "tests/*"
+  ],
+  "success_criteria": [
+    "visible tests pass",
+    "hidden tests pass",
+    "tests are not modified",
+    "public API preserved"
+  ]
+}

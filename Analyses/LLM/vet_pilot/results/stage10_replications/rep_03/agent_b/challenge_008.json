@@ -1,0 +1,17 @@
+{
+  "task": "challenge_008",
+  "candidate": "candidates\\stage10_replications\\rep_03\\agent_b\\patches\\challenge_008.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/history.py"
+  ],
+  "stdout": "...                                                                      [100%]\n3 passed in 0.02s\n",
+  "stderr": "",
+  "duration_sec": 0.4632277488708496,
+  "diff": "diff --git a/src/history.py b/src/history.py\nindex 8ec6ea8..9197e8c 100644\n--- a/src/history.py\n+++ b/src/history.py\n@@ -1,11 +1,11 @@\n def recent_unique(items, limit):\n     if limit <= 0:\n         return []\n-    seen = set()\n+    last_indices = {}\n+    for idx, item in enumerate(items):\n+        last_indices[item] = idx\n     result = []\n-    for item in items:\n-        if item in seen:\n-            continue\n-        seen.add(item)\n-        result.append(item)\n+    for idx, item in enumerate(items):\n+        if idx == last_indices[item]:\n+            result.append(item)\n     return result[-limit:]\n"
+}

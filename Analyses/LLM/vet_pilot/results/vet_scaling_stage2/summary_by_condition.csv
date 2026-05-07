@@ -1,0 +1,5 @@
+condition,n_runs,json_valid_rate,schema_usable_rate,patch_applied_rate,verified_solve_rate,solve_if_applied,false_completion_rate,recovery_observed_rate,recovery_observed_count,annotation_row_count,annotation_coverage_rate,trajectory_use_observed_count
+agent_a,60,1.0,1.0,1.0,0.9166666666666666,0.9166666666666666,0.08333333333333333,0.0,0,0,0.0,0
+agent_b,60,0.95,0.95,0.95,0.85,0.8947368421052632,0.1,0.0,0,10,0.16666666666666666,0
+agent_c,60,1.0,1.0,1.0,0.8333333333333334,0.8333333333333334,0.16666666666666666,0.0,0,0,0.0,0
+agent_d,60,1.0,1.0,1.0,0.9166666666666666,0.9166666666666666,0.08333333333333333,0.016666666666666666,1,12,0.2,1

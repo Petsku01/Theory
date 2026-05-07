@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/vet.schema.json",
+  "title": "Verified Experience Trajectory",
+  "type": "object",
+  "required": [
+    "trajectory_id", "domain", "goal", "initial_state", "constraints",
+    "available_tools", "actions", "final_state", "verifier_results"
+  ],
+  "properties": {
+    "trajectory_id": {"type": "string"},
+    "domain": {"type": "string", "enum": ["software", "web", "desktop", "research", "robotics", "other"]},
+    "source": {"type": "string"},
+    "goal": {"type": "string"},
+    "initial_state": {
+      "type": "object",
+      "properties": {
+        "repository": {"type": "string"},
+        "commit": {"type": "string"},
+        "issue": {"type": "string"},
+        "visible_tests": {"type": "array", "items": {"type": "string"}},
+        "hidden_tests": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": true
+    },
+    "constraints": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "available_tools": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "memory_context": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "memory_id": {"type": "string"},
+          "content": {"type": "string"},
+          "source": {"type": "string"},
+          "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+          "scope": {"type": "string"}
+        },
+        "required": ["content"]
+      }
+    },
+    "candidate_plans": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "plan_id": {"type": "string"},
+          "steps": {"type": "array", "items": {"type": "string"}},
+          "risk_notes": {"type": "array", "items": {"type": "string"}}
+        },
+        "required": ["steps"]
+      }
+    },
+    "actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["step", "action_type", "action", "observation", "verifier"],
+        "properties": {
+          "step": {"type": "integer", "minimum": 1},
+          "action_type": {
+            "type": "string",
+            "enum": ["inspect", "edit", "run_test", "search", "revert", "ask", "verify", "memory_write", "stop", "other"]
+          },
+          "action": {"type": "string"},
+          "observation": {"type": "string"},
+          "error": {"type": ["string", "null"]},
+          "correction": {"type": ["string", "null"]},
+          "verifier": {
+            "type": "object",
+            "required": ["name", "passed"],
+            "properties": {
+              "name": {"type": "string"},
+              "passed": {"type": "boolean"},
+              "output": {"type": "string"},
+              "scope": {"type": "string", "enum": ["local", "visible", "hidden", "human", "policy", "other"]}
+            },
+            "additionalProperties": true
+          },
+          "risk_level": {"type": "integer", "minimum": 0, "maximum": 4}
+        },
+        "additionalProperties": true
+      }
+    },
+    "final_state": {
+      "type": "object",
+      "properties": {
+        "claimed_success": {"type": "boolean"},
+        "patch_path": {"type": "string"},
+        "summary": {"type": "string"}
+      },
+      "additionalProperties": true
+    },
+    "verifier_results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "passed"],
+        "properties": {
+          "name": {"type": "string"},
+          "passed": {"type": "boolean"},
+          "output": {"type": "string"},
+          "scope": {"type": "string"}
+        },
+        "additionalProperties": true
+      }
+    },
+    "human_feedback": {"type": "string"},
+    "memory_updates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["content", "source", "scope", "confidence"],
+        "properties": {
+          "content": {"type": "string"},
+          "source": {"type": "string"},
+          "scope": {"type": "string"},
+          "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+          "expiry": {"type": "string"},
+          "permission": {"type": "string"}
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,10 @@
+{
+  "task": "challenge_003",
+  "model": "gpt-oss:20b-cloud",
+  "backend": "ollama-cli",
+  "prompt_file": "C:\\Users\\Pette\\Downloads\\vet_pilot_experiment_package\\vet_pilot\\prompts\\agent_b_final_patch.md",
+  "prompt_char_count": 2346,
+  "raw_output_char_count": 2667,
+  "generation_duration_sec": 4.464310646057129,
+  "backend_timeout": 300
+}

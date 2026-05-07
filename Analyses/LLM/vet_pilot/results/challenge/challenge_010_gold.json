@@ -1,0 +1,17 @@
+{
+  "task": "challenge_010",
+  "candidate": "tasks\\challenge\\challenge_010\\gold.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/backend_loader.py"
+  ],
+  "stdout": "...                                                                      [100%]\n3 passed in 0.03s\n",
+  "stderr": "",
+  "duration_sec": 0.46254920959472656,
+  "diff": "diff --git a/src/backend_loader.py b/src/backend_loader.py\nindex 647810d..b98829a 100644\n--- a/src/backend_loader.py\n+++ b/src/backend_loader.py\n@@ -2,5 +2,20 @@ import importlib\n \n \n def load_backend(name: str):\n-    module = importlib.import_module(name)\n-    return module.Backend()\n+    module_names = [name]\n+    if \".\" not in name:\n+        suffix = name if name.endswith(\"_backend\") else f\"{name}_backend\"\n+        module_names = [f\"src.backends.{name}\", f\"src.backends.{suffix}\"]\n+\n+    last_error = None\n+    for module_name in module_names:\n+        try:\n+            module = importlib.import_module(module_name)\n+        except ModuleNotFoundError as exc:\n+            last_error = exc\n+            continue\n+        if not hasattr(module, \"Backend\"):\n+            raise ValueError(f\"backend module has no Backend class: {module_name}\")\n+        return module.Backend()\n+\n+    raise ValueError(f\"unknown backend: {name}\") from last_error\n"
+}

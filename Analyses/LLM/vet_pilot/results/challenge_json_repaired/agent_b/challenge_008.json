@@ -1,0 +1,17 @@
+{
+  "task": "challenge_008",
+  "candidate": "candidates\\challenge_json_repaired\\agent_b\\patches\\challenge_008.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/history.py"
+  ],
+  "stdout": "...                                                                      [100%]\n3 passed in 0.03s\n",
+  "stderr": "",
+  "duration_sec": 0.5173683166503906,
+  "diff": "diff --git a/src/history.py b/src/history.py\nindex 8ec6ea8..de06249 100644\n--- a/src/history.py\n+++ b/src/history.py\n@@ -1,11 +1,11 @@\n def recent_unique(items, limit):\n     if limit <= 0:\n         return []\n-    seen = set()\n-    result = []\n-    for item in items:\n-        if item in seen:\n-            continue\n-        seen.add(item)\n-        result.append(item)\n-    return result[-limit:]\n+    # Map each item to its last occurrence index\n+    last_occurrence = {}\n+    for idx, item in enumerate(items):\n+        last_occurrence[item] = idx\n+    # Sort items by the order of their last occurrence\n+    sorted_items = sorted(last_occurrence.items(), key=lambda kv: kv[1])\n+    result_items = [kv[0] for kv in sorted_items]\n+    return result_items[-limit:]\n"
+}

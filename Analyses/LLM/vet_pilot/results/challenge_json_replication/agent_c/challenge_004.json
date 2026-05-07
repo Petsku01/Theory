@@ -1,0 +1,17 @@
+{
+  "task": "challenge_004",
+  "candidate": "candidates\\challenge_json_replication\\agent_c\\patches\\challenge_004.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/preferences.py"
+  ],
+  "stdout": "..                                                                       [100%]\n2 passed in 0.02s\n",
+  "stderr": "",
+  "duration_sec": 0.44070982933044434,
+  "diff": "diff --git a/src/preferences.py b/src/preferences.py\nindex deba08a..75aba63 100644\n--- a/src/preferences.py\n+++ b/src/preferences.py\n@@ -1,10 +1,48 @@\n+# src/preferences.py\n+\"\"\"Utility to merge default preferences with overrides.\n+\n+The function returns a new dictionary that contains the merged preference\n+settings.  Crucially it does **not** mutate either the ``defaults`` or\n+``overrides`` arguments.  Nested mutable values are deep\u00e2\u20ac\u2018copied to ensure\n+that the result is completely independent of the inputs.\n+\"\"\"\n+\n+import copy\n+\n+\n def merge_preferences(defaults: dict, overrides: dict) -> dict:\n-    merged = defaults.copy()\n+    \"\"\"Merge two preference dictionaries.\n+\n+    Parameters\n+    ----------\n+    defaults: dict\n+        Default preferences.  Must not be mutated.\n+    overrides: dict\n+        User supplied overrides.  Must not be mutated.\n+\n+    Returns\n+    -------\n+    dict\n+        A new dictionary containing values from ``defaults`` updated with\n+        ``overrides``.\n+    \"\"\"\n+    # Start with a deep copy of defaults to avoid mutating nested objects.\n+    merged = copy.deepcopy(defaults)\n+\n+    # Merge the ``notifications`` dict.\n+    overridden_notifications = overrides.get(\"notifications\", {})\n+    # ``merged`` already contains a (deep\u00e2\u20ac\u2018copied) dict for ``notifications``.\n     notifications = merged.setdefault(\"notifications\", {})\n-    notifications.update(overrides.get(\"notifications\", {}))\n+    notifications.update(copy.deepcopy(overridden_notifications))\n+\n+    # Merge the ``tags`` list.\n+    overridden_tags = overrides.get(\"tags\", [])\n     tags = merged.setdefault(\"tags\", [])\n-    tags.extend(overrides.get(\"tags\", []))\n+    tags.extend(copy.deepcopy(overridden_tags))\n+\n+    # Merge any other keys.\n     for key, value in overrides.items():\n         if key not in {\"notifications\", \"tags\"}:\n-            merged[key] = value\n+            merged[key] = copy.deepcopy(value)\n+\n     return merged\n"
+}

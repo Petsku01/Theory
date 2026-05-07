@@ -1,0 +1,49 @@
+--- a/src/network.py
++++ b/src/network.py
+@@
+-def parse_host_port(value: str, default_port: int = 80) -> tuple[str, int]:
+-    host, sep, port_text = value.partition(":")
+-    if not sep:
+-        return value, default_port
+-    if port_text == "":
+-        return host, default_port
+-    return host, int(port_text)
++def parse_host_port(value: str, default_port: int = 80) -> tuple[str, int]:
++    """
++    Parse host:port strings, supporting IPv6 addresses in bracketed format.
++
++    Examples:
++        "example.com:443" -> ("example.com", 443)
++        "example.com:" -> ("example.com", default_port)
++        "[::1]:8080" -> ("::1", 8080)
++        "[2001:db8::1]" -> ("2001:db8::1", default_port)
++    """
++    # Handle IPv6 addresses enclosed in brackets.
++    if value.startswith("["):
++        close_bracket = value.find("]")
++        if close_bracket == -1:
++            # Malformed IPv6 address; fall back to original behavior.
++            host = value
++            rest = ""
++        else:
++            host = value[1:close_bracket]
++            rest = value[close_bracket + 1 :]
++
++        # Extract port if present after the closing bracket.
++        if rest.startswith(":"):
++            port_text = rest[1:]
++            if port_text:
++                try:
++                    return host, int(port_text)
++                except ValueError:
++                    # Invalid port; fall back to default.
++                    pass
++        return host, default_port
++
++    # Fallback to original host:port logic for non-IPv6 strings.
++    host, sep, port_text = value.partition(":")
++    if not sep:
++        return host, default_port
++    if port_text == "":
++        return host, default_port
++    return host, int(port_text)

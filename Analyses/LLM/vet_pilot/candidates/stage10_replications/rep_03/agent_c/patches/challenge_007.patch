@@ -1,0 +1,32 @@
+diff --git a/src/http_headers.py b/src/http_headers.py
+--- a/src/http_headers.py
++++ b/src/http_headers.py
+@@ -1,5 +1,27 @@
+ def build_headers(token, extra=None):
+-    headers = dict(extra) if extra else {}
++    """Build HTTP headers for a request.
++
++    Parameters
++    ----------
++    token : str or None
++        The bearer token to use for the ``Authorization`` header.  If ``token`` is
++        falsy, the ``Authorization`` header is omitted.
++    extra : Mapping or None
++        Optional mapping of additional header names to values.  The original
++        mapping is **never** mutated; a new dictionary is constructed.
++
++    Returns
++    -------
++    dict
++        A new dictionary containing the supplied ``extra`` headers, the default
++        ``Accept`` header, and the ``Authorization`` header when a token is
++        provided.
++    """
++    # Construct a new mapping so the caller's ``extra`` is not modified.
++    headers = {}
++    if extra:
++        headers.update(extra)
++
+     headers.setdefault("Accept", "application/json")
+     if token:
+         headers["Authorization"] = f"Bearer {token}"

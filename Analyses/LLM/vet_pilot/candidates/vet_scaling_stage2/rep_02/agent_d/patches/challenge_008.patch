@@ -1,0 +1,17 @@
+diff --git a/src/history.py b/src/history.py
+--- a/src/history.py
++++ b/src/history.py
+@@ -3,9 +3,11 @@
+         return []
+     seen = set()
+     result = []
+-    for item in items:
++    # Traverse the list in reverse to capture the most recent occurrences
++    for item in reversed(items):
+         if item in seen:
+             continue
+         seen.add(item)
+         result.append(item)
+-    return result[-limit:]
++    # Reverse again to restore chronological order
++    return result[::-1][-limit:]

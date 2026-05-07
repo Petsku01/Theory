@@ -1,0 +1,32 @@
+diff --git a/src/pricing.py b/src/pricing.py
+--- a/src/pricing.py
++++ b/src/pricing.py
+@@ -4,20 +4,18 @@
+     """Return the given price formatted as a string with two decimal places.
+ 
+     The function accepts integers, strings, floats, or :class:`decimal.Decimal`
+-    values.  It uses ``decimal.Decimal`` for conversion and rounding to avoid
+-    binary floating‑point inaccuracies.
++    values. It uses :class:`decimal.Decimal` for conversion and rounding to
++    avoid binary floating‑point inaccuracies.
+     """
+     try:
+-        # Convert the input to a Decimal. ``str`` guarantees an accurate
+-        # decimal representation for all built‑in types except ``Decimal``.
+-        dec = Decimal(str(value))
++        if isinstance(value, Decimal):
++            dec = value
++        elif isinstance(value, float):
++            dec = Decimal(str(value))
++        else:
++            dec = Decimal(value)
+     except Exception as exc:
+-        # Any conversion error should raise the same ValueError as before.
+         raise ValueError("invalid price") from exc
+ 
+-    # Round to exactly two decimal places using the default rounding
+-    # (ROUND_HALF_EVEN) to match Python's Decimal rounding rules.
+     quantized = dec.quantize(Decimal("0.01"), rounding=ROUND_HALF_EVEN)
+-    # ``quantized`` already has two decimal places; return its string
+-    # representation.
+     return str(quantized)

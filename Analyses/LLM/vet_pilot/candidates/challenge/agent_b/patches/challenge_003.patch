@@ -1,0 +1,20 @@
+--- src/preview.py
++++ src/preview.py
+@@
+ def preview_text(text: str, limit: int) -> str:
+     if limit < 0:
+         raise ValueError("limit must be non-negative")
+-    if len(text) <= limit:
+-        return text
+-    return text[:limit] + "..."
++    # If the whole text fits within the limit, return it unchanged
++    if len(text) <= limit:
++        return text
++
++    # For very small limits, we cannot fit an ellipsis; just truncate.
++    # The ellipsis itself is three characters long.
++    if limit <= 3:
++        return text[:limit]
++
++    # For larger limits, leave room for the ellipsis.
++    return text[:limit - 3] + "..."

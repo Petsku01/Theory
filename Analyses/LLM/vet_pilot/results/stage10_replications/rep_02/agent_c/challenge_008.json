@@ -1,0 +1,17 @@
+{
+  "task": "challenge_008",
+  "candidate": "candidates\\stage10_replications\\rep_02\\agent_c\\patches\\challenge_008.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/history.py"
+  ],
+  "stdout": "...                                                                      [100%]\n3 passed in 0.03s\n",
+  "stderr": "",
+  "duration_sec": 0.4775259494781494,
+  "diff": "diff --git a/src/history.py b/src/history.py\nindex 8ec6ea8..543015c 100644\n--- a/src/history.py\n+++ b/src/history.py\n@@ -1,11 +1,15 @@\n def recent_unique(items, limit):\n     if limit <= 0:\n         return []\n-    seen = set()\n+    # Find the last index of each item\n+    last_index = {}\n+    for idx, item in enumerate(items):\n+        last_index[item] = idx\n+    # Reconstruct list keeping only the last occurrence of each item,\n+    # preserving original order\n     result = []\n-    for item in items:\n-        if item in seen:\n-            continue\n-        seen.add(item)\n-        result.append(item)\n+    for idx, item in enumerate(items):\n+        if last_index[item] == idx:\n+            result.append(item)\n+    # Return the most recent 'limit' items\n     return result[-limit:]\n"
+}

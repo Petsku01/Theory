@@ -1,0 +1,17 @@
+{
+  "task": "challenge_004",
+  "candidate": "candidates\\stage10_replications\\rep_03\\agent_c\\patches\\challenge_004.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/preferences.py"
+  ],
+  "stdout": "..                                                                       [100%]\n2 passed in 0.03s\n",
+  "stderr": "",
+  "duration_sec": 0.46518778800964355,
+  "diff": "diff --git a/src/preferences.py b/src/preferences.py\nindex deba08a..06edf33 100644\n--- a/src/preferences.py\n+++ b/src/preferences.py\n@@ -1,9 +1,29 @@\n def merge_preferences(defaults: dict, overrides: dict) -> dict:\n+    \"\"\"Merge two preference dictionaries safely.\n+\n+    Performs a shallow copy of :pycode:`defaults` and deep copies any mutable\n+    nested structures so the original inputs are never mutated. The return value\n+    contains the merged preferences.\n+    \"\"\"\n+    # Start with a shallow copy of defaults \u00e2\u20ac\u201c nested structures must be\n+    # duplicated explicitly.\n     merged = defaults.copy()\n-    notifications = merged.setdefault(\"notifications\", {})\n-    notifications.update(overrides.get(\"notifications\", {}))\n-    tags = merged.setdefault(\"tags\", [])\n-    tags.extend(overrides.get(\"tags\", []))\n+\n+    # Handle notifications dict \u00e2\u20ac\u201c create a copy of the default if present\n+    default_notifs = defaults.get(\"notifications\", {})\n+    merged_notifs = default_notifs.copy()\n+    # Merge overrides into the copied notifications dict\n+    merged_notifs.update(overrides.get(\"notifications\", {}))\n+    merged[\"notifications\"] = merged_notifs\n+\n+    # Handle tags list \u00e2\u20ac\u201c create a copy of the default if present\n+    default_tags = defaults.get(\"tags\", [])\n+    merged_tags = list(default_tags)\n+    # Extend with overrides tags\n+    merged_tags.extend(overrides.get(\"tags\", []))\n+    merged[\"tags\"] = merged_tags\n+\n+    # Copy any other keys from overrides\n     for key, value in overrides.items():\n         if key not in {\"notifications\", \"tags\"}:\n             merged[key] = value\n"
+}

@@ -1,0 +1,14 @@
+diff --git a/src/events.py b/src/events.py
+index 22b478b..2dd03cc 100644
+--- a/src/events.py
++++ b/src/events.py
+@@ -1,5 +1,5 @@
+ def take_ready_events(events):
+-    ready = []
+-    while events and events[0]["ready"]:
+-        ready.append(events.pop(0))
+-    return ready
++    index = 0
++    while index < len(events) and events[index]["ready"]:
++        index += 1
++    return [dict(event) for event in events[:index]]

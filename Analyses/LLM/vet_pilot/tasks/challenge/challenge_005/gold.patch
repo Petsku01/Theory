@@ -1,0 +1,23 @@
+diff --git a/src/network.py b/src/network.py
+index 7540f16..b99aa2f 100644
+--- a/src/network.py
++++ b/src/network.py
+@@ -1,4 +1,18 @@
+ def parse_host_port(value: str, default_port: int = 80) -> tuple[str, int]:
++    value = value.strip()
++    if value.startswith("["):
++        closing = value.find("]")
++        if closing == -1:
++            raise ValueError("invalid host")
++        host = value[1:closing]
++        remainder = value[closing + 1 :]
++        if remainder == "":
++            return host, default_port
++        if not remainder.startswith(":"):
++            raise ValueError("invalid host")
++        port_text = remainder[1:]
++        return host, default_port if port_text == "" else int(port_text)
++
+     host, sep, port_text = value.partition(":")
+     if not sep:
+         return value, default_port

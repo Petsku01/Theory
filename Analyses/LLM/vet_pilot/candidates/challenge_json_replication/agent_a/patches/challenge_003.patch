@@ -1,0 +1,12 @@
+diff --git a/src/preview.py b/src/preview.py
+--- a/src/preview.py
++++ b/src/preview.py
+@@ -3,7 +3,7 @@
+         raise ValueError("limit must be non-negative")
+     if len(text) <= limit:
+         return text
+-    if limit < 3:
++    if limit <= 3:
+         # Ellipsis cannot fit, just return a slice of the text
+         return text[:limit]
+     # Return a string that fits within the limit, including the ellipsis

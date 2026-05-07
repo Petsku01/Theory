@@ -1,0 +1,11 @@
+task,agent_b_final_patch,agent_d_full_trajectory,outcome
+challenge_001,1/2 solve,1/2 solve,tie
+challenge_002,0/2 solve,1/2 solve,D wins
+challenge_003,1/2 solve,2/2 solve,D wins
+challenge_004,1/2 solve,1/2 solve,tie
+challenge_005,1/2 solve,1/2 solve,tie
+challenge_006,1/2 solve,0/2 solve,B wins
+challenge_007,1/2 solve,1/2 solve,tie
+challenge_008,0/2 solve,1/2 solve,D wins
+challenge_009,1/2 solve,1/2 solve,tie
+challenge_010,1/2 solve,1/2 solve,tie

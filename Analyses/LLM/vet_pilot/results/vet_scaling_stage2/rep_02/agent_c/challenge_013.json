@@ -1,0 +1,17 @@
+{
+  "task": "challenge_013",
+  "candidate": "C:\\Users\\Pette\\Downloads\\vet_pilot_experiment_package\\vet_pilot\\candidates\\vet_scaling_stage2\\rep_02\\agent_c\\patches\\challenge_013.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/ports.py"
+  ],
+  "stdout": "...                                                                      [100%]\n3 passed in 0.02s\n",
+  "stderr": "",
+  "duration_sec": 0.573199987411499,
+  "diff": "diff --git a/src/ports.py b/src/ports.py\nindex 4f08bd3..7b7d326 100644\n--- a/src/ports.py\n+++ b/src/ports.py\n@@ -1,4 +1,6 @@\n def format_port_range(start, end):\n     if start > end:\n         raise ValueError(\"invalid range\")\n+    if start == end:\n+        return str(start)\n     return f\"{start}-{end}\"\n"
+}

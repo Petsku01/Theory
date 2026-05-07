@@ -1,0 +1,43 @@
+diff --git a/src/history.py b/src/history.py
+--- a/src/history.py
++++ b/src/history.py
+@@ -1,11 +1,31 @@
+ def recent_unique(items, limit):
++    """Return the most recent unique items from *items*.
++
++    If *limit* is non‑positive an empty list is returned.
++    The function preserves the chronological order of the kept items
++    and keeps the most recent occurrence for each distinct element.
++    Items that are unhashable are handled by checking for equality.
++    """
+     if limit <= 0:
+         return []
+-    # Build a mapping from item to its last occurrence index
+-    last_index = {}
+-    for idx, item in enumerate(items):
+-        last_index[item] = idx
+-    # Sort items by the index of their last occurrence (ascending)
+-    sorted_items = sorted(last_index.keys(), key=lambda x: last_index[x])
+-    # Keep the most recent 'limit' items from the sorted list
+-    return sorted_items[-limit:]
++    # Walk items from the end, keeping the first (i.e., most recent)
++    # occurrence of each distinct element.
++    seen_hashable = set()
++    seen_unhashable = []  # list of items that could not be hashed
++    kept_rev = []          # items in reverse order (most recent first)
++    for item in reversed(items):
++        try:
++            # Hashable items can be stored in a set for quick lookup.
++            if item in seen_hashable:
++                continue
++            seen_hashable.add(item)
++        except Exception:
++            # Unhashable items: use linear search with equality.
++            if any(item == other for other in seen_unhashable):
++                continue
++            seen_unhashable.append(item)
++        kept_rev.append(item)
++    # Reverse to restore original chronological order of the kept items.
++    kept = list(reversed(kept_rev))
++    # Return up to *limit* items.
++    return kept[-limit:]

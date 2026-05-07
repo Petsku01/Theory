@@ -1,0 +1,17 @@
+{
+  "task": "challenge_006",
+  "candidate": "candidates\\challenge\\agent_c\\challenge_006.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/pricing.py"
+  ],
+  "stdout": "...                                                                      [100%]\n3 passed in 0.02s\n",
+  "stderr": "",
+  "duration_sec": 0.4360015392303467,
+  "diff": "diff --git a/src/pricing.py b/src/pricing.py\nindex bb5e0c8..78fc5f0 100644\n--- a/src/pricing.py\n+++ b/src/pricing.py\n@@ -1,5 +1,10 @@\n+from decimal import Decimal, ROUND_HALF_UP, InvalidOperation\n+\n+\n def format_price(value) -> str:\n     try:\n-        return f\"{float(value):.2f}\"\n-    except (TypeError, ValueError) as exc:\n-        raise ValueError(\"invalid price\") from exc\n+        d = Decimal(str(value))\n+    except (TypeError, InvalidOperation):\n+        raise ValueError(\"invalid price\") from None\n+    d = d.quantize(Decimal(\"0.01\"), rounding=ROUND_HALF_UP)\n+    return f\"{d:.2f}\"\n"
+}

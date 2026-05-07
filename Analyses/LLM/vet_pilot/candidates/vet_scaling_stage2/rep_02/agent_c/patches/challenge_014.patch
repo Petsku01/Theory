@@ -1,0 +1,10 @@
+diff --git a/src/timeout_keys.py b/src/timeout_keys.py
+--- a/src/timeout_keys.py
++++ b/src/timeout_keys.py
+@@ -1,5 +1,4 @@
+-TIMEOUT_KEY = "timeout"
+-
++TIMEOUT_KEY = "connect_timeout"
+ 
+ def normalize_timeout(value):
+     return {TIMEOUT_KEY: int(value)}

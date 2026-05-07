@@ -1,0 +1,13 @@
+{
+  "n": 4,
+  "valid_patch_rate": 0.0,
+  "verified_solve_rate": 0.0,
+  "conditional_solve_rate": null,
+  "false_completion_rate": 0.0,
+  "patch_applied_count": 0,
+  "verified_solve_count": 0,
+  "false_completion_count": 0,
+  "failure_type_counts": {
+    "patch_did_not_apply": 4
+  }
+}

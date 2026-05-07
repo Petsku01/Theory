@@ -1,0 +1,17 @@
+{
+  "task": "challenge_005",
+  "candidate": "candidates\\stage10_replications\\rep_05\\agent_b\\patches\\challenge_005.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/network.py"
+  ],
+  "stdout": "...                                                                      [100%]\n3 passed in 0.02s\n",
+  "stderr": "",
+  "duration_sec": 0.49880099296569824,
+  "diff": "diff --git a/src/network.py b/src/network.py\nindex 7540f16..e0c15cf 100644\n--- a/src/network.py\n+++ b/src/network.py\n@@ -1,7 +1,31 @@\n def parse_host_port(value: str, default_port: int = 80) -> tuple[str, int]:\n-    host, sep, port_text = value.partition(\":\")\n-    if not sep:\n-        return value, default_port\n-    if port_text == \"\":\n-        return host, default_port\n-    return host, int(port_text)\n+    if value.startswith(\"[\"):\n+        try:\n+            close_idx = value.index(\"]\")\n+        except ValueError:\n+            # malformed, fallback to original split\n+            host, sep, port_text = value.partition(\":\")\n+            if not sep:\n+                return value, default_port\n+            if port_text == \"\":\n+                return host, default_port\n+            return host, int(port_text)\n+        host = value[1:close_idx]\n+        remaining = value[close_idx+1:]\n+        if remaining.startswith(\":\"):\n+            port_text = remaining[1:]\n+            if port_text == \"\":\n+                return host, default_port\n+            try:\n+                return host, int(port_text)\n+            except ValueError:\n+                return host, default_port\n+        else:\n+            return host, default_port\n+    else:\n+        host, sep, port_text = value.partition(\":\")\n+        if not sep:\n+            return value, default_port\n+        if port_text == \"\":\n+            return host, default_port\n+        return host, int(port_text)\n"
+}

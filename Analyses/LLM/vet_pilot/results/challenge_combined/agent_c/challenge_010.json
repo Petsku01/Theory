@@ -1,0 +1,22 @@
+{
+  "task": "challenge_010",
+  "candidate": "C:\\Users\\Pette\\Downloads\\vet_pilot_experiment_package\\vet_pilot\\candidates\\challenge_json\\agent_c\\patches\\challenge_010.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/backend_loader.py"
+  ],
+  "stdout": "...                                                                      [100%]\n3 passed in 0.03s\n",
+  "stderr": "",
+  "duration_sec": 0.4328017234802246,
+  "diff": "diff --git a/src/backend_loader.py b/src/backend_loader.py\nindex 647810d..c8e53f2 100644\n--- a/src/backend_loader.py\n+++ b/src/backend_loader.py\n@@ -2,5 +2,23 @@ import importlib\n \n \n def load_backend(name: str):\n-    module = importlib.import_module(name)\n+    \"\"\"Load a backend implementation by name.\n+\n+    Short names (e.g. ``memory``) are resolved to the ``src.backends`` package.\n+    Fully qualified module paths are imported as-is. Unknown names raise\n+    ValueError.\n+    \"\"\"\n+    module = None\n+    try:\n+        module = importlib.import_module(name)\n+    except ImportError:\n+        # Try resolving as a local backend\n+        try:\n+            module = importlib.import_module(f\"src.backends.{name}\")\n+        except ImportError as e:\n+            raise ValueError(f\"Unknown backend '{name}'\") from e\n+\n+    # Ensure the module contains a Backend class\n+    if not hasattr(module, \"Backend\"):\n+        raise ValueError(f\"Backend '{name}' does not provide a Backend class\")\n     return module.Backend()\n",
+  "combined_source": "stage5",
+  "stage5_status": "ok",
+  "stage6_status": null,
+  "schema_usable": true,
+  "semantic_failure_after_apply": false
+}

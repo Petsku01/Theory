@@ -1,0 +1,17 @@
+{
+  "task": "challenge_001",
+  "candidate": "tasks\\challenge\\challenge_001\\gold.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/users.py"
+  ],
+  "stdout": "...                                                                      [100%]\n3 passed in 0.03s\n",
+  "stderr": "",
+  "duration_sec": 0.475475549697876,
+  "diff": "diff --git a/src/users.py b/src/users.py\nindex c7b30ef..da6a167 100644\n--- a/src/users.py\n+++ b/src/users.py\n@@ -4,7 +4,9 @@ USERNAME_RE = re.compile(r\"^[a-z0-9_]{3,20}$\")\n \n \n def normalize_username(username: str) -> str:\n-    candidate = username.strip().lower()\n+    if username != username.strip():\n+        raise ValueError(\"invalid username\")\n+    candidate = username.lower()\n     if not USERNAME_RE.fullmatch(candidate):\n         raise ValueError(\"invalid username\")\n     return candidate\n"
+}

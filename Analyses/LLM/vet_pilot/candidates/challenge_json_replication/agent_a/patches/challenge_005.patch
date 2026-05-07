@@ -1,0 +1,61 @@
+diff --git a/src/network.py b/src/network.py
+--- a/src/network.py
++++ b/src/network.py
+@@ -1,27 +1,42 @@
+ def parse_host_port(value: str, default_port: int = 80) -> tuple[str, int]:
+     """
+     Parse a host[:port] string and return a tuple (host, port).
+-    Supports IPv6 addresses surrounded by brackets, e.g. '[::1]:8080'.
++    Supports IPv6 addresses surrounded by brackets, e.g. "[::1]:8080".
++    If the port is missing, returns the default_port.
+     """
++    # Handle bracketed IPv6 addresses
+     if value.startswith('['):
+         end = value.find(']')
+         if end == -1:
+-            # Malformed IPv6 address; fall back to original logic
+-            host = value
+-            rest = ''
++            # Malformed IPv6 address; fall back to simple partitioning
++            host, sep, port_text = value.partition(':')
++            if not sep:
++                return host, default_port
++            if port_text == '':
++                return host, default_port
++            try:
++                return host, int(port_text)
++            except ValueError:
++                return host, default_port
+         else:
+             host = value[1:end]
+             rest = value[end + 1:]
+-        if rest.startswith(':'):
+-            port_text = rest[1:]
+-            if port_text == '':
+-                return host, default_port
+-            return host, int(port_text)
++            if rest.startswith(':'):
++                port_text = rest[1:]
++                if port_text == '':
++                    return host, default_port
++                try:
++                    return host, int(port_text)
++                except ValueError:
++                    return host, default_port
++            return host, default_port
++    # Non-bracketed case: use rpartition to split on last colon
++    host, sep, port_text = value.rpartition(':')
++    if not sep:
++        return value, default_port
++    if port_text == '':
+         return host, default_port
+-    else:
+-        host, sep, port_text = value.partition(':')
+-        if not sep:
+-            return host, default_port
+-        if port_text == '':
+-            return host, default_port
++    try:
+         return host, int(port_text)
++    except ValueError:
++        return value, default_port

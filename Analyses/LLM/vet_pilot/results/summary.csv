@@ -1,0 +1,6 @@
+file,task,candidate,patch_applied,verified_solve,false_completion,test_returncode,duration_sec
+results\summary.summary.json,,,,,,,
+results\task_001_eval.json,task_001,tasks\smoke\task_001\gold.patch,True,True,False,0,1.3140509128570557
+results\task_001_gold_eval.json,task_001,tasks\toy\task_001\gold.patch,True,True,False,0,0.4954953193664551
+results\task_002_gold_eval.json,task_002,tasks/toy/task_002/gold.patch,True,True,False,0,6.005475282669067
+results\task_003_gold_eval.json,task_003,tasks/toy/task_003/gold.patch,True,True,False,0,6.094881296157837

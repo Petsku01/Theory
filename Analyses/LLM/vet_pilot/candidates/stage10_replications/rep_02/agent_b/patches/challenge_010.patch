@@ -1,0 +1,18 @@
+diff --git a/src/backend_loader.py b/src/backend_loader.py
+--- a/src/backend_loader.py
++++ b/src/backend_loader.py
+@@ -14,12 +14,12 @@
+     """
+     try:
+         module = importlib.import_module(name)
+-    except ModuleNotFoundError:
++    except Exception:
+         # If the name does not contain a dot it is considered a short name.
+         if "." not in name:
+             try:
+                 module = importlib.import_module(f"src.backends.{name}")
+-            except ModuleNotFoundError:
++            except Exception:
+                 raise ValueError(f"Unknown backend: {name}") from None
+         else:
+             # A fully qualified name was supplied but the import failed.

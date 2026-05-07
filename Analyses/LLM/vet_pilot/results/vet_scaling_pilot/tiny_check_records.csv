@@ -1,0 +1,13 @@
+task,condition,json_valid,status,patch_applied,verified_solve,false_completion,failure_type,notes
+challenge_003,agent_a,true,no_effective_changes,false,false,,patch_did_not_apply,
+challenge_003,agent_b,true,ok,true,false,true,tests_failed,
+challenge_003,agent_c,true,ok,false,false,,patch_did_not_apply,
+challenge_003,agent_d,true,ok,true,true,false,,used trajectory-style correction
+challenge_004,agent_a,true,ok,false,false,,patch_did_not_apply,
+challenge_004,agent_b,true,ok,true,true,false,,
+challenge_004,agent_c,true,ok,false,false,,patch_did_not_apply,
+challenge_004,agent_d,true,ok,true,true,false,,
+challenge_007,agent_a,true,ok,true,true,false,,
+challenge_007,agent_b,true,no_effective_changes,false,false,,patch_did_not_apply,
+challenge_007,agent_c,true,ok,true,true,false,,
+challenge_007,agent_d,true,no_effective_changes,false,false,,patch_did_not_apply,

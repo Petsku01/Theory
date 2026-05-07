@@ -1,0 +1,8 @@
+diff --git a/src/urls.py b/src/urls.py
+index ff13c91..4526e14 100644
+--- a/src/urls.py
++++ b/src/urls.py
+@@ -1,2 +1,2 @@
+ def join_url(base, path):
+-    return f"{base}/{path}".replace("//", "/")
++    return base.rstrip("/") + "/" + path.lstrip("/")

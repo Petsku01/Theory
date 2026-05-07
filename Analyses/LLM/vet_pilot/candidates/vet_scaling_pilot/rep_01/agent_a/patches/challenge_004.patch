@@ -1,0 +1,19 @@
+diff --git a/src/preferences.py b/src/preferences.py
+--- a/src/preferences.py
++++ b/src/preferences.py
+@@ -1,12 +1,7 @@
+ def merge_preferences(defaults: dict, overrides: dict) -> dict:
+-    # Make a shallow copy of defaults first
+-    merged = defaults.copy()
+-
+-    # Ensure nested structures are duplicated so that defaults are not mutated
+-    if "notifications" in merged and isinstance(merged["notifications"], dict):
+-        merged["notifications"] = merged["notifications"].copy()
+-    if "tags" in merged and isinstance(merged["tags"], list):
+-        merged["tags"] = merged["tags"][:]
++    # Make a deep copy of defaults to avoid mutating nested structures
++    import copy
++    merged = copy.deepcopy(defaults)
+ 
+     # Merge notifications
+     notifications = merged.setdefault("notifications", {})

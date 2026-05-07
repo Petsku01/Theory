@@ -1,0 +1,17 @@
+{
+  "task": "challenge_005",
+  "candidate": "C:\\Users\\Pette\\Downloads\\vet_pilot_experiment_package\\vet_pilot\\candidates\\challenge_json\\agent_c\\patches\\challenge_005.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/network.py"
+  ],
+  "stdout": "...                                                                      [100%]\n3 passed in 0.02s\n",
+  "stderr": "",
+  "duration_sec": 0.43996572494506836,
+  "diff": "diff --git a/src/network.py b/src/network.py\nindex 7540f16..fcf2f10 100644\n--- a/src/network.py\n+++ b/src/network.py\n@@ -1,7 +1,27 @@\n def parse_host_port(value: str, default_port: int = 80) -> tuple[str, int]:\n-    host, sep, port_text = value.partition(\":\")\n-    if not sep:\n-        return value, default_port\n-    if port_text == \"\":\n+    \"\"\"\n+    Parse a host[:port] string and return a tuple (host, port).\n+    Supports IPv6 addresses surrounded by brackets, e.g. '[::1]:8080'.\n+    \"\"\"\n+    if value.startswith('['):\n+        end = value.find(']')\n+        if end == -1:\n+            # Malformed IPv6 address; fall back to original logic\n+            host = value\n+            rest = ''\n+        else:\n+            host = value[1:end]\n+            rest = value[end + 1:]\n+        if rest.startswith(':'):\n+            port_text = rest[1:]\n+            if port_text == '':\n+                return host, default_port\n+            return host, int(port_text)\n         return host, default_port\n-    return host, int(port_text)\n+    else:\n+        host, sep, port_text = value.partition(':')\n+        if not sep:\n+            return host, default_port\n+        if port_text == '':\n+            return host, default_port\n+        return host, int(port_text)\n"
+}

@@ -1,0 +1,17 @@
+{
+  "task": "challenge_003",
+  "candidate": "candidates\\stage10_replications\\rep_05\\agent_c\\patches\\challenge_003.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/preview.py"
+  ],
+  "stdout": "....                                                                     [100%]\n4 passed in 0.02s\n",
+  "stderr": "",
+  "duration_sec": 0.4938681125640869,
+  "diff": "diff --git a/src/preview.py b/src/preview.py\nindex 09f54fe..f6ec688 100644\n--- a/src/preview.py\n+++ b/src/preview.py\n@@ -1,6 +1,32 @@\n def preview_text(text: str, limit: int) -> str:\n+    \"\"\"Return a preview of *text* truncated to *limit* characters.\n+\n+    If *text* is shorter than or equal to *limit*, it is returned unchanged.\n+    Otherwise, it is truncated such that the resulting string length does not\n+    exceed *limit*.  For limits greater than 3 an ellipsis (``...``) is appended\n+    after the truncated portion, consuming 3 of the allowed characters.\n+    For limits of 3 or fewer, no ellipsis is added \u00e2\u20ac\u201c the function simply\n+    returns the first *limit* characters.\n+\n+    Parameters\n+    ----------\n+    text:\n+        The original text to preview.\n+    limit:\n+        Non-negative integer limiting the preview length.\n+\n+    Raises\n+    ------\n+    ValueError\n+        If *limit* is negative.\n+    \"\"\"\n     if limit < 0:\n         raise ValueError(\"limit must be non-negative\")\n     if len(text) <= limit:\n         return text\n-    return text[:limit] + \"...\"\n+    # If the requested limit is too small to include an ellipsis, return\n+    # up to *limit* characters without ellipsis; otherwise, reserve 3\n+    # characters for the ellipsis.\n+    if limit <= 3:\n+        return text[:limit]\n+    return text[:limit - 3] + \"...\"\n"
+}

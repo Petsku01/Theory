@@ -1,0 +1,29 @@
+diff --git a/src/pricing.py b/src/pricing.py
+--- a/src/pricing.py
++++ b/src/pricing.py
+@@ -1,5 +1,23 @@
++from decimal import Decimal, ROUND_HALF_EVEN
++
+ def format_price(value) -> str:
++    """Return the given price formatted as a string with two decimal places.
++
++    The function accepts integers, strings, floats, or :class:`decimal.Decimal`
++    values.  It uses ``decimal.Decimal`` for conversion and rounding to avoid
++    binary floating‑point inaccuracies.
++    """
+     try:
+-        return f"{float(value):.2f}"
+-    except (TypeError, ValueError) as exc:
++        # Convert the input to a Decimal. ``str`` guarantees an accurate
++        # decimal representation for all built‑in types except ``Decimal``.
++        dec = Decimal(str(value))
++    except Exception as exc:
++        # Any conversion error should raise the same ValueError as before.
+         raise ValueError("invalid price") from exc
++
++    # Round to exactly two decimal places using the default rounding
++    # (ROUND_HALF_EVEN) to match Python's Decimal rounding rules.
++    quantized = dec.quantize(Decimal("0.01"), rounding=ROUND_HALF_EVEN)
++    # ``quantized`` already has two decimal places; return its string
++    # representation.
++    return str(quantized)

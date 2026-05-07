@@ -1,0 +1,21 @@
+diff --git a/src/history.py b/src/history.py
+--- a/src/history.py
++++ b/src/history.py
+@@ -2,10 +2,10 @@
+     if limit <= 0:
+         return []
+     seen = set()
+-    result = []
+-    for item in items:
+-        if item in seen:
+-            continue
+-        seen.add(item)
+-        result.append(item)
+-    return result[-limit:]
++    filtered_rev = []
++    for item in reversed(items):
++        if item not in seen:
++            seen.add(item)
++            filtered_rev.append(item)
++    filtered = list(reversed(filtered_rev))
++    return filtered[-limit:]

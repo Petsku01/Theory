@@ -1,0 +1,17 @@
+{
+  "task": "challenge_013",
+  "candidate": "C:\\Users\\Pette\\Downloads\\vet_pilot_experiment_package\\vet_pilot\\tasks\\challenge\\challenge_013\\gold.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/ports.py"
+  ],
+  "stdout": "...                                                                      [100%]\n============================== warnings summary ===============================\n..\\..\\..\\..\\..\\.venv\\Lib\\site-packages\\_pytest\\cacheprovider.py:475\n  C:\\Users\\Pette\\Downloads\\vet_pilot_experiment_package\\.venv\\Lib\\site-packages\\_pytest\\cacheprovider.py:475: PytestCacheWarning: could not create cache path C:\\Users\\Pette\\Downloads\\vet_pilot_experiment_package\\vet_pilot\\tasks\\challenge\\challenge_013\\repo\\.pytest_cache\\v\\cache\\nodeids: [WinError 5] Access is denied: 'C:\\\\Users\\\\Pette\\\\Downloads\\\\vet_pilot_experiment_package\\\\vet_pilot\\\\tasks\\\\challenge\\\\challenge_013\\\\repo\\\\pytest-cache-files-jt6nyk6y' -> 'C:\\\\Users\\\\Pette\\\\Downloads\\\\vet_pilot_experiment_package\\\\vet_pilot\\\\tasks\\\\challenge\\\\challenge_013\\\\repo\\\\.pytest_cache'\n    config.cache.set(\"cache/nodeids\", sorted(self.cached_nodeids))\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n3 passed, 1 warning in 0.03s\n",
+  "stderr": "",
+  "duration_sec": 0.5556936264038086,
+  "diff": "diff --git a/src/ports.py b/src/ports.py\nindex 4f08bd3..7b7d326 100644\n--- a/src/ports.py\n+++ b/src/ports.py\n@@ -1,4 +1,6 @@\n def format_port_range(start, end):\n     if start > end:\n         raise ValueError(\"invalid range\")\n+    if start == end:\n+        return str(start)\n     return f\"{start}-{end}\"\n"
+}

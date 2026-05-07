@@ -1,0 +1,5 @@
+condition,n_runs,json_valid_rate,schema_usable_rate,patch_applied_rate,verified_solve_rate,solve_if_applied,false_completion_rate,recovery_observed_count,trajectory_use_observed_count
+agent_a,20,1.0,1.0,0.5,0.45,0.9,0.05,0,0
+agent_b,20,0.95,0.95,0.5,0.4,0.8,0.1,0,0
+agent_c,20,1.0,1.0,0.45,0.35,0.7777777777777778,0.1,0,0
+agent_d,20,1.0,1.0,0.55,0.5,0.9090909090909091,0.05,1,3

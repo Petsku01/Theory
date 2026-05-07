@@ -1,0 +1,43 @@
+diff --git a/src/settings.py b/src/settings.py
+--- a/src/settings.py
++++ b/src/settings.py
+@@ -2,20 +2,31 @@
+ 
+ DEFAULTS = {"debug": False, "port": 8000, "timeout": 30}
+ 
+-
+ def load_settings(env: dict[str, str]) -> dict[str, object]:
+     settings = DEFAULTS.copy()
++    # Override port if provided and successfully parsed
+     if "APP_PORT" in env:
+         val = env["APP_PORT"].strip()
+-        parsed_port = parse_optional_int(val)
+-        if parsed_port is not None:
+-            settings["port"] = parsed_port
++        try:
++            parsed_port = parse_optional_int(val)
++            if parsed_port is not None:
++                settings["port"] = parsed_port
++        except ValueError:
++            pass
++    # Override timeout if provided and successfully parsed
+     if "APP_TIMEOUT" in env:
+         val = env["APP_TIMEOUT"].strip()
+-        parsed_timeout = parse_optional_int(val)
+-        if parsed_timeout is not None:
+-            settings["timeout"] = parsed_timeout
++        try:
++            parsed_timeout = parse_optional_int(val)
++            if parsed_timeout is not None:
++                settings["timeout"] = parsed_timeout
++        except ValueError:
++            pass
++    # Override debug if provided and successfully parsed
+     if "APP_DEBUG" in env:
+         val = env["APP_DEBUG"].strip().lower()
+-        settings["debug"] = parse_bool(val)
++        try:
++            settings["debug"] = parse_bool(val)
++        except ValueError:
++            pass
+     return settings

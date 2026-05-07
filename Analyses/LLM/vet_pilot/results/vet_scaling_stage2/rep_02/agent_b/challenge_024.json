@@ -1,0 +1,17 @@
+{
+  "task": "challenge_024",
+  "candidate": "C:\\Users\\Pette\\Downloads\\vet_pilot_experiment_package\\vet_pilot\\candidates\\vet_scaling_stage2\\rep_02\\agent_b\\patches\\challenge_024.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/flatten.py"
+  ],
+  "stdout": "..                                                                       [100%]\n2 passed in 0.02s\n",
+  "stderr": "",
+  "duration_sec": 0.5277793407440186,
+  "diff": "diff --git a/src/flatten.py b/src/flatten.py\nindex 6f1c2f2..34829ca 100644\n--- a/src/flatten.py\n+++ b/src/flatten.py\n@@ -1,7 +1,7 @@\n def flatten_once(values):\n     flattened = []\n     for value in values:\n-        if isinstance(value, (list, tuple, str, bytes)):\n+        if isinstance(value, (list, tuple)):\n             flattened.extend(value)\n         else:\n             flattened.append(value)\n"
+}

@@ -1,0 +1,13 @@
+diff --git a/src/settings.py b/src/settings.py
+--- a/src/settings.py
++++ b/src/settings.py
+@@ -20,5 +20,8 @@
+     # Parse debug
+     if "APP_DEBUG" in env:
+         val = env["APP_DEBUG"].strip()
+-        settings["debug"] = parse_bool(val.lower())
++        if val:
++            lowered = val.lower()
++            if lowered in {"true", "false"}:
++                settings["debug"] = parse_bool(lowered)
+     return settings

@@ -1,0 +1,21 @@
+diff --git a/src/backend_loader.py b/src/backend_loader.py
+--- a/src/backend_loader.py
++++ b/src/backend_loader.py
+@@ -5,8 +5,8 @@
+     """Load a backend by name.
+ 
+     Supports short names referring to modules inside ``src.backends`` and fully
+-    qualified module paths.
+-    If the backend cannot be imported, a :class:`ValueError` is raised.
++    qualified module paths. If the backend cannot be imported, a
++    :class:`ValueError` is raised.
+     """
+     try:
+         if "." in name:
+@@ -14,5 +14,5 @@
+         else:
+             module = importlib.import_module(f"src.backends.{name}")
+         return module.Backend()
+-    except ImportError as exc:
++    except (ImportError, AttributeError) as exc:
+         raise ValueError(f"Unknown backend: {name}") from exc

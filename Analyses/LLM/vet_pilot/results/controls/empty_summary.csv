@@ -1,0 +1,4 @@
+file,task,candidate,patch_applied,verified_solve,false_completion,test_returncode,duration_sec
+results/controls/empty\task_001.json,task_001,results\controls\empty\empty.patch,False,False,,,0.03643465042114258
+results/controls/empty\task_002.json,task_002,results\controls\empty\empty.patch,False,False,,,0.034932613372802734
+results/controls/empty\task_003.json,task_003,results\controls\empty\empty.patch,False,False,,,0.04266667366027832

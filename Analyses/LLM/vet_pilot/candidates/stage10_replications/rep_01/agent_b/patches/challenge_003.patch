@@ -1,0 +1,14 @@
+diff --git a/src/preview.py b/src/preview.py
+--- a/src/preview.py
++++ b/src/preview.py
+@@ -5,6 +5,10 @@
+         return text
+     # When truncating, include the ellipsis within the limit
+     if limit <= 3:
++        # If limit is exactly 3 and text is longer, we cannot include any leading characters
++        # so we return the ellipsis only.
++        if limit == 3 and len(text) > limit:
++            return "..."
+         return text[:limit]
+     else:
+         return text[:limit - 3] + "..."

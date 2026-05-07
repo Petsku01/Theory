@@ -1,0 +1,106 @@
+--- a/src/preferences.py
++++ b/src/preferences.py
+@@
+-def merge_preferences(defaults: dict, overrides: dict) -> dict:
+-    merged = defaults.copy()
+-    notifications = merged.setdefault("notifications", {})
+-    notifications.update(overrides.get("notifications", {}))
+-    tags = merged.setdefault("tags", [])
+-    tags.extend(overrides.get("tags", []))
+-    for key, value in overrides.items():
+-        if key not in {"notifications", "tags"}:
+-            merged[key] = value
+-    return merged
++def merge_preferences(defaults: dict, overrides: dict) -> dict:
++    """
++    Merge two preference dictionaries without mutating the originals.
++    ``defaults`` provides base values; ``overrides`` can replace or extend them.
++    Special handling is applied to nested mutable structures like
++    ``notifications`` (a dict) and ``tags`` (a list) to ensure deep copies are
++    made and no shared references remain between the result and the inputs.
++    """
++    # Start with a shallow copy of defaults to preserve other keys.
++    merged: dict = {}
++
++    # Copy notifications dict if present in defaults
++    if "notifications" in defaults:
++        merged["notifications"] = dict(defaults["notifications"])
++    else:
++        merged["notifications"] = {}
++
++    # Copy tags list if present in defaults
++    if "tags" in defaults:
++        merged["tags"] = list(defaults["tags"])
++    else:
++        merged["tags"] = []
++
++    # Copy remaining keys from defaults (immutable or already copied)
++    for key, value in defaults.items():
++        if key not in {"notifications", "tags"}:
++            merged[key] = value
++
++    # Apply overrides
++    if "notifications" in overrides:
++        # Merge into a new dict to avoid mutation of overrides
++        merged["notifications"].update(dict(overrides["notifications"]))
++
++    if "tags" in overrides:
++        merged["tags"].extend(list(overrides["tags"]))
++
++    for key, value in overrides.items():
++        if key not in {"notifications", "tags"}:
++            merged[key] = value
++
++    return merged
+--- a/src/preferences.py
++++ b/src/preferences.py
+@@
+-    merged = defaults.copy()
+-    notifications = merged.setdefault("notifications", {})
+-    notifications.update(overrides.get("notifications", {}))
+-    tags = merged.setdefault("tags", [])
+-    tags.extend(overrides.get("tags", []))
+-    for key, value in overrides.items():
+-        if key not in {"notifications", "tags"}:
+-            merged[key] = value
+-    return merged
++    """
++    Merge two preference dictionaries without mutating the originals.
++    ``defaults`` provides base values; ``overrides`` can replace or extend them.
++    Special handling is applied to nested mutable structures like
++    ``notifications`` (a dict) and ``tags`` (a list) to ensure deep copies are
++    made and no shared references remain between the result and the inputs.
++    """
++    # Start with a shallow copy of defaults to preserve other keys.
++    merged: dict = {}
++
++    # Copy notifications dict if present in defaults
++    if "notifications" in defaults:
++        merged["notifications"] = dict(defaults["notifications"])
++    else:
++        merged["notifications"] = {}
++
++    # Copy tags list if present in defaults
++    if "tags" in defaults:
++        merged["tags"] = list(defaults["tags"])
++    else:
++        merged["tags"] = []
++
++    # Copy remaining keys from defaults (immutable or already copied)
++    for key, value in defaults.items():
++        if key not in {"notifications", "tags"}:
++            merged[key] = value
++
++    # Apply overrides
++    if "notifications" in overrides:
++        # Merge into a new dict to avoid mutation of overrides
++        merged["notifications"].update(dict(overrides["notifications"]))
++
++    if "tags" in overrides:
++        merged["tags"].extend(list(overrides["tags"]))
++
++    for key, value in overrides.items():
++        if key not in {"notifications", "tags"}:
++            merged[key] = value
++
++    return merged

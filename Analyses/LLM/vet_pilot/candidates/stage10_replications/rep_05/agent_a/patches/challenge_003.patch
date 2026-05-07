@@ -1,0 +1,17 @@
+diff --git a/src/preview.py b/src/preview.py
+--- a/src/preview.py
++++ b/src/preview.py
+@@ -7,6 +7,13 @@
+     the ellipsis is omitted and only the first ``limit`` characters are
+     returned.
+     """
++    # Coerce the limit to an integer to handle cases where a float or
++    # numeric string is passed.
++    try:
++        limit = int(limit)
++    except Exception:
++        raise ValueError("limit must be an integer")
++
+     if limit < 0:
+         raise ValueError("limit must be non-negative")
+     if len(text) <= limit:

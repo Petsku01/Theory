@@ -1,0 +1,46 @@
+diff --git a/src/preferences.py b/src/preferences.py
+--- a/src/preferences.py
++++ b/src/preferences.py
+@@ -1,4 +1,5 @@
+ import copy
++
+ 
+ def merge_preferences(defaults: dict, overrides: dict) -> dict:
+     """Merge two preference dictionaries without mutating the inputs.
+@@ -13,24 +14,24 @@
+     Returns
+     -------
+     dict
+-        New dictionary containing the merged preferences.
+-    """
+-    # Create a deep copy of defaults to avoid mutating nested structures.
++        New dictionary containing the merged preferences."""
++    # Start with a deep copy of the defaults to avoid mutating nested structures.
+     merged = copy.deepcopy(defaults)
+ 
+     # Merge notifications dictionary.
+-    notifications = merged.setdefault("notifications", {})
+-    # Use a copy of the override notifications to prevent mutations.
+-    override_notifs = overrides.get("notifications", {})
+-    notifications.update(override_notifs)
++    if "notifications" in overrides:
++        notifications = merged.setdefault("notifications", {})
++        # Deep copy overrides to avoid holding a reference to the original mutable object.
++        override_notifs = copy.deepcopy(overrides.get("notifications", {}))
++        notifications.update(override_notifs)
+ 
+     # Merge tags list.
+-    tags = merged.setdefault("tags", [])
+-    override_tags = overrides.get("tags", [])
+-    tags.extend(override_tags)
++    if "tags" in overrides:
++        tags = merged.setdefault("tags", [])
++        tags.extend(copy.deepcopy(overrides.get("tags", [])))
+ 
+-    # Merge remaining keys directly.
++    # Merge remaining keys, deep copying to avoid mutation of nested objects.
+     for key, value in overrides.items():
+         if key not in {"notifications", "tags"}:
+-            merged[key] = value
++            merged[key] = copy.deepcopy(value)
+     return merged

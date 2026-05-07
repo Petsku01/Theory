@@ -1,0 +1,15 @@
+diff --git a/src/preferences.py b/src/preferences.py
+index 509e2d6..b069b96 100644
+--- a/src/preferences.py
++++ b/src/preferences.py
+@@ -2,7 +2,9 @@ def merge_preferences(base, overrides):
+     result = dict(base)
+     for key, value in overrides.items():
+         if isinstance(result.get(key), dict) and isinstance(value, dict):
+-            result[key].update(value)
++            nested = dict(result[key])
++            nested.update(value)
++            result[key] = nested
+         else:
+             result[key] = value
+     return result

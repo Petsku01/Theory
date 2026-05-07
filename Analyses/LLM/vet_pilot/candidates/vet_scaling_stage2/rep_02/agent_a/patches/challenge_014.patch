@@ -1,0 +1,30 @@
+diff --git a/src/timeout_keys.py b/src/timeout_keys.py
+--- a/src/timeout_keys.py
++++ b/src/timeout_keys.py
+@@ -1,5 +1,4 @@
+-TIMEOUT_KEY = "timeout"
+-
++TIMEOUT_KEY = "connect_timeout"
+ 
+ def normalize_timeout(value):
+     return {TIMEOUT_KEY: int(value)}
+
+diff --git a/src/client.py b/src/client.py
+--- a/src/client.py
++++ b/src/client.py
+@@ -1,12 +1,11 @@
+-from src.timeout_keys import normalize_timeout
++from src.timeout_keys import normalize_timeout, TIMEOUT_KEY
+ 
+ DEFAULT_TIMEOUT = 30
+ 
+-
+ def build_request_options(timeout_value=None):
+-    options = {"connect_timeout": DEFAULT_TIMEOUT}
++    options = {TIMEOUT_KEY: DEFAULT_TIMEOUT}
+     if timeout_value is None:
+         return options
+     parsed = normalize_timeout(timeout_value)
+-    options["connect_timeout"] = parsed.get("timeout", DEFAULT_TIMEOUT)
++    options[TIMEOUT_KEY] = parsed.get(TIMEOUT_KEY, DEFAULT_TIMEOUT)
+     return options

@@ -1,0 +1,11 @@
+diff --git a/src/users.py b/src/users.py
+--- a/src/users.py
++++ b/src/users.py
+@@ -1,6 +1,6 @@
+ import re
+ 
+-USERNAME_RE = re.compile(r\"^[a-z0-9_]{3,20}$\")
++USERNAME_RE = re.compile(r"^[a-z0-9_]{3,20}$")
+ 
+ 
+ def normalize_username(username: str) -> str:

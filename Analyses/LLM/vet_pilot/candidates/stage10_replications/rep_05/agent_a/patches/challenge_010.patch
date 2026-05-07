@@ -1,0 +1,26 @@
+diff --git a/src/backend_loader.py b/src/backend_loader.py
+--- a/src/backend_loader.py
++++ b/src/backend_loader.py
+@@ -2,5 +2,21 @@
+ 
+ 
+ def load_backend(name: str):
+-    module = importlib.import_module(name)
++    """
++    Load backend class from the given name. Supports short names like 'memory'
++    that map to local modules in src.backends. Raises ValueError for unknown backends.
++    """
++    try:
++        module = importlib.import_module(name)
++    except ImportError:
++        # Try resolving short name to local backend package.
++        if '.' not in name:
++            try:
++                module = importlib.import_module(f"src.backends.{name}")
++            except ImportError:
++                raise ValueError(f"Unknown backend: {name}") from None
++        else:
++            raise ValueError(f"Unknown backend: {name}") from None
++    if not hasattr(module, "Backend"):
++        raise ValueError(f"Module {name} does not define a Backend class")
+     return module.Backend()

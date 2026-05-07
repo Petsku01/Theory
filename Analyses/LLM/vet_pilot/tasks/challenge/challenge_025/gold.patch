@@ -1,0 +1,11 @@
+diff --git a/src/qualified.py b/src/qualified.py
+index 366e5b0..cf06fad 100644
+--- a/src/qualified.py
++++ b/src/qualified.py
+@@ -1,5 +1,5 @@
+ def split_qualified_name(name):
+     if "." not in name:
+         return "", name
+-    module, item = name.split(".", 1)
++    module, item = name.rsplit(".", 1)
+     return module, item

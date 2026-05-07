@@ -1,0 +1,11 @@
+diff --git a/src/ports.py b/src/ports.py
+index 4f08bd3..7b7d326 100644
+--- a/src/ports.py
++++ b/src/ports.py
+@@ -1,4 +1,6 @@
+ def format_port_range(start, end):
+     if start > end:
+         raise ValueError("invalid range")
++    if start == end:
++        return str(start)
+     return f"{start}-{end}"

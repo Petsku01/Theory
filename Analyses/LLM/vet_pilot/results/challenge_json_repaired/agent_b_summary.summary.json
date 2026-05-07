@@ -1,0 +1,11 @@
+{
+  "n": 3,
+  "valid_patch_rate": 1.0,
+  "verified_solve_rate": 1.0,
+  "conditional_solve_rate": 1.0,
+  "false_completion_rate": 0.0,
+  "patch_applied_count": 3,
+  "verified_solve_count": 3,
+  "false_completion_count": 0,
+  "failure_type_counts": {}
+}

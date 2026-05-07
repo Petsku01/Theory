@@ -1,0 +1,17 @@
+{
+  "task": "challenge_002",
+  "candidate": "candidates\\challenge_json_repaired\\agent_a\\patches\\challenge_002.patch",
+  "patch_applied": false,
+  "verified_solve": false,
+  "false_completion": null,
+  "failure_type": "patch_did_not_apply",
+  "test_returncode": null,
+  "stdout": "",
+  "stderr": "error: patch failed: src/settings.py:5\nerror: src/settings.py: patch does not apply\n",
+  "duration_sec": 0.040625810623168945,
+  "combined_source": "stage6",
+  "stage5_status": "invalid_schema: edits is not a list",
+  "stage6_status": "ok",
+  "schema_usable": true,
+  "semantic_failure_after_apply": false
+}

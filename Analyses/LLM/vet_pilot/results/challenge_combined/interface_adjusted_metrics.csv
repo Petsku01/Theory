@@ -1,0 +1,4 @@
+condition,raw_tasks,schema_usable,patch_applied,verified_solve,semantic_failure_after_apply
+agent_a,10,9,6,5,1
+agent_b,10,10,5,4,1
+agent_c,10,9,7,6,1

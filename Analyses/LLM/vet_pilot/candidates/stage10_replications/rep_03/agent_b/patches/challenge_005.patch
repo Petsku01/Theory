@@ -1,0 +1,46 @@
+diff --git a/src/network.py b/src/network.py
+--- a/src/network.py
++++ b/src/network.py
+@@ -1,7 +1,41 @@
+ def parse_host_port(value: str, default_port: int = 80) -> tuple[str, int]:
++    """Parse a host and optional port string.
++
++    Supports plain ``host`` and ``host:port`` forms as well as
++    IPv6 addresses surrounded by ``[]``.  ``value`` should be a string
++    that contains a host name or IP and optionally a port.  If no
++    port is specified, ``default_port`` is returned.
++
++    Examples
++    --------
++    >>> parse_host_port("example.com:443")
++    ('example.com', 443)
++    >>> parse_host_port("[::1]:8080")
++    ('::1', 8080)
++    >>> parse_host_port("[2001:db8::1]")
++    ('2001:db8::1', 80)
++    """
++    # Handle IPv6 addresses written with brackets.
++    if value.startswith("["):
++        # Find the closing bracket.
++        end_idx = value.find("]")
++        if end_idx == -1:
++            # Malformed, fall back to the whole string as host.
++            return value, default_port
++        host = value[1:end_idx]
++        remaining = value[end_idx + 1 :]
++        if remaining.startswith(":"):
++            port_text = remaining[1:]
++        else:
++            port_text = ""
++        if not port_text:
++            return host, default_port
++        return host, int(port_text)
++
++    # Standard ``host`` or ``host:port`` format.
+     host, sep, port_text = value.partition(":")
+     if not sep:
+         return value, default_port
+-    if port_text == "":
++    if not port_text:
+         return host, default_port
+     return host, int(port_text)

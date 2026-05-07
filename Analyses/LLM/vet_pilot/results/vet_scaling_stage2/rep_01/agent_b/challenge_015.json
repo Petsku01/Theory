@@ -1,0 +1,18 @@
+{
+  "task": "challenge_015",
+  "candidate": "C:\\Users\\Pette\\Downloads\\vet_pilot_experiment_package\\vet_pilot\\candidates\\vet_scaling_stage2\\rep_01\\agent_b\\patches\\challenge_015.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/parsers.py",
+    "src/service.py"
+  ],
+  "stdout": "..                                                                       [100%]\n2 passed in 0.03s\n",
+  "stderr": "",
+  "duration_sec": 0.5807535648345947,
+  "diff": "diff --git a/src/parsers.py b/src/parsers.py\nindex bd941b3..f0da590 100644\n--- a/src/parsers.py\n+++ b/src/parsers.py\n@@ -1,2 +1,2 @@\n def parse_tags(text):\n-    return [part for part in text.split(\",\")]\n+    return [part.strip() for part in text.split(\",\") if part.strip()]\ndiff --git a/src/service.py b/src/service.py\nindex ab3abe2..d965d69 100644\n--- a/src/service.py\n+++ b/src/service.py\n@@ -1,2 +1,4 @@\n+from src.parsers import parse_tags\n+\n def normalize_tag_list(text):\n-    return sorted({part.lower() for part in text.split(\",\") if part})\n+    return sorted({tag.lower() for tag in parse_tags(text)})\n"
+}

@@ -1,0 +1,12 @@
+diff --git a/src/auth.py b/src/auth.py
+index cfbd041..d77209c 100644
+--- a/src/auth.py
++++ b/src/auth.py
+@@ -1,4 +1,5 @@
+ def build_auth_header(token, scheme="Bearer"):
+-    if not token:
++    normalized = token.strip()
++    if not normalized:
+         raise ValueError("missing token")
+-    return f"{scheme} {token}"
++    return f"{scheme} {normalized}"

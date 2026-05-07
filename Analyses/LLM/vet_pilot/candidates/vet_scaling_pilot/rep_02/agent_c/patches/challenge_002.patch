@@ -1,0 +1,20 @@
+diff --git a/src/settings.py b/src/settings.py
+--- a/src/settings.py
++++ b/src/settings.py
+@@ -1,15 +1,6 @@
+-from src.parsers import parse_optional_int
+-
+-def parse_bool(value: str) -> bool:
+-    if value == "true":
+-        return True
+-    if value == "false":
+-        return False
+-    raise ValueError(f"invalid boolean: {value}")
+-
++from src.parsers import parse_bool, parse_optional_int
+ 
+ DEFAULTS = {"debug": False, "port": 8000, "timeout": 30}
+-
+ 
+ def load_settings(env: dict[str, str]) -> dict[str, object]:
+     settings = DEFAULTS.copy()
