@@ -1,125 +1,153 @@
 # VET Pilot: Verified Experience Trajectories for Software Agents
 
-This package is a pilot infrastructure kit for testing the **Verified Experience Hypothesis**:
+This repository is a research package for testing the Verified Experience Hypothesis on software-repair tasks:
 
-> Agents trained or prompted with full state-action-observation-verification trajectories should outperform agents trained or prompted only with instructions or final outputs on long-horizon software tasks.
+> Agents conditioned on richer verified trajectories should be more reliable than agents conditioned only on instructions or final successful outputs.
 
-The kit is designed for a small first experiment before running larger SWE-bench, SWE-bench-Live, or repository-level evaluations.
+It now contains both the original harness and completed pilot artifacts: toy smoke checks, challenge-task interface studies, and the four-condition vet-scaling pilot used for the paper draft "Do Verified Trajectories Improve Software-Agent Reliability?"
 
-## What this package contains
+## Repository status
 
-- `schemas/vet.schema.json` - JSON schema for a Verified Experience Trajectory (VET).
-- `data/example_vets.jsonl` - example trajectory records.
-- `prompts/` - three condition prompts:
-  - Agent A: instruction-only
-  - Agent B: instruction + final-patch examples
-  - Agent C: instruction + full VET examples
-- `harness/` - scripts for creating toy software tasks, running/evaluating patches, recording trajectories, and aggregating metrics.
-- `docs/experimental_protocol.md` - the pre-registered pilot protocol.
-- `docs/trajectory_annotation_guide.md` - how to label actions, observations, verifiers, failures, and memory updates.
-- `docs/paper_results_insert.md` - paper-ready template for adding pilot results.
+The repo is no longer just a scaffold. It contains frozen experimental outputs.
 
-## Suggested pilot design
+- Challenge interface study: completed and summarized under `results/challenge/`.
+- Stage 1 vet-scaling pilot: 10 tasks x 4 conditions x 2 replications = 80 runs, frozen under `results/vet_scaling_pilot/`.
+- Stage 2 vet-scaling expansion: 30 tasks x 4 conditions x 2 replications = 240 runs, corrected and frozen under `results/vet_scaling_stage2/`.
+- Important: only the corrected Stage 2 rerun should be cited. The first 240-run expansion was discarded after evaluation-state leakage was found and repaired in `harness/evaluate_task.py`.
 
-Run three agents on the same tasks with the same model, tools, and inference budget:
+## Prompt conditions
 
-| Condition | Training/prompting signal | Purpose |
-|---|---|---|
-| Agent A | Instructions only | baseline |
-| Agent B | Instructions + final patch examples | tests whether final outputs suffice |
-| Agent C | Instructions + full VET examples | tests whether process/verification data helps |
+There are two prompt families in the repo.
 
-Primary metrics:
+### Challenge JSON-interface prompts
 
-- Verified solve rate
-- False completion rate
-- Recovery rate
-- Regression rate
-- Action count
-- Failed action count
-- Tool/test-use efficiency
+These are the prompts used in the repaired-JSON challenge experiments.
 
-## Quick start with toy tasks
+| Condition | Prompt file | Role |
+| --- | --- | --- |
+| Agent A | `prompts/agent_a_instruction_only_json.md` | instruction-only baseline |
+| Agent B | `prompts/agent_b_final_patch_json.md` | adds final successful patch examples |
+| Agent C | `prompts/agent_c_vet_json.md` | adds distilled verified-trajectory lessons |
 
-```bash
-cd /mnt/data/vet_pilot
-python harness/create_toy_tasks.py --out tasks/toy
-python harness/evaluate_task.py --task tasks/toy/task_001 --candidate tasks/toy/task_001/gold.patch --out results/smoke/task_001_gold_eval.json
-python harness/aggregate_results.py --inputs results/smoke/*.json --out results/smoke/summary.csv
+### Vet-scaling pilot prompts
+
+These are the prompts used in Paper 2 Stage 1 and Stage 2.
+
+| Condition | Prompt file | Role |
+| --- | --- | --- |
+| Agent A | `prompts/vet_scaling_pilot/agent_a_instruction_only.md` | instruction-only baseline |
+| Agent B | `prompts/vet_scaling_pilot/agent_b_final_patch.md` | adds final patch exemplars only |
+| Agent C | `prompts/vet_scaling_pilot/agent_c_verified_lessons.md` | adds distilled verification lessons without full trajectories |
+| Agent D | `prompts/vet_scaling_pilot/agent_d_full_verified_trajectory.md` | adds full verified trajectory examples |
+
+The Stage 2 corrected headline is a modest D-over-B reliability advantage, not a strong causal proof of recovery.
+
+- Verified solve rate: Agent D 0.92 vs Agent B 0.85
+- Patch applied rate: Agent D 1.00 vs Agent B 0.95
+- False completion rate: Agent D 0.08 vs Agent B 0.10
+- Task-level totals: D wins 4, B wins 1, tie 24, neither 1
+
+Recovery claims remain conservative because Stage 2 recovery coding currently covers 22/240 rows.
+
+## Task-level breakdown
+
+The repo contains three task layers.
+
+| Task set | Path | Scope | Purpose |
+| --- | --- | --- | --- |
+| Toy smoke tasks | `tasks/toy/` | 3 tiny tasks | sanity-check task creation, patch application, and aggregation |
+| Challenge tasks | `tasks/challenge/challenge_001` to `tasks/challenge/challenge_030` | 30 software-repair tasks | main task bank used for challenge and vet-scaling experiments |
+| Stage 1 vet-scaling slice | first 10 challenge tasks | 10 tasks | frozen 80-run pilot |
+
+Paper-facing breakdown:
+
+- Stage 0 tiny check: 12 runs
+- Stage 1 vet-scaling pilot: 10 tasks x 4 conditions x 2 reps
+- Stage 2A authoring: challenge_011 to challenge_030
+- Stage 2B controls: gold patch should solve, empty patch should fail
+- Stage 2C corrected expansion: 30 tasks x 4 conditions x 2 reps
+- Stage 2D recovery annotation: partial subset coded for the current draft
+
+## Artifact manifest
+
+This table points to the main paper-facing artifacts.
+
+| Artifact group | Path | What it contains |
+| --- | --- | --- |
+| Protocol and annotation docs | `docs/` | experiment framing, annotation guide, and paper insert text |
+| VET schema and examples | `schemas/vet.schema.json`, `data/example_vets.jsonl` | trajectory format and example records |
+| Harness | `harness/` | task generation, agent execution, evaluation, reruns, and aggregation scripts |
+| Prompt roots | `prompts/`, `prompts/vet_scaling_pilot/` | challenge JSON prompts and four-condition scaling prompts |
+| Candidate outputs | `candidates/` | raw model outputs, JSON outputs, repaired outputs, and scaling candidates |
+| Challenge master report | `results/challenge/README.md` | combined interpretation of the challenge-stage experiments |
+| Stage 1 freeze | `results/vet_scaling_pilot/stage1_freeze.md` | canonical freeze note for the 80-run pilot |
+| Stage 1 summaries | `results/vet_scaling_pilot/headline_b_vs_d.csv`, `results/vet_scaling_pilot/summary_by_condition.csv`, `results/vet_scaling_pilot/summary_by_task.csv`, `results/vet_scaling_pilot/task_level_b_vs_d.csv` | frozen pilot metrics |
+| Stage 2 freeze | `results/vet_scaling_stage2/stage2_freeze.md` and `results/vet_scaling_stage2/README.md` | corrected 30-task expansion status and interpretation |
+| Stage 2 summaries | `results/vet_scaling_stage2/headline_b_vs_d.csv`, `results/vet_scaling_stage2/summary_by_condition.csv`, `results/vet_scaling_stage2/summary_by_task.csv`, `results/vet_scaling_stage2/task_level_b_vs_d.csv`, `results/vet_scaling_stage2/stage2_summary.md` | corrected Stage 2 metrics |
+| Recovery coding | `results/vet_scaling_stage2/recovery_annotations.csv`, `results/vet_scaling_stage2/recovery_summary.md` | partial recovery annotations and current lower-bound interpretation |
+| Stage 2 controls | `results/vet_scaling_stage2/control_summary.csv`, `results/vet_scaling_stage2/controls/` | gold and empty patch validation outputs |
+| Paper 2 status note | `results/vet_scaling_pilot/paper2_status.md` | cross-stage status note linking the frozen pilot and corrected Stage 2 follow-up |
+
+## Quick start
+
+### 1. Install requirements
+
+```powershell
+Set-Location "C:\Users\Pette\Downloads\vet_pilot_experiment_package\vet_pilot"
+& "..\.venv\Scripts\python.exe" -m pip install -r requirements.txt
 ```
 
-The toy tasks are not a real benchmark; they are a smoke test for the harness. For a credible paper, replace toy tasks with fresh real tasks from SWE-bench-Live, SWE-rebench, Monthly-SWEBench, or newly collected repository issues.
-
-## Running with an LLM agent
-
-This kit includes `harness/run_agent_loop.py`, a minimal bash-tool agent loop that can be wired to an OpenAI-compatible chat-completions endpoint. It is intentionally simple so that model behavior, not harness complexity, is the experimental variable.
-
-```bash
-export OPENAI_API_KEY=...
-python harness/run_agent_loop.py \
-  --task tasks/toy/task_001 \
-  --prompt prompts/agent_c_vet.md \
-  --model gpt-5.5-thinking \
-  --max-steps 20 \
-  --out results/task_001_agent_c_run.json
-```
-
-The script is provided as a research scaffold. You may need to adapt the model endpoint, model name, and API format to your provider.
-
-## How to make this a 9/10 empirical paper
-
-1. Run the three-condition comparison on at least 30 tasks.
-2. Use hidden tests where possible.
-3. Include failed attempts and corrections in Agent C's trajectory examples.
-4. Run ablations: remove failed attempts, remove verifier outputs, remove memory updates.
-5. Include an anti-gaming stress test.
-6. Report both positive and negative results.
-
-## Current status
-
-This package creates the protocol, schema, scoring harness, prompts, and toy smoke tests. It does **not** include completed model benchmark results. Those require model/API execution or uploaded run logs.
-
-For a local Ollama-backed sweep on Windows PowerShell, first pull a model into the local Ollama service, then use a dummy API key and that exact model name:
+### 2. Run the toy smoke check
 
 ```powershell
 Set-Location "C:\Users\Pette\Downloads\vet_pilot_experiment_package\vet_pilot"
 
-ollama pull qwen2.5:3b
+& "..\.venv\Scripts\python.exe" harness\create_toy_tasks.py --out tasks\toy
+& "..\.venv\Scripts\python.exe" harness\evaluate_task.py --task tasks\toy\task_001 --candidate tasks\toy\task_001\gold.patch --out results\smoke\task_001_gold_eval.json
+& "..\.venv\Scripts\python.exe" harness\aggregate_results.py --inputs results\smoke\*.json --out results\smoke\summary.csv
+```
+
+The toy tasks are only a harness smoke test. The paper-facing results live under `results/challenge/`, `results/vet_scaling_pilot/`, and `results/vet_scaling_stage2/`.
+
+## Running the agent loop
+
+`harness/run_agent_loop.py` is the minimal research driver for interactive software-repair runs. It is intentionally simple so that prompt condition and model behavior remain the variable under study.
+
+Example:
+
+```powershell
+Set-Location "C:\Users\Pette\Downloads\vet_pilot_experiment_package\vet_pilot"
 
 $env:OPENAI_API_KEY = "ollama"
 $env:OPENAI_BASE_URL = "http://localhost:11434/v1"
 
-& "C:\Users\Pette\Downloads\vet_pilot_experiment_package\.venv\Scripts\python.exe" harness/run_condition_sweep.py `
-  --tasks-root tasks/toy `
+& "..\.venv\Scripts\python.exe" harness\run_agent_loop.py `
+  --task tasks\toy\task_001 `
+  --prompt prompts\vet_scaling_pilot\agent_d_full_verified_trajectory.md `
   --model "qwen2.5:3b" `
-  --shell powershell 2>&1 | Tee-Object results/agents/sweep_console.log
-
-$code = $LASTEXITCODE
-if (Test-Path Env:OPENAI_API_KEY) { Remove-Item Env:OPENAI_API_KEY }
-if (Test-Path Env:OPENAI_BASE_URL) { Remove-Item Env:OPENAI_BASE_URL }
-$code
+  --max-steps 20 `
+  --out results\smoke\task_001_agent_d_run.json
 ```
 
-If `http://localhost:11434/api/tags` returns `{"models": []}` even though `ollama run <model>` works, start a user-owned server and point the harness at that port instead:
-
-```powershell
-$env:OLLAMA_HOST = "127.0.0.1:11435"
-ollama serve
-```
-
-Then rerun the sweep with `OPENAI_BASE_URL` set to `http://127.0.0.1:11435/v1` and a model name returned by `http://127.0.0.1:11435/api/tags`.
-
-For Ollama cloud models, use the CLI transport instead of `OPENAI_BASE_URL`. On this Windows setup, `ollama run <cloud-model>` works while the local HTTP APIs return `model not found` for `*-cloud` tags.
+For Ollama cloud models on this Windows setup, use the CLI transport rather than the local HTTP API:
 
 ```powershell
 Set-Location "C:\Users\Pette\Downloads\vet_pilot_experiment_package\vet_pilot"
 
-& "C:\Users\Pette\Downloads\vet_pilot_experiment_package\.venv\Scripts\python.exe" harness/run_condition_sweep.py `
-  --tasks-root tasks/toy `
+& "..\.venv\Scripts\python.exe" harness\run_condition_sweep.py `
+  --tasks-root tasks\toy `
   --model "qwen3-coder:480b-cloud" `
   --model-transport ollama-cli `
-  --shell powershell 2>&1 | Tee-Object results/agents/sweep_console.log
+  --shell powershell 2>&1 | Tee-Object results\agents_cloud\sweep_console.log
 ```
 
-This path uses your logged-in Ollama CLI session and does not require `OPENAI_API_KEY` or `OPENAI_BASE_URL`.
+## Suggested citation posture
+
+If you use this repo for a paper or workshop submission, the safest primary references are:
+
+- `results/challenge/README.md` for the interface story
+- `results/vet_scaling_pilot/stage1_freeze.md` for the 80-run pilot
+- `results/vet_scaling_stage2/stage2_freeze.md` and `results/vet_scaling_stage2/README.md` for the corrected Stage 2 expansion
+
+Do not cite the discarded pre-fix Stage 2 expansion.
 
