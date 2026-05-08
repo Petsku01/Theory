@@ -1,0 +1,11 @@
+diff --git a/src/recent.py b/src/recent.py
+--- a/src/recent.py
++++ b/src/recent.py
+@@ -1,5 +1,5 @@
+ def collect_recent(history, item, limit):
+-    history.append(item)
+     if limit <= 0:
+         return []
+-    return history[-limit:]
++    updated_history = history + [item]
++    return updated_history[-limit:]

@@ -1,0 +1,24 @@
+diff --git a/src/backend_loader.py b/src/backend_loader.py
+--- a/src/backend_loader.py
++++ b/src/backend_loader.py
+@@ -2,5 +2,18 @@
+ 
+ 
+ def load_backend(name: str):
+-    module = importlib.import_module(name)
+-    return module.Backend()
++    # Try to resolve short names to package-local backends
++    if '.' not in name:
++        local_name = f"src.backends.{name}"
++        try:
++            module = importlib.import_module(local_name)
++            return module.Backend()
++        except ImportError:
++            pass
++    
++    # Fallback to direct import for fully qualified paths or unknown short names
++    try:
++        module = importlib.import_module(name)
++        return module.Backend()
++    except ImportError:
++        raise ValueError(f"Unknown backend: {name}")

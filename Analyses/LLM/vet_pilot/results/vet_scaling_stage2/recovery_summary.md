@@ -2,7 +2,7 @@
 
 Scope: prioritized subset annotation on the clean Stage 2C rerun only.
 Coverage: 22/240 rows annotated in `recovery_annotations.csv`.
-Interpretation rule: recovery and trajectory counts below are lower bounds until the remaining Stage 2D rows are coded.
+Interpretation rule: recovery annotation was applied to a prioritized subset of differential and false-completion cases, not to a random or complete sample. These annotations should therefore be interpreted as a targeted qualitative probe, not as an estimate of population recovery frequency.
 
 ## Headline Counts
 
@@ -29,5 +29,5 @@ Tasks in each D-over-B bucket:
 
 ## Notes For Reporting
 
-- `stage2_summary.md` and `summary_by_condition.csv` now include annotation coverage so the nonzero recovery rate is explicitly marked as a lower bound.
-- If the paper needs final condition-level recovery rates, the remaining 218 unannotated rows still need Stage 2D coding.
+- `stage2_summary.md` and `summary_by_condition.csv` now include annotation coverage so readers can see that the coded subset is targeted and incomplete.
+- If the paper needs condition-level recovery-rate estimation, the remaining 218 rows need either complete coding or a defensible random-sampling design.

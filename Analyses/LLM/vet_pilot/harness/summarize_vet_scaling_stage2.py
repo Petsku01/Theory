@@ -21,8 +21,8 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--results-root", type=Path, default=Path("results/vet_scaling_stage2"))
     parser.add_argument("--candidates-root", type=Path, default=Path("candidates/vet_scaling_stage2"))
-    parser.add_argument("--model", default="")
-    parser.add_argument("--model-transport", default="")
+    parser.add_argument("--model", default="qwen3-coder:480b-cloud")
+    parser.add_argument("--model-transport", default="ollama-cli")
     return parser.parse_args()
 
 
@@ -447,7 +447,8 @@ def main() -> None:
         f"Run records: {len(records)}",
         (
             f"Recovery coding coverage: {annotated_rows}/{len(records)} rows annotated; "
-            "recovery metrics below are lower bounds until Stage 2D coding is complete."
+            "annotation targeted a prioritized subset of differential and false-completion cases rather than a random or complete sample. "
+            "Recovery fields below should therefore be interpreted as a qualitative probe, not as a population estimate."
             if records and annotated_rows < len(records)
             else f"Recovery coding coverage: {annotated_rows}/{len(records)} rows annotated."
         ),

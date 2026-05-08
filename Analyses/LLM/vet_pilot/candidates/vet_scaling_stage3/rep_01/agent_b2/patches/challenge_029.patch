@@ -1,0 +1,13 @@
+diff --git a/src/blanklines.py b/src/blanklines.py
+--- a/src/blanklines.py
++++ b/src/blanklines.py
+@@ -8,4 +8,8 @@
+             continue
+         collapsed.append(line)
+         previous_blank = blank
+-    return "\n".join(collapsed)
++    result = "\n".join(collapsed)
++    # Preserve trailing newline if original text had one
++    if text.endswith("\n") and not result.endswith("\n"):
++        result += "\n"
++    return result

@@ -1,0 +1,6 @@
+metric,d_count,d_shuffled_count,difference,d_only,shuffled_only,both_true,both_false,sign_test_pvalue,paired_bootstrap_ci,interpretation
+verified_solve,55,52,0.050,4,1,51,4,0.3750,"[-0.017, 0.133]","Agent D shows a positive paired solve signal over Agent D-shuffled; this is pilot evidence, not a statistically established effect"
+patch_applied,60,59,0.017,1,0,59,0,1.0000,"[0.000, 0.050]","Agent D shows a positive paired reachability signal over Agent D-shuffled; this is pilot evidence, not a statistically established effect"
+false_completion,5,7,-0.033,1,3,4,52,0.6250,"[-0.100, 0.033]","Agent D shows a positive paired reliability signal over Agent D-shuffled; this is pilot evidence, not a statistically established effect"
+json_valid,60,59,0.017,1,0,59,0,1.0000,"[0.000, 0.050]","Agent D shows a positive paired interface validity signal over Agent D-shuffled; this is pilot evidence, not a statistically established effect"
+schema_usable,60,59,0.017,1,0,59,0,1.0000,"[0.000, 0.050]","Agent D shows a positive paired schema reachability signal over Agent D-shuffled; this is pilot evidence, not a statistically established effect"

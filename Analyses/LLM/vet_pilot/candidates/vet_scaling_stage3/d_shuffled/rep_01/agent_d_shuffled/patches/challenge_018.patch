@@ -1,0 +1,12 @@
+diff --git a/src/urls.py b/src/urls.py
+--- a/src/urls.py
++++ b/src/urls.py
+@@ -1,2 +1,7 @@
+ def join_url(base, path):
+-    return f"{base}/{path}".replace("//", "/")
++    # Avoid collapsing scheme slashes while normalizing internal double slashes
++    if base.endswith('/') and path.startswith('/'):
++        path = path[1:]
++    elif not base.endswith('/') and not path.startswith('/'):
++        path = '/' + path
++    return base + path

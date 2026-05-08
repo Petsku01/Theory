@@ -1,0 +1,2 @@
+condition,n_runs,json_valid_count,json_valid_rate,schema_usable_count,schema_usable_rate,patch_applied_count,patch_applied_rate,verified_solve_count,verified_solve_rate,solve_if_applied,false_completion_count,false_completion_rate
+agent_b2,60,60,1.000,60,1.000,60,1.000,55,0.917,0.917,5,0.083

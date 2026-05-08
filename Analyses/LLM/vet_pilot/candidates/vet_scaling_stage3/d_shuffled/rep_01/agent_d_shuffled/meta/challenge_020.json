@@ -1,0 +1,11 @@
+{
+  "task": "challenge_020",
+  "model": "qwen3-coder:480b-cloud",
+  "backend": "ollama-cli",
+  "prompt_file": "C:\\Users\\Pette\\Downloads\\vet_pilot_experiment_package\\vet_pilot\\prompts\\vet_scaling_stage3\\agent_d_shuffled_trajectory.md",
+  "prompt_char_count": 4821,
+  "raw_output_char_count": 264,
+  "generation_duration_sec": 2.5564181804656982,
+  "backend_timeout": 300,
+  "response_format": "json-edits"
+}

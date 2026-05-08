@@ -1,0 +1,11 @@
+{
+  "task": "challenge_013",
+  "model": "qwen3-coder:480b-cloud",
+  "backend": "ollama-cli",
+  "prompt_file": "C:\\Users\\Pette\\Downloads\\vet_pilot_experiment_package\\vet_pilot\\prompts\\vet_scaling_stage3\\agent_b2_token_matched_final_patch.md",
+  "prompt_char_count": 4168,
+  "raw_output_char_count": 286,
+  "generation_duration_sec": 10.878528118133545,
+  "backend_timeout": 300,
+  "response_format": "json-edits"
+}

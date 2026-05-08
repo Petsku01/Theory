@@ -392,7 +392,7 @@ Paper-facing framing:
 
 - Main result: Agent D is modestly more reliable than Agent B on the corrected 30-task expansion.
 - Mechanism: the retained artifacts mostly support better direct patch generation or generation reliability, not proven recovery.
-- Limitation: recovery coding is partial at `22/240` rows, so recovery rates are lower bounds, and there is no training-time scaling result yet.
+- Limitation: recovery annotation covers only a prioritized subset of differential and false-completion cases, so it should be read as a targeted qualitative probe rather than a population estimate, and there is no training-time scaling result yet.
 - Trustworthiness: the project is stronger because the D-over-B signal survived a real evaluator bug fix instead of depending on the contaminated run.
 
 Canonical Stage 2 freeze artifacts:

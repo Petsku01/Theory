@@ -1,0 +1,17 @@
+{
+  "task": "challenge_020",
+  "candidate": "C:\\Users\\Pette\\Downloads\\vet_pilot_experiment_package\\vet_pilot\\candidates\\vet_scaling_stage3\\d_shuffled\\rep_01\\agent_d_shuffled\\patches\\challenge_020.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/recent.py"
+  ],
+  "stdout": "..                                                                       [100%]\n2 passed in 0.02s\n",
+  "stderr": "",
+  "duration_sec": 0.48446011543273926,
+  "diff": "diff --git a/src/recent.py b/src/recent.py\nindex 7ca4e3a..47b21bc 100644\n--- a/src/recent.py\n+++ b/src/recent.py\n@@ -1,5 +1,5 @@\n def collect_recent(history, item, limit):\n-    history.append(item)\n+    updated_history = history + [item]\n     if limit <= 0:\n         return []\n-    return history[-limit:]\n+    return updated_history[-limit:]\n"
+}

@@ -1,0 +1,17 @@
+{
+  "task": "challenge_010",
+  "candidate": "C:\\Users\\Pette\\Downloads\\vet_pilot_experiment_package\\vet_pilot\\candidates\\vet_scaling_stage3\\rep_02\\agent_b2\\patches\\challenge_010.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/backend_loader.py"
+  ],
+  "stdout": "...                                                                      [100%]\n3 passed in 0.04s\n",
+  "stderr": "",
+  "duration_sec": 0.50063157081604,
+  "diff": "diff --git a/src/backend_loader.py b/src/backend_loader.py\nindex 647810d..8fb2aac 100644\n--- a/src/backend_loader.py\n+++ b/src/backend_loader.py\n@@ -2,5 +2,18 @@ import importlib\n \n \n def load_backend(name: str):\n-    module = importlib.import_module(name)\n-    return module.Backend()\n+    # Try to resolve short names to package-local backends\n+    if '.' not in name:\n+        local_name = f\"src.backends.{name}\"\n+        try:\n+            module = importlib.import_module(local_name)\n+            return module.Backend()\n+        except ImportError:\n+            pass\n+    \n+    # Fallback to direct import for fully qualified paths or unknown short names\n+    try:\n+        module = importlib.import_module(name)\n+        return module.Backend()\n+    except ImportError:\n+        raise ValueError(f\"Unknown backend: {name}\")\n"
+}

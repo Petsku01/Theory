@@ -1,0 +1,25 @@
+diff --git a/src/settings.py b/src/settings.py
+--- a/src/settings.py
++++ b/src/settings.py
+@@ -2,7 +2,17 @@
+ 
+ 
+ def load_endpoint(env, explicit=None):
+-    raw = env.get("APP_ENDPOINT", explicit or DEFAULT_ENDPOINT)
+-    if not raw:
+-        return DEFAULT_ENDPOINT
+-    return raw.rstrip("/")
++    # Explicit value takes precedence if provided
++    if explicit is not None:
++        return explicit.rstrip("/")
++    
++    # Check for environment value
++    raw_env = env.get("APP_ENDPOINT")
++    if raw_env is not None:
++        # Strip whitespace and check if it's empty
++        stripped_env = raw_env.strip()
++        if stripped_env:
++            return stripped_env.rstrip("/")
++    
++    # Fallback to default if neither explicit nor valid environment value exists
++    return DEFAULT_ENDPOINT

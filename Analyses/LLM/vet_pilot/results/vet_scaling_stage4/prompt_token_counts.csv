@@ -1,0 +1,7 @@
+Prompt,File,Characters,Tokens,Tokenizer
+Agent A,prompts/vet_scaling_pilot/agent_a_instruction_only.md,879,204,cl100k_base (tiktoken)
+Agent B,prompts/vet_scaling_pilot/agent_b_final_patch.md,1177,257,cl100k_base (tiktoken)
+Agent C,prompts/vet_scaling_pilot/agent_c_verified_lessons.md,1704,362,cl100k_base (tiktoken)
+Agent D,prompts/vet_scaling_pilot/agent_d_full_verified_trajectory.md,2457,506,cl100k_base (tiktoken)
+Agent B2,prompts/vet_scaling_stage3/agent_b2_token_matched_final_patch.md,2541,508,cl100k_base (tiktoken)
+Agent D-shuffled,prompts/vet_scaling_stage3/agent_d_shuffled_trajectory.md,3193,630,cl100k_base (tiktoken)

@@ -9,7 +9,7 @@ Backend: `ollama-cli`
 Replications: rep_01, rep_02
 Tasks: 30
 Run records: 240
-Recovery coding coverage: 22/240 rows annotated; recovery metrics below are lower bounds until Stage 2D coding is complete.
+Recovery coding coverage: 22/240 rows annotated; annotation targeted a prioritized subset of differential and false-completion cases rather than a random or complete sample. Recovery fields below should therefore be interpreted as a qualitative probe, not as a population estimate.
 
 ## Primary Comparison: Agent D vs Agent B
 

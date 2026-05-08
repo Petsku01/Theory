@@ -1,0 +1,20 @@
+diff --git a/src/client.py b/src/client.py
+--- a/src/client.py
++++ b/src/client.py
+@@ -8,5 +8,5 @@
+     if timeout_value is None:
+         return options
+     parsed = normalize_timeout(timeout_value)
+-    options["connect_timeout"] = parsed.get("timeout", DEFAULT_TIMEOUT)
++    options["connect_timeout"] = parsed.get("connect_timeout", DEFAULT_TIMEOUT)
+     return options
+
+diff --git a/src/timeout_keys.py b/src/timeout_keys.py
+--- a/src/timeout_keys.py
++++ b/src/timeout_keys.py
+@@ -1,4 +1,4 @@
+-TIMEOUT_KEY = "timeout"
++TIMEOUT_KEY = "connect_timeout"
+ 
+ 
+ def normalize_timeout(value):

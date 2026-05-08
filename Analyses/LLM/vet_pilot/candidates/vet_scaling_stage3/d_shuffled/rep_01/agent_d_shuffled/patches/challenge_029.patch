@@ -1,0 +1,25 @@
+diff --git a/src/blanklines.py b/src/blanklines.py
+--- a/src/blanklines.py
++++ b/src/blanklines.py
+@@ -1,11 +1,17 @@
+ def collapse_blank_lines(text):
+-    lines = text.splitlines()
++    if not text:
++        return text
++    lines = text.splitlines(True)
+     collapsed = []
+     previous_blank = False
+     for line in lines:
+-        blank = line == ""
++        stripped_line = line.rstrip('\n')
++        blank = stripped_line == ""
+         if blank and previous_blank:
+             continue
+-        collapsed.append(line)
++        collapsed.append(stripped_line)
+         previous_blank = blank
+-    return "\n".join(collapsed)
++    result = "\n".join(collapsed)
++    if text.endswith("\n"):
++        result += "\n"
++    return result

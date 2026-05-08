@@ -1,0 +1,18 @@
+{
+  "task": "challenge_014",
+  "candidate": "C:\\Users\\Pette\\Downloads\\vet_pilot_experiment_package\\vet_pilot\\candidates\\vet_scaling_stage3\\rep_02\\agent_b2\\patches\\challenge_014.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/client.py",
+    "src/timeout_keys.py"
+  ],
+  "stdout": "...                                                                      [100%]\n3 passed in 0.02s\n",
+  "stderr": "",
+  "duration_sec": 0.4515678882598877,
+  "diff": "diff --git a/src/client.py b/src/client.py\nindex 1323d5b..1c76218 100644\n--- a/src/client.py\n+++ b/src/client.py\n@@ -8,5 +8,5 @@ def build_request_options(timeout_value=None):\n     if timeout_value is None:\n         return options\n     parsed = normalize_timeout(timeout_value)\n-    options[\"connect_timeout\"] = parsed.get(\"timeout\", DEFAULT_TIMEOUT)\n+    options[\"connect_timeout\"] = parsed.get(\"connect_timeout\", DEFAULT_TIMEOUT)\n     return options\ndiff --git a/src/timeout_keys.py b/src/timeout_keys.py\nindex ec718ff..641c0cd 100644\n--- a/src/timeout_keys.py\n+++ b/src/timeout_keys.py\n@@ -1,4 +1,4 @@\n-TIMEOUT_KEY = \"timeout\"\n+TIMEOUT_KEY = \"connect_timeout\"\n \n \n def normalize_timeout(value):\n"
+}
