@@ -41,7 +41,7 @@ Mechanism framing:
 
 Limitation framing:
 
-- Recovery coding currently covers 22/240 rows, so recovery rates in `stage2_summary.md` and `summary_by_condition.csv` are lower bounds rather than full-stage estimates.
+- Recovery annotation was applied to a prioritized subset of differential and false-completion cases, not to a random or complete sample. These annotations should therefore be interpreted as a targeted qualitative probe, not as an estimate of population recovery frequency.
 - This remains a prompt-level pilot; there is no training-time scaling result yet.
 
 Why the project is more trustworthy now:

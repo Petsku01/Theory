@@ -1,0 +1,17 @@
+{
+  "task": "challenge_010",
+  "candidate": "C:\\Users\\Pette\\Downloads\\vet_pilot_experiment_package\\vet_pilot\\candidates\\vet_scaling_stage3\\d_shuffled\\rep_01\\agent_d_shuffled\\patches\\challenge_010.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/backend_loader.py"
+  ],
+  "stdout": "...                                                                      [100%]\n3 passed in 0.04s\n",
+  "stderr": "",
+  "duration_sec": 0.5332212448120117,
+  "diff": "diff --git a/src/backend_loader.py b/src/backend_loader.py\nindex 647810d..49d4d2b 100644\n--- a/src/backend_loader.py\n+++ b/src/backend_loader.py\n@@ -2,5 +2,11 @@ import importlib\n \n \n def load_backend(name: str):\n-    module = importlib.import_module(name)\n+    try:\n+        module = importlib.import_module(name)\n+    except ImportError:\n+        try:\n+            module = importlib.import_module(f\"src.backends.{name}\")\n+        except ImportError:\n+            raise ValueError(f\"Unknown backend: {name}\")\n     return module.Backend()\n"
+}

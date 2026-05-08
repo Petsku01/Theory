@@ -1,0 +1,33 @@
+diff --git a/src/network.py b/src/network.py
+--- a/src/network.py
++++ b/src/network.py
+@@ -1,7 +1,23 @@
+ def parse_host_port(value: str, default_port: int = 80) -> tuple[str, int]:
+-    host, sep, port_text = value.partition(":")
+-    if not sep:
+-        return value, default_port
+-    if port_text == "":
+-        return host, default_port
+-    return host, int(port_text)
++    if value.startswith('['):
++        # Handle bracketed IPv6 addresses
++        end_bracket = value.find(']')
++        if end_bracket == -1:
++            raise ValueError("Invalid bracketed IPv6 address")
++        host = value[1:end_bracket]
++        rest = value[end_bracket + 1:]
++        if rest.startswith(':'):
++            port_text = rest[1:]
++            if port_text == "":
++                return host, default_port
++            return host, int(port_text)
++        else:
++            return host, default_port
++    else:
++        # Handle normal host:port
++        host, sep, port_text = value.partition(":")
++        if not sep:
++            return value, default_port
++        if port_text == "":
++            return host, default_port
++        return host, int(port_text)

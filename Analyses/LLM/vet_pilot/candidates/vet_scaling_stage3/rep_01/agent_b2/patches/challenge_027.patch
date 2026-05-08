@@ -1,0 +1,10 @@
+diff --git a/src/auth.py b/src/auth.py
+--- a/src/auth.py
++++ b/src/auth.py
+@@ -1,4 +1,4 @@
+ def build_auth_header(token, scheme="Bearer"):
+-    if not token:
++    if not token or not token.strip():
+         raise ValueError("missing token")
+-    return f"{scheme} {token}"
++    return f"{scheme} {token.strip()}"

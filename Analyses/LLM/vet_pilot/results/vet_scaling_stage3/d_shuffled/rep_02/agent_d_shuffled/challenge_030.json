@@ -1,0 +1,17 @@
+{
+  "task": "challenge_030",
+  "candidate": "C:\\Users\\Pette\\Downloads\\vet_pilot_experiment_package\\vet_pilot\\candidates\\vet_scaling_stage3\\d_shuffled\\rep_02\\agent_d_shuffled\\patches\\challenge_030.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/settings.py"
+  ],
+  "stdout": "...                                                                      [100%]\n3 passed in 0.02s\n",
+  "stderr": "",
+  "duration_sec": 0.49480247497558594,
+  "diff": "diff --git a/src/settings.py b/src/settings.py\nindex f1daf8d..7d6017b 100644\n--- a/src/settings.py\n+++ b/src/settings.py\n@@ -2,7 +2,17 @@ DEFAULT_ENDPOINT = \"https://api.example.com\"\n \n \n def load_endpoint(env, explicit=None):\n-    raw = env.get(\"APP_ENDPOINT\", explicit or DEFAULT_ENDPOINT)\n-    if not raw:\n-        return DEFAULT_ENDPOINT\n-    return raw.rstrip(\"/\")\n+    # Explicit value takes precedence if provided\n+    if explicit is not None:\n+        return explicit.rstrip(\"/\")\n+    \n+    # Check for environment value\n+    raw_env = env.get(\"APP_ENDPOINT\")\n+    if raw_env is not None:\n+        # Strip whitespace and check if it's empty\n+        stripped_env = raw_env.strip()\n+        if stripped_env:\n+            return stripped_env.rstrip(\"/\")\n+    \n+    # Fallback to default if neither explicit nor valid environment value exists\n+    return DEFAULT_ENDPOINT\n"
+}

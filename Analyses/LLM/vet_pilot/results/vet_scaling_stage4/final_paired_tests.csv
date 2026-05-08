@@ -1,0 +1,5 @@
+Comparison,Left condition,Right condition,Left solves,Right solves,Left-only,Right-only,Ties,Discordant,Exact p
+D vs B,agent_d,agent_b,55,51,5,1,54,6,0.2188
+B2 vs B,agent_b2,agent_b,55,51,6,2,52,8,0.2891
+B2 vs D,agent_b2,agent_d,55,55,1,1,58,2,1.0000
+D vs D-shuffled,agent_d,agent_d_shuffled,55,52,4,1,55,5,0.3750

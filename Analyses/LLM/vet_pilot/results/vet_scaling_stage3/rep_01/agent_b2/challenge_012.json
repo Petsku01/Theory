@@ -1,0 +1,17 @@
+{
+  "task": "challenge_012",
+  "candidate": "C:\\Users\\Pette\\Downloads\\vet_pilot_experiment_package\\vet_pilot\\candidates\\vet_scaling_stage3\\rep_01\\agent_b2\\patches\\challenge_012.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/rollover.py"
+  ],
+  "stdout": "...                                                                      [100%]\n3 passed in 0.03s\n",
+  "stderr": "",
+  "duration_sec": 0.5041196346282959,
+  "diff": "diff --git a/src/rollover.py b/src/rollover.py\nindex c66da30..7f1a6eb 100644\n--- a/src/rollover.py\n+++ b/src/rollover.py\n@@ -1,4 +1,6 @@\n def previous_month(year, month):\n     if month < 1 or month > 12:\n         raise ValueError(\"invalid month\")\n-    return year, max(month - 1, 1)\n+    if month == 1:\n+        return year - 1, 12\n+    return year, month - 1\n"
+}

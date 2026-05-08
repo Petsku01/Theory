@@ -1,0 +1,17 @@
+{
+  "task": "challenge_021",
+  "candidate": "C:\\Users\\Pette\\Downloads\\vet_pilot_experiment_package\\vet_pilot\\candidates\\vet_scaling_stage3\\d_shuffled\\rep_01\\agent_d_shuffled\\patches\\challenge_021.patch",
+  "patch_applied": true,
+  "verified_solve": true,
+  "claimed_success": true,
+  "false_completion": false,
+  "failure_type": null,
+  "test_returncode": 0,
+  "changed_files": [
+    "src/preferences.py"
+  ],
+  "stdout": "..                                                                       [100%]\n2 passed in 0.02s\n",
+  "stderr": "",
+  "duration_sec": 0.4673798084259033,
+  "diff": "diff --git a/src/preferences.py b/src/preferences.py\nindex 509e2d6..6ad4c6b 100644\n--- a/src/preferences.py\n+++ b/src/preferences.py\n@@ -1,7 +1,13 @@\n def merge_preferences(base, overrides):\n-    result = dict(base)\n+    result = {}\n+    for key, value in base.items():\n+        if isinstance(value, dict):\n+            result[key] = dict(value)\n+        else:\n+            result[key] = value\n     for key, value in overrides.items():\n         if isinstance(result.get(key), dict) and isinstance(value, dict):\n+            result[key] = dict(result[key])\n             result[key].update(value)\n         else:\n             result[key] = value\n"
+}

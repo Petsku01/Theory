@@ -84,7 +84,8 @@ This table points to the main paper-facing artifacts.
 | Stage 1 summaries | `results/vet_scaling_pilot/headline_b_vs_d.csv`, `results/vet_scaling_pilot/summary_by_condition.csv`, `results/vet_scaling_pilot/summary_by_task.csv`, `results/vet_scaling_pilot/task_level_b_vs_d.csv` | frozen pilot metrics |
 | Stage 2 freeze | `results/vet_scaling_stage2/stage2_freeze.md` and `results/vet_scaling_stage2/README.md` | corrected 30-task expansion status and interpretation |
 | Stage 2 summaries | `results/vet_scaling_stage2/headline_b_vs_d.csv`, `results/vet_scaling_stage2/summary_by_condition.csv`, `results/vet_scaling_stage2/summary_by_task.csv`, `results/vet_scaling_stage2/task_level_b_vs_d.csv`, `results/vet_scaling_stage2/stage2_summary.md` | corrected Stage 2 metrics |
-| Recovery coding | `results/vet_scaling_stage2/recovery_annotations.csv`, `results/vet_scaling_stage2/recovery_summary.md` | partial recovery annotations and current lower-bound interpretation |
+| Recovery coding | `results/vet_scaling_stage2/recovery_annotations.csv`, `results/vet_scaling_stage2/recovery_summary.md` | targeted qualitative probe annotations for prioritized differential and false-completion cases |
+| Stage 3 paired analysis | `results/vet_scaling_stage3/paired_b_vs_d_stats.csv`, `results/vet_scaling_stage3/task_level_b_vs_d_full.csv`, `results/vet_scaling_stage3/README.md` | paired B-vs-D counts, uncertainty, and the full 30-task comparison table |
 | Stage 2 controls | `results/vet_scaling_stage2/control_summary.csv`, `results/vet_scaling_stage2/controls/` | gold and empty patch validation outputs |
 | Paper 2 status note | `results/vet_scaling_pilot/paper2_status.md` | cross-stage status note linking the frozen pilot and corrected Stage 2 follow-up |
 

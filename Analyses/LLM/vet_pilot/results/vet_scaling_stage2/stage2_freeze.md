@@ -54,5 +54,5 @@ Mechanism:
 - The retained artifacts mostly support better direct patch generation or generation reliability, not a proven recovery mechanism.
 
 Limitation:
-- Recovery coding covers 22/240 rows, so recovery rates are lower bounds.
+- Recovery annotation was applied to a prioritized subset of differential and false-completion cases, not to a random or complete sample. These annotations should therefore be interpreted as a targeted qualitative probe, not as an estimate of population recovery frequency.
 - This remains a prompt-level pilot; there is no training-time scaling result yet.
