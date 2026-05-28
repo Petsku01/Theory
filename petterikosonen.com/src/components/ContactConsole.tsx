@@ -102,8 +102,7 @@ export default function ContactConsole() {
         </div>
 
         <h2 className="text-3xl font-bold text-text-0 sm:text-4xl lg:text-5xl">
-          Let&apos;s build something{" "}
-          <span className="hero-gradient-text-green">secure</span>.
+          {"Let's build something "}<span className="hero-gradient-text-green">secure</span>.
         </h2>
 
         <p className="mt-4 max-w-2xl text-base leading-relaxed text-text-1 sm:text-lg">
