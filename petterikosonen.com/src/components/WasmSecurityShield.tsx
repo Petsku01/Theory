@@ -30,10 +30,6 @@ interface WasmExports {
   currentB: WebAssembly.Global;
 }
 
-function hslToRgb(h: number, s: number, l: number): string {
-  return `hsl(${h}, ${s}%, ${l}%)`;
-}
-
 export default function WasmSecurityShield() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wasmRef = useRef<WasmExports | null>(null);
@@ -196,7 +192,8 @@ export default function WasmSecurityShield() {
     ctx.fillStyle = centerGlow;
     ctx.fillRect(0, 0, w, h);
 
-    rafRef.current = requestAnimationFrame(render);
+    // eslint-disable-next-line react-hooks/immutability -- recursive RAF loop references itself
+    rafRef.current = requestAnimationFrame((t) => render(t));
   }, []);
 
   useEffect(() => {
@@ -225,7 +222,7 @@ export default function WasmSecurityShield() {
         exports.init((Date.now() & 0xFFFFFFFF) >>> 0);
         lastTimeRef.current = performance.now();
         setReady(true);
-        rafRef.current = requestAnimationFrame(render);
+        rafRef.current = requestAnimationFrame((t) => render(t));
       } catch (err) {
         console.warn("[WASM] Failed to load 3D renderer:", err);
       }

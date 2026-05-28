@@ -79,11 +79,15 @@ export default function SecurityDemos() {
     if (/[a-z]/.test(pass)) charsetSize += 26;
     if (/[A-Z]/.test(pass)) charsetSize += 26;
     if (/\d/.test(pass)) charsetSize += 10;
-    if (/[^a-zA-Z0-9]/.test(pass)) charsetSize += 32;
+    if (/[^a-zA-Z0-9\s]/.test(pass)) charsetSize += 32;
 
-    const entropy = pass.length * Math.log2(charsetSize || 1);
+    if (!charsetSize || !pass.length) {
+      return { checks, percentage: 0, entropy: "0.0", crackTime: "Instant" };
+    }
+
+    const entropy = pass.length * Math.log2(charsetSize);
     const guessesPerSecond = 10_000_000_000;
-    const logCombinations = pass.length * Math.log2(charsetSize || 1);
+    const logCombinations = pass.length * Math.log2(charsetSize);
     const logSeconds = logCombinations - Math.log2(guessesPerSecond) - 1;
 
     let crackTime = "";

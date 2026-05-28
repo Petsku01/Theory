@@ -52,6 +52,7 @@ export const blogPosts: BlogPost[] = [
 ];
 
 export const projects: Project[] = [
+  { name: "Prompt Optimizer", desc: "LLM fine-tuning project: Qwen2.5-3B-Instruct + QLoRA transforms vague prompts into structured, effective ones. Full pipeline (data generation, training, evaluation, HuggingFace publish)", tech: "Python, Unsloth, QLoRA", link: "https://github.com/Petsku01/prompt-optimizer" },
   { name: "Prompt Security Guide", desc: "LLM security testing framework with jailbreak detection, defense testing, and JailbreakBench integration", tech: "Python", link: "https://github.com/Petsku01/Prompt-Security-Guide" },
   { name: "PromptKit", desc: "Prompt engineering toolkit with Prompt Doctor analysis and pattern library", tech: "Python", link: "https://github.com/Petsku01/promptkit" },
   { name: "VDI Performance Diagnostic", desc: "PowerShell tool for diagnosing VDI performance issues", tech: "PowerShell", link: "https://github.com/Petsku01/Theory/tree/main/VDI%20Performance%20Diagnostic" },

@@ -63,7 +63,8 @@ export default function WasmInteractiveBackground() {
       if (mouse.active && mouse.x > 0) {
         drawCursorGlow(ctx, mouse.x, mouse.y);
       }
-      rafRef.current = requestAnimationFrame(render);
+      // eslint-disable-next-line react-hooks/immutability -- recursive RAF loop references itself
+      rafRef.current = requestAnimationFrame(() => render());
       return;
     }
 
@@ -129,7 +130,7 @@ export default function WasmInteractiveBackground() {
       drawCursorGlow(ctx, mouse.x, mouse.y);
     }
 
-    rafRef.current = requestAnimationFrame(render);
+    rafRef.current = requestAnimationFrame(() => render());
   }, []);
 
   useEffect(() => {
@@ -154,7 +155,7 @@ export default function WasmInteractiveBackground() {
         wasmRef.current = exports;
         exports.init();
         setReady(true);
-        rafRef.current = requestAnimationFrame(render);
+        rafRef.current = requestAnimationFrame(() => render());
       } catch (err) {
         console.warn("[WASM] Failed to load mouse trail engine:", err);
       }

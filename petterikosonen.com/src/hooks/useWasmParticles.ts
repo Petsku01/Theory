@@ -103,7 +103,8 @@ export function useWasmParticles(
       }
     }
 
-    rafRef.current = requestAnimationFrame(render);
+    // eslint-disable-next-line react-hooks/immutability -- recursive RAF loop references itself
+    rafRef.current = requestAnimationFrame(() => render());
   }, [particleCount]);
 
   useEffect(() => {
@@ -137,7 +138,7 @@ export function useWasmParticles(
         }
 
         setReady(true);
-        rafRef.current = requestAnimationFrame(render);
+        rafRef.current = requestAnimationFrame(() => render());
       } catch (err) {
         console.warn("[WASM] Failed to load particle engine:", err);
       }

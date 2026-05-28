@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "About - Petteri Kosonen",
-  description: "Background, skills, and expertise of Petteri Kosonen - B.Eng. student specializing in Data Networks and Cybersecurity.",
+  description: "Background, skills, and expertise of Petteri Kosonen - B.Eng. student specializing in Data Networks, Cybersecurity, and LLM Fine-Tuning.",
 };
 
 export default function About() {
@@ -26,10 +26,10 @@ export default function About() {
       <SectionFrame command="/about --background" title="Background">
         <div className="space-y-4 text-text-1">
           <p>
-            I work at the intersection of practical IT support and cybersecurity. My day-to-day work blends incident handling, user support, and cloud platform troubleshooting in environments where reliability matters.
+            I work at the intersection of practical IT support, cybersecurity, and AI engineering. My day-to-day work blends incident handling, user support, and cloud platform troubleshooting in environments where reliability matters.
           </p>
           <p>
-            My studies in Information and Communication Technology at Turku University of Applied Sciences reinforce this with formal training in data networks and security.
+            Beyond operations, I build end-to-end LLM fine-tuning pipelines -- from prompt optimization datasets through QLoRA training to evaluation and HuggingFace publishing. My studies in Information and Communication Technology at Turku University of Applied Sciences reinforce this with formal training in data networks and security.
           </p>
         </div>
       </SectionFrame>
@@ -41,8 +41,8 @@ export default function About() {
             <p className="mt-2 text-sm text-text-1">Entra ID, MFA, Conditional Access, Defender EDR, Intune, Active Directory.</p>
           </article>
           <article className="rounded-xl border border-line-0 bg-bg-2/80 p-5">
-            <h3 className="text-lg font-semibold text-text-0">Operations & Automation</h3>
-            <p className="mt-2 text-sm text-text-1">PowerShell automation, Exchange Online, Office 365 administration, Linux/Windows servers, Python, SQL.</p>
+            <h3 className="text-lg font-semibold text-text-0">AI & Automation</h3>
+            <p className="mt-2 text-sm text-text-1">LLM fine-tuning (Unsloth, QLoRA), prompt engineering, Python, HuggingFace, prompt security testing, PowerShell automation, Exchange Online, Office 365.</p>
           </article>
         </div>
       </SectionFrame>
