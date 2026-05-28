@@ -73,7 +73,7 @@ export default function FeaturedProject({ title, summary, points, tech, link, va
         <ul className="mt-5 space-y-2.5 text-sm text-text-1">
           {points.map((point) => (
             <li key={point} className="flex gap-2.5">
-              <span className={`mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full ${s.accent}`} aria-hidden="true" />
+              <span className={`mt-[7px] h-2.5 w-2.5 shrink-0 rounded-full ${s.accent}`} aria-hidden="true" />
               <span className="leading-relaxed">{point}</span>
             </li>
           ))}
