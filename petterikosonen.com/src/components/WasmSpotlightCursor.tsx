@@ -5,8 +5,7 @@ import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 
 /**
  * WASM-powered spotlight cursor with spring physics.
- * Replaces Framer Motion springs with a semi-implicit Euler spring solver
- * running in WebAssembly. Zero JS animation library dependency.
+ * Loaded directly instead of via next/dynamic to avoid BAILOUT_TO_CLIENT_SIDE_RENDERING.
  */
 
 interface WasmExports {
@@ -23,12 +22,14 @@ export default function WasmSpotlightCursor() {
   const wasmRef = useRef<WasmExports | null>(null);
   const rafRef = useRef(0);
   const lastTimeRef = useRef(0);
-  const [ready, setReady] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const readyRef = useRef(false);
+  const [, forceUpdate] = useState(0);
   const reduced = usePrefersReducedMotion();
 
   useEffect(() => {
+    setMounted(true);
     if (reduced) return;
-    // Don't run on touch devices
     if (typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches) return;
 
     let cancelled = false;
@@ -46,7 +47,8 @@ export default function WasmSpotlightCursor() {
         const exports = instance.exports as unknown as WasmExports;
         wasmRef.current = exports;
         lastTimeRef.current = performance.now();
-        setReady(true);
+        readyRef.current = true;
+        forceUpdate(1);
         rafRef.current = requestAnimationFrame(tick);
       } catch (err) {
         console.warn("[WASM] Failed to load spring cursor:", err);
@@ -61,10 +63,8 @@ export default function WasmSpotlightCursor() {
       const dt = Math.min((timestamp - lastTimeRef.current) / 1000, 0.05);
       lastTimeRef.current = timestamp;
 
-      // Step the spring physics in WASM
       wasm.update(dt);
 
-      // Read computed values and apply directly to DOM (no React re-render)
       const x = wasm.getX();
       const y = wasm.getY();
       const opacity = wasm.getOpacity();
@@ -96,14 +96,14 @@ export default function WasmSpotlightCursor() {
     };
   }, [reduced]);
 
-  if (reduced) return null;
+  if (!mounted || reduced) return null;
 
   return (
     <div
       ref={divRef}
       aria-hidden="true"
       className={`pointer-events-none fixed z-30 hidden h-48 w-48 rounded-full md:block ${
-        ready ? "" : "opacity-0"
+        readyRef.current ? "" : "opacity-0"
       }`}
       style={{
         background:

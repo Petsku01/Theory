@@ -5,8 +5,7 @@ import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 
 /**
  * WASM-powered interactive mouse trail background.
- * Trail point management, path interpolation, age decay, and color computation
- * all run in WebAssembly. JS only reads point data for canvas rendering.
+ * Loaded directly instead of via next/dynamic to avoid BAILOUT_TO_CLIENT_SIDE_RENDERING.
  */
 
 interface WasmExports {
@@ -24,7 +23,9 @@ export default function WasmInteractiveBackground() {
   const wasmRef = useRef<WasmExports | null>(null);
   const mouseRef = useRef({ x: -1000, y: -1000, active: false });
   const rafRef = useRef(0);
-  const [ready, setReady] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const readyRef = useRef(false);
+  const [, forceUpdate] = useState(0);
   const reduced = usePrefersReducedMotion();
 
   const render = useCallback(() => {
@@ -51,7 +52,6 @@ export default function WasmInteractiveBackground() {
     const mouse = mouseRef.current;
     wasm.update(mouse.x, mouse.y, mouse.active ? 1 : 0);
 
-    // Fade existing content
     ctx.fillStyle = "rgba(2, 6, 23, 0.08)";
     ctx.fillRect(0, 0, w, h);
 
@@ -59,19 +59,15 @@ export default function WasmInteractiveBackground() {
     const maxAge = wasm.getMaxAge();
 
     if (count < 2) {
-      // Still draw cursor glow even with no trail
       if (mouse.active && mouse.x > 0) {
         drawCursorGlow(ctx, mouse.x, mouse.y);
       }
-      // eslint-disable-next-line react-hooks/immutability -- recursive RAF loop references itself
       rafRef.current = requestAnimationFrame(() => render());
       return;
     }
 
-    // Read point data from WASM memory and draw trail segments
     const mem = wasm.memory.buffer;
 
-    // Draw trail lines
     for (let i = 1; i < count; i++) {
       const prevOff = wasm.getPointOffset(i - 1);
       const currOff = wasm.getPointOffset(i);
@@ -103,7 +99,6 @@ export default function WasmInteractiveBackground() {
       ctx.stroke();
     }
 
-    // Draw glow around recent points
     const glowStart = Math.max(0, count - 15);
     for (let i = glowStart; i < count; i++) {
       const off = wasm.getPointOffset(i);
@@ -125,7 +120,6 @@ export default function WasmInteractiveBackground() {
       }
     }
 
-    // Cursor glow
     if (mouse.active && mouse.x > 0) {
       drawCursorGlow(ctx, mouse.x, mouse.y);
     }
@@ -134,6 +128,7 @@ export default function WasmInteractiveBackground() {
   }, []);
 
   useEffect(() => {
+    setMounted(true);
     if (reduced) return;
 
     let cancelled = false;
@@ -154,7 +149,8 @@ export default function WasmInteractiveBackground() {
         const exports = instance.exports as unknown as WasmExports;
         wasmRef.current = exports;
         exports.init();
-        setReady(true);
+        readyRef.current = true;
+        forceUpdate(1);
         rafRef.current = requestAnimationFrame(() => render());
       } catch (err) {
         console.warn("[WASM] Failed to load mouse trail engine:", err);
@@ -182,13 +178,13 @@ export default function WasmInteractiveBackground() {
     };
   }, [reduced, render]);
 
-  if (reduced) return null;
+  if (!mounted || reduced) return null;
 
   return (
     <canvas
       ref={canvasRef}
       className={`pointer-events-none fixed inset-0 z-0 transition-opacity duration-700 ${
-        ready ? "opacity-100" : "opacity-0"
+        readyRef.current ? "opacity-100" : "opacity-0"
       }`}
       aria-hidden="true"
     />
