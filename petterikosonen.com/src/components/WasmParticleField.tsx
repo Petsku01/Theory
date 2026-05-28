@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 
 /**
  * WASM-powered particle field.
- * Loaded directly instead of via next/dynamic to avoid BAILOUT_TO_CLIENT_SIDE_RENDERING.
- * WASM is fetched on mount; canvas only renders after successful instantiation.
+ * Direct import (no next/dynamic) to avoid BAILOUT_TO_CLIENT_SIDE_RENDERING.
+ * Always renders canvas; WASM loads in useEffect (client-only).
+ * Opacity controlled by `ready` state.
  */
 
 interface ParticleExports {
@@ -27,13 +28,11 @@ interface Props {
 
 export default function WasmParticleField({ particleCount = 1200, className = "" }: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [mounted, setMounted] = useState(false);
   const reducedMotion = usePrefersReducedMotion();
   const wasmRef = useRef<ParticleExports | null>(null);
   const rafRef = useRef<number>(0);
   const mouseRef = useRef({ x: 0, y: 0, active: false });
-  const readyRef = useRef(false);
-  const [, forceUpdate] = useState(0);
+  const [ready, setReady] = useState(false);
 
   const render = useCallback(() => {
     const wasm = wasmRef.current;
@@ -90,7 +89,6 @@ export default function WasmParticleField({ particleCount = 1200, className = ""
   }, [particleCount]);
 
   useEffect(() => {
-    setMounted(true);
     if (reducedMotion) return;
 
     let cancelled = false;
@@ -120,8 +118,7 @@ export default function WasmParticleField({ particleCount = 1200, className = ""
           exports.init(particleCount, w, h, (Date.now() & 0xFFFFFFFF) >>> 0);
         }
 
-        readyRef.current = true;
-        forceUpdate(1);
+        setReady(true);
         rafRef.current = requestAnimationFrame(() => render());
       } catch (err) {
         console.warn("[WASM] Failed to load particle engine:", err);
@@ -154,14 +151,14 @@ export default function WasmParticleField({ particleCount = 1200, className = ""
     };
   }, [reducedMotion, particleCount, render]);
 
-  if (!mounted || reducedMotion) return null;
+  if (reducedMotion) return null;
 
   return (
     <canvas
       ref={canvasRef}
       aria-hidden="true"
       className={`pointer-events-none fixed inset-0 -z-10 h-full w-full transition-opacity duration-1000 ${
-        readyRef.current ? "opacity-100" : "opacity-0"
+        ready ? "opacity-100" : "opacity-0"
       } ${className}`}
     />
   );

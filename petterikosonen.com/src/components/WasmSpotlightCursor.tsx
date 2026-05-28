@@ -5,7 +5,7 @@ import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 
 /**
  * WASM-powered spotlight cursor with spring physics.
- * Loaded directly instead of via next/dynamic to avoid BAILOUT_TO_CLIENT_SIDE_RENDERING.
+ * Direct import (no next/dynamic) to avoid BAILOUT_TO_CLIENT_SIDE_RENDERING.
  */
 
 interface WasmExports {
@@ -22,13 +22,10 @@ export default function WasmSpotlightCursor() {
   const wasmRef = useRef<WasmExports | null>(null);
   const rafRef = useRef(0);
   const lastTimeRef = useRef(0);
-  const [mounted, setMounted] = useState(false);
-  const readyRef = useRef(false);
-  const [, forceUpdate] = useState(0);
+  const [ready, setReady] = useState(false);
   const reduced = usePrefersReducedMotion();
 
   useEffect(() => {
-    setMounted(true);
     if (reduced) return;
     if (typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches) return;
 
@@ -47,8 +44,7 @@ export default function WasmSpotlightCursor() {
         const exports = instance.exports as unknown as WasmExports;
         wasmRef.current = exports;
         lastTimeRef.current = performance.now();
-        readyRef.current = true;
-        forceUpdate(1);
+        setReady(true);
         rafRef.current = requestAnimationFrame(tick);
       } catch (err) {
         console.warn("[WASM] Failed to load spring cursor:", err);
@@ -96,14 +92,14 @@ export default function WasmSpotlightCursor() {
     };
   }, [reduced]);
 
-  if (!mounted || reduced) return null;
+  if (reduced) return null;
 
   return (
     <div
       ref={divRef}
       aria-hidden="true"
       className={`pointer-events-none fixed z-30 hidden h-48 w-48 rounded-full md:block ${
-        readyRef.current ? "" : "opacity-0"
+        ready ? "" : "opacity-0"
       }`}
       style={{
         background:
