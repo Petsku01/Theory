@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { Suspense } from "react";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -71,9 +70,7 @@ export default function RootLayout({
       <body className="relative min-h-screen overflow-x-hidden">
         {/* Background layers */}
         <AmbientBackground />
-        <Suspense fallback={null}>
-          <ClientEffects />
-        </Suspense>
+        <ClientEffects />
         <Analytics />
 
         <a
