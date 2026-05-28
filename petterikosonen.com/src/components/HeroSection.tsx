@@ -1,25 +1,13 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import StatusPill from "@/components/StatusPill";
 import TypeWriter from "@/components/TypeWriter";
+import WasmSecurityShield from "@/components/WasmSecurityShield";
+import WasmMatrixRain from "@/components/WasmMatrixRain";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { useInView } from "@/hooks/useInView";
-
-/** WASM-powered 3D icosahedron — replaces Three.js */
-const WasmSecurityShield = dynamic(() => import("@/components/WasmSecurityShield"), {
-  ssr: false,
-  loading: () => (
-    <div className="flex h-full w-full items-center justify-center">
-      <div className="h-32 w-32 rounded-full border border-accent-cyan/20 bg-accent-cyan/5 animate-pulse-glow" />
-    </div>
-  ),
-});
-
-/** WASM-powered Matrix Rain background */
-const WasmMatrixRain = dynamic(() => import("@/components/WasmMatrixRain"), { ssr: false });
 
 /** Stagger animation helper — CSS-only, no Framer Motion overhead */
 function AnimateIn({

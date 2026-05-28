@@ -1,8 +1,6 @@
 "use client";
 
-import dynamic from "next/dynamic";
-
-const ScrollProgress = dynamic(() => import("@/components/ScrollProgress"), { ssr: false });
+import ScrollProgress from "@/components/ScrollProgress";
 
 interface Props {
   sections: Array<{ id: string; label: string }>;
