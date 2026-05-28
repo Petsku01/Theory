@@ -51,7 +51,7 @@ function TimelineEntry({
     <article
       ref={ref}
       className={`group relative rounded-2xl border border-line-0 bg-bg-2/50 p-6 transition-all duration-600 ease-[cubic-bezier(0.16,1,0.3,1)] hover:border-line-1 hover:shadow-[0_4px_30px_rgba(0,0,0,0.25)] ${
-        inView ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4"
+        inView ? "opacity-100 translate-x-0" : "opacity-100"
       }`}
       style={{ transitionDelay: `${index * 120}ms` }}
     >
