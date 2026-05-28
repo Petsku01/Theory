@@ -77,8 +77,8 @@ function TimelineEntry({
 
       <ul className="space-y-2">
         {item.impact.map((point) => (
-          <li key={point} className="flex gap-2.5 text-sm leading-relaxed text-text-1">
-            <span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-text-2/50" aria-hidden="true" />
+          <li key={point} className="flex items-start gap-2.5 text-sm leading-relaxed text-text-1">
+            <span className="mt-[7px] h-2.5 w-2.5 shrink-0 rounded-full bg-text-2/50">&nbsp;</span>
             {point}
           </li>
         ))}
