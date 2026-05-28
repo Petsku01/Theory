@@ -64,7 +64,7 @@ export default function FeaturedProject({ title, summary, points, tech, link, va
       <div className="relative">
         <div className="mb-5 flex flex-wrap items-center gap-2.5">
           <StatusPill label="featured" variant={variant} />
-          <span className="font-mono text-[0.68rem] uppercase tracking-widest text-text-2">security spotlight</span>
+          <span className="font-mono text-[0.68rem] uppercase tracking-widest text-text-2">{variant === "green" ? "ml spotlight" : "security spotlight"}</span>
         </div>
 
         <h3 className="text-2xl font-bold text-text-0">{title}</h3>
