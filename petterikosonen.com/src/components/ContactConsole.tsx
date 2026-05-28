@@ -82,8 +82,8 @@ export default function ContactConsole() {
     <section
       ref={sectionRef}
       id="contact"
-      className={`relative overflow-hidden rounded-3xl glass-card p-8 shadow-terminal-lg sm:p-12 transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-        inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+      className={`relative overflow-hidden rounded-3xl glass-card p-8 shadow-terminal-lg sm:p-12 ${
+        inView ? "animate-fade-in-up opacity-100 translate-y-0" : "opacity-100"
       }`}
     >
       {/* Decorative glows */}

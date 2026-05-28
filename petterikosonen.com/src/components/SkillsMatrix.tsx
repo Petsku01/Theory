@@ -98,7 +98,7 @@ function SkillCard({
     <article
       ref={ref}
       className={`group rounded-2xl border border-line-0 bg-bg-2/50 p-6 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] hover:border-line-1 ${s.shadow} ${
-        inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+        inView ? "opacity-100 translate-y-0" : "opacity-100"
       }`}
       style={{ transitionDelay: `${index * 80}ms` }}
     >
