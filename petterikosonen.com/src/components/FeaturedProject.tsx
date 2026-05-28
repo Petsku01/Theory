@@ -10,7 +10,7 @@ interface FeaturedProjectProps {
   points: string[];
   tech: string[];
   link: string;
-  variant: "cyan" | "violet";
+  variant: "cyan" | "violet" | "green";
 }
 
 const styles = {
@@ -27,6 +27,13 @@ const styles = {
     accent: "bg-accent-violet",
     line: "via-accent-violet/40",
     link: "border-accent-violet/40 text-accent-violet hover:bg-accent-violet/10",
+  },
+  green: {
+    glow: "hover:shadow-[0_0_0_1px_rgba(34,197,94,0.15),0_8px_50px_-12px_rgba(34,197,94,0.2)]",
+    border: "hover:border-green-500/35",
+    accent: "bg-green-500",
+    line: "via-green-500/40",
+    link: "border-green-500/40 text-green-400 hover:bg-green-500/10",
   },
 };
 
@@ -51,7 +58,7 @@ export default function FeaturedProject({ title, summary, points, tech, link, va
 
       {/* Hover gradient reveal */}
       <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${
-        variant === "cyan" ? "from-accent-cyan/[0.03]" : "from-accent-violet/[0.03]"
+        variant === "cyan" ? "from-accent-cyan/[0.03]" : variant === "green" ? "from-green-500/[0.03]" : "from-accent-violet/[0.03]"
       } to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100`} aria-hidden="true" />
 
       <div className="relative">

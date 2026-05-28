@@ -11,7 +11,7 @@ import ClientScrollProgress from "@/components/ClientScrollProgress";
 import { blogPosts, projects } from "@/lib/data";
 
 export default function Home() {
-  const [psg, promptKit, ...restProjects] = projects;
+  const [promptOptimizer, psg, promptKit, ...restProjects] = projects;
 
   return (
     <div className="space-y-12 pb-8 lg:space-y-16">
@@ -36,9 +36,21 @@ export default function Home() {
         id="projects"
         command="/projects --featured"
         title="Featured Projects"
-        description="Prompt security testing and prompt engineering systems with practical output for real operations."
+        description="LLM fine-tuning, prompt security testing, and prompt engineering systems with practical output."
       >
-        <div className="grid gap-5 lg:grid-cols-2">
+        <div className="grid gap-5 lg:grid-cols-3">
+          <FeaturedProject
+            title={promptOptimizer.name}
+            summary={promptOptimizer.desc}
+            points={[
+              "End-to-end fine-tuning pipeline: data generation, QLoRA training, evaluation, and publishing.",
+              "Qwen2.5-3B-Instruct + Unsloth on Colab T4 -- ROUGE-L +0.081, 67.9% head-to-head wins.",
+              "Structured output focus: specificity, format, and audience targeting in every optimized prompt.",
+            ]}
+            tech={["Python", "Unsloth", "QLoRA", "HuggingFace"]}
+            link={promptOptimizer.link}
+            variant="green"
+          />
           <FeaturedProject
             title={psg.name}
             summary={psg.desc}
