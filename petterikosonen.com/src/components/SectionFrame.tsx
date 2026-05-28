@@ -31,8 +31,8 @@ export default function SectionFrame({
     <section
       ref={ref}
       id={id}
-      className={`relative rounded-3xl glass-card px-6 py-10 shadow-terminal-lg sm:px-10 transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-        inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
+      className={`relative rounded-3xl glass-card px-6 py-10 shadow-terminal-lg sm:px-10 ${
+        inView ? "animate-fade-in-up opacity-100 translate-y-0" : "opacity-100"
       } ${className ?? ""}`}
     >
       {/* Corner accents */}
