@@ -5,7 +5,9 @@ import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 
 /**
  * WASM-powered interactive mouse trail background.
- * Loaded directly instead of via next/dynamic to avoid BAILOUT_TO_CLIENT_SIDE_RENDERING.
+ * Direct import (no next/dynamic) to avoid BAILOUT_TO_CLIENT_SIDE_RENDERING.
+ * Always renders canvas; WASM loads in useEffect (client-only).
+ * Opacity controlled by `ready` state.
  */
 
 interface WasmExports {
@@ -23,9 +25,7 @@ export default function WasmInteractiveBackground() {
   const wasmRef = useRef<WasmExports | null>(null);
   const mouseRef = useRef({ x: -1000, y: -1000, active: false });
   const rafRef = useRef(0);
-  const [mounted, setMounted] = useState(false);
-  const readyRef = useRef(false);
-  const [, forceUpdate] = useState(0);
+  const [ready, setReady] = useState(false);
   const reduced = usePrefersReducedMotion();
 
   const render = useCallback(() => {
@@ -128,7 +128,6 @@ export default function WasmInteractiveBackground() {
   }, []);
 
   useEffect(() => {
-    setMounted(true);
     if (reduced) return;
 
     let cancelled = false;
@@ -149,8 +148,7 @@ export default function WasmInteractiveBackground() {
         const exports = instance.exports as unknown as WasmExports;
         wasmRef.current = exports;
         exports.init();
-        readyRef.current = true;
-        forceUpdate(1);
+        setReady(true);
         rafRef.current = requestAnimationFrame(() => render());
       } catch (err) {
         console.warn("[WASM] Failed to load mouse trail engine:", err);
@@ -178,13 +176,13 @@ export default function WasmInteractiveBackground() {
     };
   }, [reduced, render]);
 
-  if (!mounted || reduced) return null;
+  if (reduced) return null;
 
   return (
     <canvas
       ref={canvasRef}
       className={`pointer-events-none fixed inset-0 z-0 transition-opacity duration-700 ${
-        readyRef.current ? "opacity-100" : "opacity-0"
+        ready ? "opacity-100" : "opacity-0"
       }`}
       aria-hidden="true"
     />
