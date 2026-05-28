@@ -11,6 +11,7 @@ export function usePrefersReducedMotion(): boolean {
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initializing state from DOM API on mount
     setReduced(mq.matches);
 
     const onChange = (e: MediaQueryListEvent) => setReduced(e.matches);

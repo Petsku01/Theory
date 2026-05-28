@@ -38,7 +38,10 @@ export default function Navbar() {
   }, []);
 
   // Close menu on route change
-  useEffect(() => setOpen(false), [pathname]);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- legitimate: sync menu closed state to route change
+    setOpen((prev) => (prev ? false : prev));
+  }, [pathname]);
 
   // Close on Escape
   const onKeyDown = useCallback((e: KeyboardEvent) => {
