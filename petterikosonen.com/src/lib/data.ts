@@ -14,6 +14,18 @@ export interface Project {
 
 export const blogPosts: BlogPost[] = [
   {
+    title: "Do Verified Trajectories Improve Software-Agent Reliability?",
+    date: "2025-05-01",
+    desc: "Research on conditioning LLM agents with verified experience trajectories: 4-condition pilot (80+240 runs) showing modest reliability gains over instruction-only baselines",
+    link: "https://github.com/Petsku01/Theory/tree/main/Analyses/LLM/vet_pilot"
+  },
+  {
+    title: "Prompt Optimizer: Fine-Tuning LLMs to Rewrite Vague Prompts",
+    date: "2025-05-01",
+    desc: "Qwen2.5-3B-Instruct + QLoRA pipeline that transforms vague prompts into structured, effective ones. 1183 pairs, full training and evaluation",
+    link: "https://github.com/Petsku01/prompt-optimizer"
+  },
+  {
     title: "Salt Typhoon Cyberattack Analysis",
     date: "2025-07-01",
     desc: "Analysis of Chinese state-sponsored telecom espionage targeting nine U.S. carriers and global infrastructure",
