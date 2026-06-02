@@ -15,13 +15,19 @@ export interface Project {
 export const blogPosts: BlogPost[] = [
   {
     title: "Do Verified Trajectories Improve Software-Agent Reliability?",
-    date: "2025-05-01",
+    date: "2025-05-08",
     desc: "Research on conditioning LLM agents with verified experience trajectories: 4-condition pilot (80+240 runs) showing modest reliability gains over instruction-only baselines",
-    link: "https://github.com/Petsku01/Theory/tree/main/Analyses/LLM/vet_pilot"
+    link: "https://github.com/Petsku01/Theory/blob/main/Analyses/LLM/do_verified_trajectories_improve_software_agent_reliability_cleaned_statfix.pdf"
+  },
+  {
+    title: "Interface Reliability in Verified Software-Agent Evaluation",
+    date: "2025-05-08",
+    desc: "Paper examining whether verified trajectories improve interface reliability in software-agent evaluation tasks",
+    link: "https://github.com/Petsku01/Theory/blob/main/Analyses/LLM/Interface%20Reliability%20in%20Verified%20Software-Agent%20Evaluation_pk.pdf"
   },
   {
     title: "Prompt Optimizer: Fine-Tuning LLMs to Rewrite Vague Prompts",
-    date: "2025-05-01",
+    date: "2025-05-21",
     desc: "Qwen2.5-3B-Instruct + QLoRA pipeline that transforms vague prompts into structured, effective ones. 1183 pairs, full training and evaluation",
     link: "https://github.com/Petsku01/prompt-optimizer"
   },
