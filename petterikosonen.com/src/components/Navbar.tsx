@@ -9,7 +9,7 @@ const links = [
   { href: "/", label: "Home" },
   { href: "/projects", label: "Projects" },
   { href: "/about", label: "About" },
-  { href: "/blog", label: "Research" },
+  { href: "/blog", label: "Blog" },
   { href: "/security-demos", label: "Security" },
   { href: "/llm-labs", label: "LLM Labs" },
   { href: "/kuu", label: "Kuu" },
