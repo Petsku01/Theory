@@ -14,6 +14,12 @@ export interface Project {
 
 export const blogPosts: BlogPost[] = [
   {
+    title: "The Agent OS Is Coming, and Corporate Lawfare Is Its Accelerant",
+    date: "2026-06-03",
+    desc: "Legal intimidation meets agentic memory infrastructure: how Flux.ai's CFAA threat and the explosion of agent control planes are colliding to reshape AI transparency",
+    link: "https://github.com/Petsku01/Theory/blob/main/Analyses/LLM/blog-2026-06-03.md"
+  },
+  {
     title: "Do Verified Trajectories Improve Software-Agent Reliability?",
     date: "2026-05-08",
     desc: "Research on conditioning LLM agents with verified experience trajectories: 4-condition pilot (80+240 runs) showing modest reliability gains over instruction-only baselines",
