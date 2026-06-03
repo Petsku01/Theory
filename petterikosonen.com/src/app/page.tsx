@@ -8,7 +8,7 @@ import SkillsMatrix from "@/components/SkillsMatrix";
 import StatusPill from "@/components/StatusPill";
 import TerminalProjectCard from "@/components/TerminalProjectCard";
 import ClientScrollProgress from "@/components/ClientScrollProgress";
-import { blogPosts, projects } from "@/lib/data";
+import { blogPosts, researchPosts, projects } from "@/lib/data";
 
 export default function Home() {
   const [promptOptimizer, psg, promptKit, ...restProjects] = projects;
@@ -146,12 +146,21 @@ export default function Home() {
       {/* ── Research ────────────────────────────── */}
       <SectionFrame
         id="research"
-        command="/research --logs"
-        title="Writing / Research Logs"
-        description="Timestamped notes and experiments covering security engineering, diagnostics, and development tooling."
+        command="/research --list"
+        title="Research"
+        description="Papers, security analyses, and engineering guides. For timely commentary, see the blog."
       >
+        <div className="mb-4">
+          <a
+            href="/blog"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-accent-cyan/25 bg-accent-cyan/6 px-3 py-1.5 font-mono text-xs text-accent-cyan transition-colors hover:border-accent-cyan/50 hover:bg-accent-cyan/12"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            Blog posts
+          </a>
+        </div>
         <div className="grid gap-4 md:grid-cols-2">
-          {blogPosts.map((post) => (
+          {researchPosts.map((post) => (
             <a
               key={post.link}
               href={post.link}

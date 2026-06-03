@@ -12,6 +12,7 @@ export interface Project {
   link: string;
 }
 
+// Daily blog posts -- commentary, analysis, opinion pieces
 export const blogPosts: BlogPost[] = [
   {
     title: "The Structural OS Turn: How AI's Memory Fabric and Transparency Wars Are Reshaping the Stack",
@@ -19,6 +20,10 @@ export const blogPosts: BlogPost[] = [
     desc: "Model commoditization, persistent agent memory as the new OS kernel, and the collision between corporate lawfare and adversarial transparency",
     link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-06-03.md"
   },
+];
+
+// Research entries -- papers, studies, analyses, guides
+export const researchPosts: BlogPost[] = [
   {
     title: "Do Verified Trajectories Improve Software-Agent Reliability?",
     date: "2026-05-08",
