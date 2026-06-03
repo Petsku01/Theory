@@ -8,8 +8,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 const links = [
   { href: "/", label: "Home" },
   { href: "/projects", label: "Projects" },
-  { href: "/about", label: "About" },
   { href: "/blog", label: "Blog" },
+  { href: "/research", label: "Research" },
+  { href: "/about", label: "About" },
   { href: "/security-demos", label: "Security" },
   { href: "/llm-labs", label: "LLM Labs" },
   { href: "/kuu", label: "Kuu" },

@@ -150,13 +150,20 @@ export default function Home() {
         title="Research"
         description="Papers, security analyses, and engineering guides. For timely commentary, see the blog."
       >
-        <div className="mb-4">
+        <div className="mb-4 flex flex-wrap gap-2">
           <a
             href="/blog"
             className="inline-flex items-center gap-1.5 rounded-lg border border-accent-cyan/25 bg-accent-cyan/6 px-3 py-1.5 font-mono text-xs text-accent-cyan transition-colors hover:border-accent-cyan/50 hover:bg-accent-cyan/12"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
             Blog posts
+          </a>
+          <a
+            href="/research"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-accent-violet/25 bg-accent-violet/6 px-3 py-1.5 font-mono text-xs text-accent-violet transition-colors hover:border-accent-violet/50 hover:bg-accent-violet/12"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+            All research
           </a>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
