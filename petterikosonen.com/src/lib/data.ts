@@ -14,9 +14,9 @@ export interface Project {
 
 export const blogPosts: BlogPost[] = [
   {
-    title: "The Agent OS Is Coming, and Corporate Lawfare Is Its Accelerant",
+    title: "The Structural OS Turn: How AI's Memory Fabric and Transparency Wars Are Reshaping the Stack",
     date: "2026-06-03",
-    desc: "Legal intimidation meets agentic memory infrastructure: how Flux.ai's CFAA threat and the explosion of agent control planes are colliding to reshape AI transparency",
+    desc: "Model commoditization, persistent agent memory as the new OS kernel, and the collision between corporate lawfare and adversarial transparency",
     link: "https://github.com/Petsku01/Theory/blob/main/Analyses/LLM/blog-2026-06-03.md"
   },
   {
