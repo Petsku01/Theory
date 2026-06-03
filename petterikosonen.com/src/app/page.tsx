@@ -23,6 +23,7 @@ export default function Home() {
             { id: "experience", label: "Experience" },
             { id: "education", label: "Education" },
             { id: "skills", label: "Skills" },
+            { id: "blog", label: "Blog" },
             { id: "research", label: "Research" },
             { id: "contact", label: "Contact" },
           ]}
@@ -143,21 +144,55 @@ export default function Home() {
         <SkillsMatrix />
       </SectionFrame>
 
+      {/* ── Blog ────────────────────────────────── */}
+      <SectionFrame
+        id="blog"
+        command="/blog --daily"
+        title="Blog"
+        description="Timely commentary and analysis on AI, security, and the tech stack."
+      >
+        <div className="grid gap-4 md:grid-cols-2">
+          {blogPosts.map((post) => (
+            <a
+              key={post.link}
+              href={post.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="focus-outline group block overflow-hidden rounded-2xl border border-line-0 bg-bg-2/50 p-5 transition-all duration-300 hover:border-accent-cyan/30 hover:shadow-[0_4px_28px_rgba(0,0,0,0.25)]"
+            >
+              <p className="font-mono text-[0.65rem] uppercase tracking-widest text-text-2">{post.date}</p>
+              <h3 className="mt-2 text-lg font-bold text-text-0 transition-colors duration-200 group-hover:text-accent-cyan">
+                {post.title}
+              </h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-text-1">{post.desc}</p>
+              <span className="mt-3 inline-flex items-center gap-1.5 font-mono text-xs text-text-2 transition-colors duration-200 group-hover:text-accent-cyan">
+                Read more
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform duration-200 group-hover:translate-x-1" aria-hidden="true">
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+              </span>
+            </a>
+          ))}
+        </div>
+        <div className="mt-4">
+          <a
+            href="/blog"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-accent-cyan/25 bg-accent-cyan/6 px-3 py-1.5 font-mono text-xs text-accent-cyan transition-colors hover:border-accent-cyan/50 hover:bg-accent-cyan/12"
+          >
+            All blog posts
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+          </a>
+        </div>
+      </SectionFrame>
+
       {/* ── Research ────────────────────────────── */}
       <SectionFrame
         id="research"
         command="/research --list"
         title="Research"
-        description="Papers, security analyses, and engineering guides. For timely commentary, see the blog."
+        description="Papers, security analyses, and engineering guides."
       >
-        <div className="mb-4 flex flex-wrap gap-2">
-          <a
-            href="/blog"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-accent-cyan/25 bg-accent-cyan/6 px-3 py-1.5 font-mono text-xs text-accent-cyan transition-colors hover:border-accent-cyan/50 hover:bg-accent-cyan/12"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-            Blog posts
-          </a>
+        <div className="mb-4">
           <a
             href="/research"
             className="inline-flex items-center gap-1.5 rounded-lg border border-accent-violet/25 bg-accent-violet/6 px-3 py-1.5 font-mono text-xs text-accent-violet transition-colors hover:border-accent-violet/50 hover:bg-accent-violet/12"

@@ -14,14 +14,14 @@ export async function GET() {
 
   // Combine blog posts and research entries, newest first
   const allPosts = [...blogPosts, ...researchPosts].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    (a, b) => (new Date(b.date).getTime() || 0) - (new Date(a.date).getTime() || 0)
   );
 
   const rss = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Petteri Kosonen - Blog &amp; Research</title>
-    <link>${baseUrl}/blog</link>
+    <link>${baseUrl}</link>
     <description>Commentary, research, and analysis on AI, security, and infrastructure</description>
     <language>en</language>
     <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
