@@ -24,7 +24,7 @@ export const blogPosts: BlogPost[] = [
     title: "The Suppressed 64 Percent: Audio Override, Streaming Agents, and the Data Cold War",
     date: "2026-06-04",
     desc: "Audio-text suppression in multimodal models, streaming multi-agent reasoning, recoverability diagnostics, and the consent fracture inside AI organizations",
-    link: "https://github.com/Petsku01/Theory/blob/main/Analyses/LLM/blog-2026-06-04.md"
+    link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-06-04.md"
   },
 ];
 
