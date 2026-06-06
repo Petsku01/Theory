@@ -26,6 +26,18 @@ export const blogPosts: BlogPost[] = [
     desc: "Audio-text suppression in multimodal models, streaming multi-agent reasoning, recoverability diagnostics, and the consent fracture inside AI organizations",
     link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-06-04.md"
   },
+  {
+    title: "The Intelligence Bifurcation: How Encoder-Free Models and Recursive Self-Improvement Are Splitting AI in Two",
+    date: "2026-06-05",
+    desc: "Encoder-free multimodal architectures, recursive self-improvement loops, the competence cliff in CS education, and local AI sovereignty gaining teeth",
+    link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-06-05.md"
+  },
+  {
+    title: "The Profitability Gate: How the S&P 500 Is Splitting AI in Two",
+    date: "2026-06-06",
+    desc: "Index committee profitability rules closing capital channels for unprofitable AI labs, efficiency-first local models, embodied AI as the new asset class, and self-evolving agents",
+    link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-06-06.md"
+  },
 ];
 
 // Research entries -- papers, studies, analyses, guides
