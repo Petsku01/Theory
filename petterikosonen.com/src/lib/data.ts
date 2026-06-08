@@ -38,6 +38,12 @@ export const blogPosts: BlogPost[] = [
     desc: "Index committee profitability rules closing capital channels for unprofitable AI labs, efficiency-first local models, embodied AI as the new asset class, and self-evolving agents",
     link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-06-06.md"
   },
+  {
+    title: "The Gated Acceleration Paradox: Why AI's Surge Is Fueling a Shadow Economy",
+    date: "2026-06-08",
+    desc: "Capability growth commoditizing professional expertise while legacy institutions raise barriers, probability judgment failures in state-of-the-art models, and the shadow economy of AI-augmented productivity",
+    link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-06-08.md"
+  },
 ];
 
 // Research entries -- papers, studies, analyses, guides
