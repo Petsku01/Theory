@@ -9,7 +9,7 @@ import React, {
   useState,
 } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { OrbitControls, Html, Grid } from "@react-three/drei";
+import { OrbitControls, Html } from "@react-three/drei";
 import * as THREE from "three";
 import { nodes, edges, clusterPositions, type CortexNode } from "@/lib/cortex-data";
 
@@ -42,21 +42,90 @@ function computePositions(nodeList: CortexNode[]): Map<string, THREE.Vector3> {
   return pos;
 }
 
-// ── Helper: hex scramble effect ──
-function scrambleText(label: string, iterations: number = 5) {
-  const chars = "0123456789ABCDEF#@*%&?!/-_";
-  let result = label;
-  for (let i = 0; i < iterations; i++) {
-    result = result
-      .split("")
-      .map((c, idx) =>
-        idx % Math.floor(Math.random() * 3 + 1) === 0
-          ? chars[Math.floor(Math.random() * chars.length)]
-          : c
-      )
-      .join("");
-  }
-  return result;
+// ── IMPROVEMENT 1: useScramble hook ──
+function useScramble(text: string, isHovered: boolean): string {
+  const [display, setDisplay] = useState(text);
+  const scrambleIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const resolveTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  // Characters pool for scrambling
+  const chars = "0123456789ABCDEF<>/\\";
+
+  // Cleanup everything
+  const clearAll = useCallback(() => {
+    if (scrambleIntervalRef.current) {
+      clearInterval(scrambleIntervalRef.current);
+      scrambleIntervalRef.current = null;
+    }
+    resolveTimersRef.current.forEach(clearTimeout);
+    resolveTimersRef.current = [];
+  }, []);
+
+  useEffect(() => {
+    // On unmount
+    return clearAll;
+  }, [clearAll]);
+
+  useEffect(() => {
+    if (isHovered) {
+      // Clear any ongoing scramble from previous hover
+      clearAll();
+
+      const finalText = text;
+      const length = finalText.length;
+      const revealed = new Array<boolean>(length).fill(false);
+
+      // Scramble interval: random chars every 60ms for unresolved positions
+      scrambleIntervalRef.current = setInterval(() => {
+        setDisplay((prev) =>
+          finalText
+            .split("")
+            .map((char, i) => {
+              if (revealed[i]) return finalText[i];
+              // Keep spaces untouched for readability
+              if (char === " ") return " ";
+              return chars[Math.floor(Math.random() * chars.length)];
+            })
+            .join("")
+        );
+      }, 60);
+
+      // Reveal characters left-to-right: each character reveals after ~30ms delay,
+      // but we "slow down" reveal to half-speed relative to the scramble feel.
+      // We'll use a 30ms interval between reveals.
+      let revealIndex = 0;
+      const revealNext = () => {
+        if (revealIndex < length) {
+          revealed[revealIndex] = true;
+          revealIndex++;
+          const timer = setTimeout(revealNext, 30);
+          resolveTimersRef.current.push(timer);
+        } else {
+          // All characters revealed, stop scramble
+          if (scrambleIntervalRef.current) {
+            clearInterval(scrambleIntervalRef.current);
+            scrambleIntervalRef.current = null;
+          }
+          setDisplay(finalText);
+        }
+      };
+      // Start first reveal after a small initial delay (scramble a bit first)
+      const startTimer = setTimeout(revealNext, 120);
+      resolveTimersRef.current.push(startTimer);
+
+      // Cleanup for this hover cycle
+      return () => {
+        clearAll();
+        setDisplay(finalText); // Reset on leave
+      };
+    } else {
+      // Not hovered: immediately show original text
+      clearAll();
+      setDisplay(text);
+    }
+  }, [isHovered, text, clearAll]);
+
+  return display;
 }
 
 // ── 3D Node (icosahedron + wireframe + glow) ──
@@ -81,47 +150,8 @@ const NetworkNode = React.memo(function NetworkNode({
   const baseSize = node.size * 0.35;
   const color = useMemo(() => new THREE.Color(node.color), [node.color]);
 
-  // Label scramble state
-  const [displayText, setDisplayText] = useState(node.label);
-  const scrambleIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
-    null
-  );
-
-  // Clear interval on unmount or when unhover
-  useEffect(() => {
-    return () => {
-      if (scrambleIntervalRef.current) clearInterval(scrambleIntervalRef.current);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (isHovered) {
-      scrambleIntervalRef.current = setInterval(() => {
-        setDisplayText(scrambleText(node.label));
-      }, 60);
-      // Resolve after ~500ms
-      const timeout = setTimeout(() => {
-        if (scrambleIntervalRef.current) {
-          clearInterval(scrambleIntervalRef.current);
-          scrambleIntervalRef.current = null;
-        }
-        setDisplayText(node.label);
-      }, 500);
-      return () => {
-        clearTimeout(timeout);
-        if (scrambleIntervalRef.current) {
-          clearInterval(scrambleIntervalRef.current);
-          scrambleIntervalRef.current = null;
-        }
-      };
-    } else {
-      setDisplayText(node.label);
-      if (scrambleIntervalRef.current) {
-        clearInterval(scrambleIntervalRef.current);
-        scrambleIntervalRef.current = null;
-      }
-    }
-  }, [isHovered, node.label]);
+  // ── Use the new scramble hook ──
+  const displayText = useScramble(node.label, isHovered);
 
   // Target scale (lerp toward based on selection/hover)
   const targetScale = isSelected ? 1.6 : isHovered ? 1.2 : 1.0;
@@ -215,8 +245,8 @@ const NetworkNode = React.memo(function NetworkNode({
   );
 });
 
-// ── Edge Cylinder (base connection) ──
-function EdgeCylinder({
+// ── IMPROVEMENT 3: Edge components (now memoized) ──
+const EdgeCylinder = React.memo(function EdgeCylinder({
   from,
   to,
   color,
@@ -246,7 +276,7 @@ function EdgeCylinder({
       <meshBasicMaterial color={color} transparent opacity={opacity} />
     </mesh>
   );
-}
+});
 
 // ── Energy Pulse traveling along an edge ──
 function EnergyPulse({
@@ -283,8 +313,8 @@ function EnergyPulse({
   );
 }
 
-// ── All network edges with cylinders and pulses ──
-function NetworkEdges({
+// ── All network edges with cylinders, pulses, and glow (IMPROVEMENT 3) ──
+const NetworkEdges = React.memo(function NetworkEdges({
   positions,
   selectedId,
 }: {
@@ -307,7 +337,7 @@ function NetworkEdges({
     <>
       {edgeData.map((ed) => (
         <group key={ed.key}>
-          {/* The connection line */}
+          {/* Main connection line */}
           <EdgeCylinder
             from={ed.from}
             to={ed.to}
@@ -315,6 +345,16 @@ function NetworkEdges({
             opacity={ed.highlight ? 0.8 : 0.25}
             thickness={ed.highlight ? 0.04 : 0.015}
           />
+          {/* Glow cylinder only when highlighted */}
+          {ed.highlight && (
+            <EdgeCylinder
+              from={ed.from}
+              to={ed.to}
+              color={"#00f0ff"}
+              opacity={0.15}
+              thickness={0.04 * 2.5} // 2.5× main thickness
+            />
+          )}
           {/* Traveling pulse */}
           <EnergyPulse
             from={ed.from}
@@ -328,7 +368,7 @@ function NetworkEdges({
       ))}
     </>
   );
-}
+});
 
 // ── Background particles with attraction toward active node ──
 function BackgroundParticles({
@@ -418,23 +458,60 @@ function BackgroundParticles({
   );
 }
 
-// ── Grid floor at y=-3 with fade ──
-function GridFloor() {
+// ── IMPROVEMENT 2: Canvas texture grid floor ──
+function CyberGrid() {
+  const texture = useMemo(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 1024;
+    canvas.height = 1024;
+    const ctx = canvas.getContext("2d")!;
+
+    // Draw fine grid lines (every 64px)
+    ctx.strokeStyle = "rgba(0, 240, 255, 0.15)";
+    ctx.lineWidth = 2;
+    const spacing = 64;
+    for (let x = spacing; x < canvas.width; x += spacing) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, canvas.height);
+      ctx.stroke();
+    }
+    for (let y = spacing; y < canvas.height; y += spacing) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(canvas.width, y);
+      ctx.stroke();
+    }
+
+    // Overlay radial gradient: center transparent, edges opaque bg color
+    const gradient = ctx.createRadialGradient(
+      canvas.width / 2,
+      canvas.height / 2,
+      0,
+      canvas.width / 2,
+      canvas.height / 2,
+      canvas.width / 2
+    );
+    gradient.addColorStop(0, "transparent");
+    gradient.addColorStop(0.85, "transparent");
+    gradient.addColorStop(1, "rgba(10,10,15,1)");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.needsUpdate = true;
+    return tex;
+  }, []);
+
   return (
-    <Grid
-      args={[30, 30]}
-      cellSize={1}
-      sectionSize={3}
-      fadeDistance={12}
-      position={[0, -3, 0]}
-      infiniteGrid
-      cellColor="#0a1a2a"
-      sectionColor="#081828"
-    />
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -3, 0]}>
+      <planeGeometry args={[60, 60]} />
+      <meshBasicMaterial map={texture} transparent />
+    </mesh>
   );
 }
 
-// ── Camera controller with fly-to and shake ──
+// ── IMPROVEMENT 4: Camera controller with sinusoidal shake ──
 function CameraController({
   target,
   controlsRef,
@@ -445,16 +522,19 @@ function CameraController({
   shakeTimestamp: number;
 }) {
   const shakeStartTime = useRef<number>(0);
-  const shakeOffset = useRef<THREE.Vector3>(new THREE.Vector3());
+  const shakeDirection = useRef<THREE.Vector3>(new THREE.Vector3());
 
   useEffect(() => {
     if (shakeTimestamp > 0) {
       shakeStartTime.current = performance.now();
-      shakeOffset.current.set(
-        (Math.random() - 0.5) * 2,
-        (Math.random() - 0.5) * 2,
-        (Math.random() - 0.5) * 2
-      ).multiplyScalar(0.02);
+      // Random direction for the shake oscillation
+      shakeDirection.current
+        .set(
+          Math.random() - 0.5,
+          Math.random() * 0.5 + 0.2, // mostly vertical
+          Math.random() - 0.5
+        )
+        .normalize();
     }
   }, [shakeTimestamp]);
 
@@ -470,11 +550,18 @@ function CameraController({
       controls.target.lerp(target, delta * 3);
     }
 
-    // Apply camera shake if within 300ms of selection
+    // Sinusoidal camera shake decay (300ms)
     const elapsed = (performance.now() - shakeStartTime.current) / 1000;
-    if (elapsed < 0.3) {
-      const intensity = (1 - elapsed / 0.3) * 1;
-      controls.object.position.add(shakeOffset.current.clone().multiplyScalar(intensity));
+    const frequency = 30;
+    const decay = 10;
+    const amplitude = 0.03;
+    const duration = 0.3;
+
+    if (elapsed < duration) {
+      const magnitude =
+        amplitude * Math.sin(frequency * elapsed) * Math.exp(-decay * elapsed);
+      const offset = shakeDirection.current.clone().multiplyScalar(magnitude);
+      controls.object.position.add(offset);
     }
 
     controls.update();
@@ -743,7 +830,7 @@ function CortexScene({
       <pointLight position={[-10, -5, -10]} intensity={0.3} color="#00ff88" />
 
       <BackgroundParticles count={500} targetPos={attractionTarget} />
-      <GridFloor />
+      <CyberGrid />
       <NetworkEdges positions={positions} selectedId={selectedId} />
 
       {nodes.map((node) => (
