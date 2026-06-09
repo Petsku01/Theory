@@ -1,8 +1,15 @@
 "use client";
 
-import { Suspense, useCallback, useMemo, useRef, useState } from "react";
+import React, {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { OrbitControls, Html } from "@react-three/drei";
+import { OrbitControls, Html, Grid } from "@react-three/drei";
 import * as THREE from "three";
 import { nodes, edges, clusterPositions, type CortexNode } from "@/lib/cortex-data";
 
@@ -17,7 +24,9 @@ function computePositions(nodeList: CortexNode[]): Map<string, THREE.Vector3> {
   }
 
   for (const [cluster, clusterList] of clusterNodes) {
-    const center = new THREE.Vector3(...(clusterPositions[cluster] ?? [0, 0, 0]));
+    const center = new THREE.Vector3(
+      ...(clusterPositions[cluster] ?? [0, 0, 0])
+    );
     const count = clusterList.length;
     clusterList.forEach((node, i) => {
       const angle = (i / count) * Math.PI * 2;
@@ -33,7 +42,24 @@ function computePositions(nodeList: CortexNode[]): Map<string, THREE.Vector3> {
   return pos;
 }
 
-// ── 3D Node (memoized) ──
+// ── Helper: hex scramble effect ──
+function scrambleText(label: string, iterations: number = 5) {
+  const chars = "0123456789ABCDEF#@*%&?!/-_";
+  let result = label;
+  for (let i = 0; i < iterations; i++) {
+    result = result
+      .split("")
+      .map((c, idx) =>
+        idx % Math.floor(Math.random() * 3 + 1) === 0
+          ? chars[Math.floor(Math.random() * chars.length)]
+          : c
+      )
+      .join("");
+  }
+  return result;
+}
+
+// ── 3D Node (icosahedron + wireframe + glow) ──
 const NetworkNode = React.memo(function NetworkNode({
   node,
   position,
@@ -49,67 +75,138 @@ const NetworkNode = React.memo(function NetworkNode({
   onSelect: (id: string) => void;
   onHover: (id: string | null) => void;
 }) {
-  const meshRef = useRef<THREE.Mesh>(null);
+  const meshRef = useRef<THREE.Group>(null);
+  const wireframeRef = useRef<THREE.LineSegments>(null);
   const glowRef = useRef<THREE.Mesh>(null);
   const baseSize = node.size * 0.35;
-  const targetScale = isSelected ? 1.6 : isHovered ? 1.25 : 1;
   const color = useMemo(() => new THREE.Color(node.color), [node.color]);
 
-  useFrame((_state, delta) => {
+  // Label scramble state
+  const [displayText, setDisplayText] = useState(node.label);
+  const scrambleIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
+    null
+  );
+
+  // Clear interval on unmount or when unhover
+  useEffect(() => {
+    return () => {
+      if (scrambleIntervalRef.current) clearInterval(scrambleIntervalRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isHovered) {
+      scrambleIntervalRef.current = setInterval(() => {
+        setDisplayText(scrambleText(node.label));
+      }, 60);
+      // Resolve after ~500ms
+      const timeout = setTimeout(() => {
+        if (scrambleIntervalRef.current) {
+          clearInterval(scrambleIntervalRef.current);
+          scrambleIntervalRef.current = null;
+        }
+        setDisplayText(node.label);
+      }, 500);
+      return () => {
+        clearTimeout(timeout);
+        if (scrambleIntervalRef.current) {
+          clearInterval(scrambleIntervalRef.current);
+          scrambleIntervalRef.current = null;
+        }
+      };
+    } else {
+      setDisplayText(node.label);
+      if (scrambleIntervalRef.current) {
+        clearInterval(scrambleIntervalRef.current);
+        scrambleIntervalRef.current = null;
+      }
+    }
+  }, [isHovered, node.label]);
+
+  // Target scale (lerp toward based on selection/hover)
+  const targetScale = isSelected ? 1.6 : isHovered ? 1.2 : 1.0;
+
+  const timeRef = useRef(0);
+  useFrame((state, delta) => {
     if (!meshRef.current) return;
-    const s = meshRef.current.scale.x;
-    const newS = THREE.MathUtils.lerp(s, targetScale, delta * 5);
-    meshRef.current.scale.setScalar(newS);
+    timeRef.current += delta;
+    // Pulsing oscillation 0.95-1.05
+    const pulse = 1 + Math.sin(timeRef.current * 3) * 0.05;
+    // Lerp toward target scale
+    const currentScale = meshRef.current.scale.x;
+    const newScale = THREE.MathUtils.lerp(currentScale, targetScale * pulse, delta * 6);
+    meshRef.current.scale.setScalar(newScale);
+
+    // Glow opacity
     if (glowRef.current) {
-      glowRef.current.scale.setScalar(newS * 1.8);
-      (glowRef.current.material as THREE.MeshBasicMaterial).opacity =
-        isHovered || isSelected ? 0.25 : 0.08;
+      const material = glowRef.current.material as THREE.MeshBasicMaterial;
+      material.opacity = THREE.MathUtils.lerp(
+        material.opacity,
+        isHovered || isSelected ? 0.3 : 0.08,
+        delta * 5
+      );
     }
   });
 
   return (
     <group position={position}>
-      {/* Glow */}
-      <mesh ref={glowRef}>
-        <sphereGeometry args={[baseSize * 1.8, 16, 16]} />
+      {/* Icosahedron with wireframe */}
+      <group ref={meshRef}>
+        <mesh
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelect(node.id);
+          }}
+          onPointerOver={(e) => {
+            e.stopPropagation();
+            onHover(node.id);
+          }}
+          onPointerOut={() => onHover(null)}
+        >
+          <icosahedronGeometry args={[baseSize, 1]} />
+          <meshStandardMaterial
+            color={color}
+            emissive={color}
+            emissiveIntensity={isSelected ? 0.7 : 0.3}
+            roughness={0.4}
+            metalness={0.6}
+          />
+        </mesh>
+        {/* Wireframe (lines on the same geometry) */}
+        <lineSegments
+          ref={wireframeRef}
+          geometry={new THREE.IcosahedronGeometry(baseSize, 1)}
+        >
+          <lineBasicMaterial
+            color={color}
+            transparent
+            opacity={0.5}
+            linewidth={0.5}
+          />
+        </lineSegments>
+      </group>
+
+      {/* Glow (a larger transparent sphere) */}
+      <mesh ref={glowRef} scale={[1.5, 1.5, 1.5]}>
+        <sphereGeometry args={[baseSize, 16, 16]} />
         <meshBasicMaterial color={color} transparent opacity={0.08} />
       </mesh>
 
-      {/* Core sphere */}
-      <mesh
-        ref={meshRef}
-        onClick={(e) => {
-          e.stopPropagation();
-          onSelect(node.id);
-        }}
-        onPointerOver={(e) => {
-          e.stopPropagation();
-          onHover(node.id);
-        }}
-        onPointerOut={() => onHover(null)}
-      >
-        <sphereGeometry args={[baseSize, 32, 32]} />
-        <meshStandardMaterial
-          color={color}
-          emissive={color}
-          emissiveIntensity={isSelected ? 0.8 : isHovered ? 0.5 : 0.2}
-          roughness={0.3}
-          metalness={0.7}
-        />
-      </mesh>
-
-      {/* Label (HTML overlay for instant rendering, no font loading) */}
+      {/* Label (HTML) */}
       <Html
-        position={[0, baseSize + 0.5, 0]}
+        position={[0, baseSize + 0.6, 0]}
         center
         distanceFactor={8}
         style={{ pointerEvents: "none" }}
       >
         <div className="whitespace-nowrap text-center">
-          <div className="text-sm font-bold text-slate-200" style={{ textShadow: "0 0 8px rgba(0,240,255,0.5)" }}>
-            {node.label}
+          <div
+            className="text-sm font-bold text-slate-200 font-mono"
+            style={{ textShadow: "0 0 8px rgba(0,240,255,0.7)" }}
+          >
+            {displayText}
           </div>
-          <div className="text-[0.65rem] text-slate-400">
+          <div className="text-[0.65rem] text-slate-400 mt-0.5">
             {node.shortDesc}
           </div>
         </div>
@@ -118,9 +215,7 @@ const NetworkNode = React.memo(function NetworkNode({
   );
 });
 
-import React from "react";
-
-// ── Edge cylinders (replaces Line for reliable width) ──
+// ── Edge Cylinder (base connection) ──
 function EdgeCylinder({
   from,
   to,
@@ -134,7 +229,7 @@ function EdgeCylinder({
   opacity: number;
   thickness: number;
 }) {
-  const { mesh, length, position, quaternion } = useMemo(() => {
+  const { position, quaternion, length } = useMemo(() => {
     const direction = new THREE.Vector3().subVectors(to, from);
     const len = direction.length();
     const midpoint = new THREE.Vector3().addVectors(from, to).multiplyScalar(0.5);
@@ -142,7 +237,7 @@ function EdgeCylinder({
       new THREE.Vector3(0, 1, 0),
       direction.normalize()
     );
-    return { mesh: null, length: len, position: midpoint, quaternion: orientation };
+    return { position: midpoint, quaternion: orientation, length: len };
   }, [from, to]);
 
   return (
@@ -153,6 +248,42 @@ function EdgeCylinder({
   );
 }
 
+// ── Energy Pulse traveling along an edge ──
+function EnergyPulse({
+  from,
+  to,
+  color,
+  speed = 2, // seconds per cycle
+  pulseSize = 0.06,
+  opacity = 1,
+}: {
+  from: THREE.Vector3;
+  to: THREE.Vector3;
+  color: string;
+  speed?: number;
+  pulseSize?: number;
+  opacity?: number;
+}) {
+  const sphereRef = useRef<THREE.Mesh>(null);
+  const offsetRef = useRef(Math.random() * speed); // random phase
+
+  useFrame((state) => {
+    if (!sphereRef.current) return;
+    const t = (state.clock.elapsedTime + offsetRef.current) % speed;
+    const progress = t / speed;
+    const pos = new THREE.Vector3().lerpVectors(from, to, progress);
+    sphereRef.current.position.copy(pos);
+  });
+
+  return (
+    <mesh ref={sphereRef}>
+      <sphereGeometry args={[pulseSize, 8, 8]} />
+      <meshBasicMaterial color={color} transparent opacity={opacity} />
+    </mesh>
+  );
+}
+
+// ── All network edges with cylinders and pulses ──
 function NetworkEdges({
   positions,
   selectedId,
@@ -160,7 +291,7 @@ function NetworkEdges({
   positions: Map<string, THREE.Vector3>;
   selectedId: string | null;
 }) {
-  const lines = useMemo(() => {
+  const edgeData = useMemo(() => {
     return edges
       .filter((e) => positions.has(e.from) && positions.has(e.to))
       .map((e) => ({
@@ -174,27 +305,48 @@ function NetworkEdges({
 
   return (
     <>
-      {lines.map((l) => (
-        <EdgeCylinder
-          key={l.key}
-          from={l.from}
-          to={l.to}
-          color={l.highlight ? "#00f0ff" : "#1e293b"}
-          opacity={l.highlight ? 0.8 : 0.25}
-          thickness={l.highlight ? 0.04 : 0.015}
-        />
+      {edgeData.map((ed) => (
+        <group key={ed.key}>
+          {/* The connection line */}
+          <EdgeCylinder
+            from={ed.from}
+            to={ed.to}
+            color={ed.highlight ? "#00f0ff" : "#1e293b"}
+            opacity={ed.highlight ? 0.8 : 0.25}
+            thickness={ed.highlight ? 0.04 : 0.015}
+          />
+          {/* Traveling pulse */}
+          <EnergyPulse
+            from={ed.from}
+            to={ed.to}
+            color={ed.highlight ? "#00f0ff" : "#475569"}
+            speed={2.0}
+            opacity={ed.highlight ? 1 : 0.4}
+            pulseSize={0.05}
+          />
+        </group>
       ))}
     </>
   );
 }
 
-// ── Floating background particles ──
-function BackgroundParticles({ count = 500 }: { count?: number }) {
-  const ref = useRef<THREE.Points>(null);
+// ── Background particles with attraction toward active node ──
+function BackgroundParticles({
+  count = 500,
+  targetPos,
+}: {
+  count?: number;
+  targetPos?: THREE.Vector3 | null;
+}) {
+  const pointsRef = useRef<THREE.Points>(null);
+  const positionsRef = useRef<Float32Array>(new Float32Array(count * 3));
+  const velocitiesRef = useRef<Float32Array>(new Float32Array(count * 3));
+  const bounds = useMemo(() => [15, 10, 10] as const, []);
 
-  const [positionsArr, velocities] = useMemo(() => {
-    const pos = new Float32Array(count * 3);
-    const vel = new Float32Array(count * 3);
+  // Initialize once
+  useEffect(() => {
+    const pos = positionsRef.current;
+    const vel = velocitiesRef.current;
     for (let i = 0; i < count; i++) {
       pos[i * 3] = (Math.random() - 0.5) * 30;
       pos[i * 3 + 1] = (Math.random() - 0.5) * 20;
@@ -203,96 +355,192 @@ function BackgroundParticles({ count = 500 }: { count?: number }) {
       vel[i * 3 + 1] = (Math.random() - 0.5) * 0.005;
       vel[i * 3 + 2] = (Math.random() - 0.5) * 0.005;
     }
-    return [pos, vel];
   }, [count]);
 
-  const bounds = useMemo(() => [15, 10, 10], []);
-
   useFrame(() => {
-    if (!ref.current) return;
-    const p = ref.current.geometry.attributes.position.array as Float32Array;
+    const points = pointsRef.current;
+    if (!points) return;
+    const pos = positionsRef.current;
+    const vel = velocitiesRef.current;
+
     for (let i = 0; i < count; i++) {
+      const idx = i * 3;
+      // Apply velocity
       for (let j = 0; j < 3; j++) {
-        const idx = i * 3 + j;
-        p[idx] += velocities[idx];
-        if (Math.abs(p[idx]) > bounds[j]) {
-          p[idx] = (bounds[j] - 0.1) * -Math.sign(p[idx]) + (Math.random() - 0.5) * 0.3;
+        pos[idx + j] += vel[idx + j];
+        // Boundary check
+        if (Math.abs(pos[idx + j]) > bounds[j]) {
+          pos[idx + j] = (bounds[j] - 0.1) * -Math.sign(pos[idx + j]) + (Math.random() - 0.5) * 0.3;
+          // Reverse velocity slightly
+          vel[idx + j] *= -0.2;
         }
       }
+
+      // Attraction to target if exists
+      if (targetPos) {
+        const dx = targetPos.x - pos[idx];
+        const dy = targetPos.y - pos[idx + 1];
+        const dz = targetPos.z - pos[idx + 2];
+        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) + 0.001;
+        const force = 0.0003;
+        vel[idx] += (dx / dist) * force;
+        vel[idx + 1] += (dy / dist) * force;
+        vel[idx + 2] += (dz / dist) * force;
+      }
+
+      // Limit velocity
+      const maxVel = 0.02;
+      for (let j = 0; j < 3; j++) {
+        if (Math.abs(vel[idx + j]) > maxVel) vel[idx + j] = maxVel * Math.sign(vel[idx + j]);
+      }
     }
-    ref.current.geometry.attributes.position.needsUpdate = true;
+
+    (points.geometry.attributes.position as THREE.BufferAttribute).array = pos;
+    points.geometry.attributes.position.needsUpdate = true;
   });
 
   return (
-    <points ref={ref}>
+    <points ref={pointsRef}>
       <bufferGeometry>
         <bufferAttribute
           attach="attributes-position"
-          args={[positionsArr, 3]}
+          args={[positionsRef.current, 3]}
         />
       </bufferGeometry>
       <pointsMaterial
         color="#00f0ff"
         size={0.04}
         transparent
-        opacity={0.4}
+        opacity={0.35}
         sizeAttenuation
       />
     </points>
   );
 }
 
-// ── Camera fly-to controller (uses OrbitControls ref) ──
+// ── Grid floor at y=-3 with fade ──
+function GridFloor() {
+  return (
+    <Grid
+      args={[30, 30]}
+      cellSize={1}
+      sectionSize={3}
+      fadeDistance={12}
+      position={[0, -3, 0]}
+      infiniteGrid
+      cellColor="#0a1a2a"
+      sectionColor="#081828"
+    />
+  );
+}
+
+// ── Camera controller with fly-to and shake ──
 function CameraController({
   target,
   controlsRef,
+  shakeTimestamp,
 }: {
   target: THREE.Vector3 | null;
   controlsRef: React.RefObject<any>;
+  shakeTimestamp: number;
 }) {
+  const shakeStartTime = useRef<number>(0);
+  const shakeOffset = useRef<THREE.Vector3>(new THREE.Vector3());
+
+  useEffect(() => {
+    if (shakeTimestamp > 0) {
+      shakeStartTime.current = performance.now();
+      shakeOffset.current.set(
+        (Math.random() - 0.5) * 2,
+        (Math.random() - 0.5) * 2,
+        (Math.random() - 0.5) * 2
+      ).multiplyScalar(0.02);
+    }
+  }, [shakeTimestamp]);
+
   useFrame((_state, delta) => {
     const controls = controlsRef.current;
     if (!controls) return;
 
+    // Fly toward target
     if (target) {
-      // Fly camera toward selected node
       const cameraOffset = new THREE.Vector3(0, 1.5, 5);
       const desiredPos = target.clone().add(cameraOffset);
       controls.object.position.lerp(desiredPos, delta * 2);
       controls.target.lerp(target, delta * 3);
-      controls.update();
     }
+
+    // Apply camera shake if within 300ms of selection
+    const elapsed = (performance.now() - shakeStartTime.current) / 1000;
+    if (elapsed < 0.3) {
+      const intensity = (1 - elapsed / 0.3) * 1;
+      controls.object.position.add(shakeOffset.current.clone().multiplyScalar(intensity));
+    }
+
+    controls.update();
   });
 
   return null;
 }
 
-// ── Selection info overlay ──
-function DetailPanel({ node, onClose }: { node: CortexNode | null; onClose: () => void }) {
-  if (!node) return null;
+// ── Detail panel with slide-in/out animation ──
+function DetailPanel({
+  node,
+  stage,
+  onCloseAction,
+}: {
+  node: CortexNode | null;
+  stage: "show" | "hiding" | "hidden";
+  onCloseAction: () => void;
+}) {
+  if (!node || stage === "hidden") return null;
+
+  const panelClass =
+    stage === "hiding"
+      ? "translate-x-full opacity-0"
+      : "translate-x-0 opacity-100";
 
   return (
-    <div className="pointer-events-auto fixed right-4 top-20 z-50 w-80 max-w-[calc(100vw-2rem)] rounded-2xl border border-line-0/40 bg-bg-0/90 p-5 shadow-2xl backdrop-blur-xl max-md:bottom-0 max-md:left-0 max-md:top-auto max-md:w-full max-md:rounded-b-none">
+    <div
+      className={`pointer-events-auto fixed right-4 top-20 z-50 w-80 max-w-[calc(100vw-2rem)] rounded-2xl border border-slate-700/50 bg-[#0a0a0f]/95 p-5 shadow-2xl backdrop-blur-xl transition-all duration-300 ease-out ${panelClass} max-md:bottom-0 max-md:left-0 max-md:top-auto max-md:w-full max-md:rounded-b-none`}
+    >
       <button
-        onClick={onClose}
-        className="absolute right-3 top-3 text-text-2 hover:text-text-0"
-        aria-label="Close"
+        onClick={onCloseAction}
+        className="absolute right-3 top-3 text-slate-400 hover:text-slate-100"
+        aria-label="Close panel"
       >
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 16 16"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
           <path d="M4 4l8 8M12 4l-8 8" />
         </svg>
       </button>
 
       <div className="mb-3 flex items-center gap-2">
-        <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: node.color }} />
-        <h3 className="text-lg font-bold text-text-0">{node.label}</h3>
+        <span
+          className="h-2.5 w-2.5 rounded-full"
+          style={{ backgroundColor: node.color }}
+        />
+        <h3 className="text-lg font-bold text-slate-100 font-mono">
+          {node.label}
+        </h3>
       </div>
-      <p className="mt-1 text-sm text-text-1">{node.fullDesc ?? node.shortDesc}</p>
+      <p className="mt-1 text-sm text-slate-300">
+        {node.fullDesc ?? node.shortDesc}
+      </p>
 
       {node.tech && (
         <div className="mt-3 flex flex-wrap gap-1.5">
           {node.tech.map((t) => (
-            <span key={t} className="rounded-md bg-bg-3/50 px-2 py-0.5 font-mono text-xs text-text-2">
+            <span
+              key={t}
+              className="rounded-md bg-slate-800/70 px-2 py-0.5 font-mono text-xs text-cyan-300"
+            >
               {t}
             </span>
           ))}
@@ -304,17 +552,26 @@ function DetailPanel({ node, onClose }: { node: CortexNode | null; onClose: () =
           href={node.link}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-accent-cyan/30 bg-accent-cyan/6 px-3 py-1.5 font-mono text-xs text-accent-cyan transition-colors hover:border-accent-cyan/50 hover:bg-accent-cyan/12"
+          className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-3 py-1.5 font-mono text-xs text-cyan-300 transition-colors hover:border-cyan-400/50 hover:bg-cyan-400/20"
         >
           View Project
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <path d="M5 12h14M12 5l7 7-7 7" />
           </svg>
         </a>
       )}
 
       <div className="mt-3">
-        <span className="rounded bg-bg-3/30 px-2 py-0.5 font-mono text-[0.65rem] uppercase tracking-wider text-text-2">
+        <span className="rounded bg-slate-800/50 px-2 py-0.5 font-mono text-[0.65rem] uppercase tracking-wider text-slate-400">
           {node.type}
         </span>
       </div>
@@ -322,18 +579,110 @@ function DetailPanel({ node, onClose }: { node: CortexNode | null; onClose: () =
   );
 }
 
-// ── Accessibility: hidden nav for keyboard users ──
+// ── Typewriter title overlay ──
+function TitleOverlay({
+  hasInteracted,
+}: {
+  hasInteracted: boolean;
+}) {
+  const [typedTitle, setTypedTitle] = useState("");
+  const [showSubtitle, setShowSubtitle] = useState(false);
+  const [showHint, setShowHint] = useState(!hasInteracted);
+  const fullTitle = "Petteri Kosonen";
+
+  // Typewriter effect
+  useEffect(() => {
+    if (typedTitle.length < fullTitle.length) {
+      const timeout = setTimeout(() => {
+        setTypedTitle(fullTitle.slice(0, typedTitle.length + 1));
+      }, 80);
+      return () => clearTimeout(timeout);
+    } else {
+      // Title done → show subtitle after a beat
+      const t = setTimeout(() => setShowSubtitle(true), 600);
+      return () => clearTimeout(t);
+    }
+  }, [typedTitle, fullTitle]);
+
+  // Fade hint after first interaction
+  useEffect(() => {
+    if (hasInteracted) {
+      const t = setTimeout(() => setShowHint(false), 1000);
+      return () => clearTimeout(t);
+    }
+  }, [hasInteracted]);
+
+  return (
+    <div className="pointer-events-none absolute left-6 top-6 z-10">
+      <h1 className="font-display text-2xl font-bold text-slate-100 font-mono">
+        {typedTitle}
+        <span className="animate-pulse text-cyan-400">_</span>
+      </h1>
+      <p
+        className={`mt-1 font-mono text-sm text-slate-400 transition-opacity duration-700 ${
+          showSubtitle ? "opacity-100" : "opacity-0"
+        }`}
+      >
+        Security Engineer + AI Researcher
+      </p>
+      {showHint && (
+        <p className="mt-2 font-mono text-xs text-cyan-500/60 transition-opacity duration-500">
+          Click a node to explore. Drag to rotate. Scroll to zoom.
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ── Scanlines overlay (cyberpunk) ──
+function Scanlines() {
+  return (
+    <div
+      className="pointer-events-none fixed inset-0 z-10"
+      style={{
+        background:
+          "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,240,255,0.02) 2px, rgba(0,240,255,0.02) 4px)",
+        animation: "scanlines 10s linear infinite",
+      }}
+    />
+  );
+}
+
+// ── Vignette overlay ──
+function Vignette() {
+  return (
+    <div
+      className="pointer-events-none fixed inset-0 z-10"
+      style={{
+        background:
+          "radial-gradient(ellipse at center, transparent 60%, rgba(10,10,15,0.85) 100%)",
+      }}
+    />
+  );
+}
+
+// ── Global styles for keyframes ──
+function GlobalStyles() {
+  return (
+    <style>{`
+      @keyframes scanlines {
+        0% { background-position: 0 0; }
+        100% { background-position: 0 100%; }
+      }
+    `}</style>
+  );
+}
+
+// ── Keyboard-accessible hidden nav ──
 function AccessibleNav({ onSelect }: { onSelect: (id: string) => void }) {
   return (
-    <div className="sr-only">
-      <nav aria-label="Site sections">
-        {nodes.map((node) => (
-          <button key={node.id} onClick={() => onSelect(node.id)}>
-            {node.label} - {node.shortDesc}
-          </button>
-        ))}
-      </nav>
-    </div>
+    <nav className="sr-only" aria-label="Site sections">
+      {nodes.map((node) => (
+        <button key={node.id} onClick={() => onSelect(node.id)}>
+          {node.label} - {node.shortDesc}
+        </button>
+      ))}
+    </nav>
   );
 }
 
@@ -342,10 +691,12 @@ function CortexScene({
   selectedId,
   onNodeSelect,
   onNodeHover,
+  shakeTimestamp,
 }: {
   selectedId: string | null;
   onNodeSelect: (id: string | null) => void;
   onNodeHover: (id: string | null) => void;
+  shakeTimestamp: number;
 }) {
   const positions = useMemo(() => computePositions(nodes), []);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -367,7 +718,6 @@ function CortexScene({
     [onNodeHover]
   );
 
-  // Cleanup cursor on unmount
   React.useEffect(() => {
     return () => {
       document.body.style.cursor = "default";
@@ -379,13 +729,21 @@ function CortexScene({
     return positions.get(selectedId) ?? null;
   }, [selectedId, positions]);
 
+  // Determine the attraction target for particles (hovered or selected)
+  const attractionTarget = useMemo(() => {
+    const id = hoveredId ?? selectedId;
+    if (!id) return null;
+    return positions.get(id) ?? null;
+  }, [hoveredId, selectedId, positions]);
+
   return (
     <>
-      <ambientLight intensity={0.15} />
-      <pointLight position={[10, 10, 10]} intensity={0.5} color="#00f0ff" />
+      <ambientLight intensity={0.12} />
+      <pointLight position={[10, 10, 10]} intensity={0.4} color="#00f0ff" />
       <pointLight position={[-10, -5, -10]} intensity={0.3} color="#00ff88" />
 
-      <BackgroundParticles count={500} />
+      <BackgroundParticles count={500} targetPos={attractionTarget} />
+      <GridFloor />
       <NetworkEdges positions={positions} selectedId={selectedId} />
 
       {nodes.map((node) => (
@@ -400,11 +758,15 @@ function CortexScene({
         />
       ))}
 
-      <CameraController target={targetPosition} controlsRef={controlsRef} />
+      <CameraController
+        target={targetPosition}
+        controlsRef={controlsRef}
+        shakeTimestamp={shakeTimestamp}
+      />
       <OrbitControls
         ref={controlsRef}
         enableDamping
-        dampingFactor={0.05}
+        dampingFactor={0.08}
         minDistance={3}
         maxDistance={25}
         enablePan
@@ -420,8 +782,10 @@ function CortexLoader() {
   return (
     <div className="flex h-screen w-screen items-center justify-center bg-[#0a0a0f]">
       <div className="text-center">
-        <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-accent-cyan/30 border-t-accent-cyan" />
-        <p className="font-mono text-sm text-text-2">Initializing neural cortex...</p>
+        <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-cyan-500/30 border-t-cyan-500" />
+        <p className="font-mono text-sm text-slate-400">
+          Initializing neural cortex...
+        </p>
       </div>
     </div>
   );
@@ -430,50 +794,109 @@ function CortexLoader() {
 // ── Exported wrapper ──
 export default function NeuralCortex() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [hasInteracted, setHasInteracted] = useState(false);
+  const [shakeTimestamp, setShakeTimestamp] = useState(0);
+
+  // Panel animation state
+  const [panelNode, setPanelNode] = useState<CortexNode | null>(null);
+  const [panelStage, setPanelStage] = useState<"show" | "hiding" | "hidden">(
+    "hidden"
+  );
+  const panelTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Derive selected node for panel
   const selectedNode = useMemo(
     () => (selectedId ? nodes.find((n) => n.id === selectedId) ?? null : null),
     [selectedId]
   );
 
-  const handleNodeSelect = useCallback((id: string | null) => {
-    setSelectedId(id);
-  }, []);
+  // Sync panel state when selectedNode changes
+  useEffect(() => {
+    if (selectedNode) {
+      // Show panel
+      clearTimeout(panelTimeout.current!);
+      setPanelNode(selectedNode);
+      setPanelStage("show");
+    } else if (panelNode) {
+      // Hide panel with animation
+      setPanelStage("hiding");
+      panelTimeout.current = setTimeout(() => {
+        setPanelNode(null);
+        setPanelStage("hidden");
+      }, 300); // match CSS transition duration
+    }
+    return () => clearTimeout(panelTimeout.current!);
+  }, [selectedNode, panelNode]);
+
+  const handleNodeSelect = useCallback(
+    (id: string | null) => {
+      setSelectedId(id);
+      if (id !== null && !hasInteracted) {
+        setHasInteracted(true);
+      }
+      // Trigger camera shake on selecting a node (not deselecting)
+      if (id !== null) {
+        setShakeTimestamp((prev) => prev + 1);
+      }
+    },
+    [hasInteracted]
+  );
 
   const handleNodeHover = useCallback((_id: string | null) => {}, []);
 
+  const handlePanelClose = useCallback(() => {
+    setSelectedId(null);
+  }, []);
+
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-[#0a0a0f]">
+      <GlobalStyles />
       <Suspense fallback={<CortexLoader />}>
         <Canvas
           camera={{ position: [0, 3, 12], fov: 60, near: 0.1, far: 100 }}
-          gl={{ antialias: true, alpha: true }}
+          gl={{
+            antialias: true,
+            alpha: false,
+            powerPreference: "high-performance",
+          }}
           dpr={[1, 2]}
         >
           <CortexScene
             selectedId={selectedId}
             onNodeSelect={handleNodeSelect}
             onNodeHover={handleNodeHover}
+            shakeTimestamp={shakeTimestamp}
           />
         </Canvas>
       </Suspense>
 
-      {/* Title overlay */}
-      <div className="pointer-events-none absolute left-6 top-6">
-        <h1 className="font-display text-2xl font-bold text-text-0">
-          Petteri Kosonen
-        </h1>
-        <p className="mt-1 font-mono text-sm text-text-2">
-          Security Engineer + AI Researcher
-        </p>
-        <p className="mt-0.5 font-mono text-xs text-accent-cyan/60">
-          Click a node to explore. Drag to rotate. Scroll to zoom.
-        </p>
-      </div>
+      {/* Visual overlays */}
+      <Scanlines />
+      <Vignette />
 
-      {/* Navigation buttons */}
-      <nav className="pointer-events-auto absolute bottom-6 left-1/2 flex -translate-x-1/2 gap-2" aria-label="Cluster navigation">
-        {(["core", "projects", "skills", "experience", "research"] as const).map((cluster) => {
-          const isActive = selectedId !== null && nodes.find((n) => n.id === selectedId)?.cluster === cluster;
+      {/* Title overlay */}
+      <TitleOverlay hasInteracted={hasInteracted} />
+
+      {/* Reset button */}
+      {selectedId && (
+        <button
+          onClick={() => handleNodeSelect(null)}
+          className="pointer-events-auto absolute left-6 top-20 z-20 rounded-lg border border-slate-700/60 bg-[#0a0a0f]/90 px-3 py-1.5 font-mono text-xs text-slate-300 backdrop-blur-sm transition-colors hover:border-cyan-500/50 hover:text-cyan-400"
+        >
+          Reset View
+        </button>
+      )}
+
+      {/* Cluster navigation buttons */}
+      <nav
+        className="pointer-events-auto absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 gap-2"
+        aria-label="Cluster navigation"
+      >
+        {(
+          ["core", "projects", "skills", "experience", "research"] as const
+        ).map((cluster) => {
+          const isActive =
+            selectedNode?.cluster === cluster;
           return (
             <button
               key={cluster}
@@ -483,8 +906,8 @@ export default function NeuralCortex() {
               }}
               className={`rounded-lg border px-3 py-1.5 font-mono text-xs backdrop-blur-sm transition-colors ${
                 isActive
-                  ? "border-accent-cyan/60 bg-accent-cyan/15 text-accent-cyan"
-                  : "border-line-0/40 bg-bg-0/80 text-text-2 hover:border-accent-cyan/40 hover:text-accent-cyan"
+                  ? "border-cyan-500/60 bg-cyan-500/15 text-cyan-400"
+                  : "border-slate-700/50 bg-[#0a0a0f]/80 text-slate-400 hover:border-cyan-500/40 hover:text-cyan-500"
               }`}
             >
               {cluster}
@@ -493,18 +916,12 @@ export default function NeuralCortex() {
         })}
       </nav>
 
-      {/* Reset button (visible when a node is selected) */}
-      {selectedId && (
-        <button
-          onClick={() => handleNodeSelect(null)}
-          className="pointer-events-auto absolute left-6 top-20 rounded-lg border border-line-0/40 bg-bg-0/80 px-3 py-1.5 font-mono text-xs text-text-2 backdrop-blur-sm transition-colors hover:border-accent-cyan/40 hover:text-accent-cyan"
-        >
-          Reset View
-        </button>
-      )}
-
-      {/* Detail panel */}
-      <DetailPanel node={selectedNode} onClose={() => handleNodeSelect(null)} />
+      {/* Detail panel (with animation) */}
+      <DetailPanel
+        node={panelNode}
+        stage={panelStage}
+        onCloseAction={handlePanelClose}
+      />
 
       {/* Accessible keyboard nav */}
       <AccessibleNav onSelect={(id) => handleNodeSelect(id)} />
