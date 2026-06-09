@@ -65,12 +65,12 @@ function computePositions(nodeList: CortexNode[]): Map<string, THREE.Vector3> {
       const rng = seededRandom(node.id.length * 127 + i * 31);
       const jitter = new THREE.Vector3(
         (rng() - 0.5) * 0.3,
-        (rng() - 0.5) * 0.6,
+        (rng() - 0.5) * 1.0,
         (rng() - 0.5) * 0.3
       );
       const offset = new THREE.Vector3(
         Math.cos(angle) * r,
-        Math.sin(angle * 0.7 + i * 1.1) * 0.35,
+        Math.sin(angle * 0.7 + i * 1.1) * 0.8,
         Math.sin(angle) * r
       ).add(jitter);
       pos.set(node.id, center.clone().add(offset));
@@ -1097,7 +1097,7 @@ export default function NeuralCortex() {
       <GlobalStyles />
       <Suspense fallback={<CortexLoader />}>
         <Canvas
-          camera={{ position: [0, 6, 14], fov: 55, near: 0.1, far: 100 }}
+          camera={{ position: [0, 8, 16], fov: 55, near: 0.1, far: 100 }}
           gl={{
             antialias: true,
             alpha: false,
