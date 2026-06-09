@@ -44,6 +44,12 @@ export const blogPosts: BlogPost[] = [
     desc: "Capability growth commoditizing professional expertise while legacy institutions raise barriers, probability judgment failures in state-of-the-art models, and the shadow economy of AI-augmented productivity",
     link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-06-08.md"
   },
+  {
+    title: "The Financial Pruning of AI: Orchestrators, Utilities, and the Coming Capital Correction",
+    date: "2026-06-09",
+    desc: "Apple's Gemini gamble signals foundation models as commodity inputs, the $15 trillion infrastructure debt crunch, specialised agents escaping the chat box, and evaluation reform as a survival skill",
+    link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-06-09.md"
+  },
 ];
 
 // Research entries -- papers, studies, analyses, guides
