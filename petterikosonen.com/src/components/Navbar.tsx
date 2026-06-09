@@ -74,15 +74,19 @@ export default function Navbar() {
     }
   }, [pathname]);
 
+  const isHome = pathname === "/";
+
   return (
-    <header className="sticky top-0 z-40 pt-3">
+    <header className={`sticky top-0 z-40 ${isHome ? "pt-1" : "pt-3"}`}>
       <nav
         ref={navRef}
         aria-label="Main navigation"
         className={`relative rounded-2xl border px-5 py-3 transition-all duration-500 ease-standard ${
-          scrolled
-            ? "border-line-0/60 bg-bg-0/80 shadow-terminal-lg backdrop-blur-2xl"
-            : "border-line-0/30 bg-bg-1/40 backdrop-blur-lg"
+          isHome
+            ? "border-transparent bg-transparent backdrop-blur-none shadow-none"
+            : scrolled
+              ? "border-line-0/60 bg-bg-0/80 shadow-terminal-lg backdrop-blur-2xl"
+              : "border-line-0/30 bg-bg-1/40 backdrop-blur-lg"
         }`}
       >
         <div className="flex items-center justify-between gap-3">
