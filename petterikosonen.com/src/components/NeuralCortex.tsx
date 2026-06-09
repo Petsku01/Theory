@@ -57,7 +57,7 @@ function computePositions(nodeList: CortexNode[]): Map<string, THREE.Vector3> {
     }
 
     // Fibonacci spiral: i-th node at angle i*goldenAngle, radius sqrt(i/count)*spread
-    const spread = 1.6 + count * 0.15;
+    const spread = 3.2 + count * 0.3;
     clusterList.forEach((node, i) => {
       const angle = i * goldenAngle;
       const r = Math.sqrt((i + 0.5) / count) * spread;
