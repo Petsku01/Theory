@@ -40,7 +40,7 @@ function computePositions(nodeList: CortexNode[]): Map<string, THREE.Vector3> {
     const count = clusterList.length;
     clusterList.forEach((node, i) => {
       const angle = (i / count) * Math.PI * 2;
-      const radius = count === 1 ? 0 : 1.8 + (node.size - 1) * 0.5;
+      const radius = count === 1 ? 0 : 1.2 + (node.size - 1) * 0.4;
       const offset = new THREE.Vector3(
         Math.cos(angle) * radius,
         Math.sin(angle * 0.5) * 0.6,
@@ -162,7 +162,7 @@ const NetworkNode = React.memo(function NetworkNode({
   const innerMeshRef = useRef<THREE.Mesh>(null);
   const wireframeRef = useRef<THREE.LineSegments>(null);
   const glowRef = useRef<THREE.Mesh>(null);
-  const baseSize = node.size * 0.35;
+  const baseSize = node.size * 0.22;
   const clusterColor = CLUSTER_COLORS[node.cluster] ?? "#00f0ff";
   const color = useMemo(() => new THREE.Color(clusterColor), [clusterColor]);
 

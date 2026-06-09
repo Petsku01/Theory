@@ -196,6 +196,67 @@ export const nodes: CortexNode[] = [
     size: 1.3,
     cluster: "projects",
   },
+
+  // ── Additional skill nodes ──
+  {
+    id: "python",
+    label: "Python",
+    type: "skill",
+    shortDesc: "Primary language",
+    fullDesc: "Scripting, automation, data pipelines, ML training. The backbone of most projects.",
+    tech: ["Python", "FastAPI", "Pandas", "PyTorch"],
+    color: "#22d3ee",
+    size: 1.0,
+    cluster: "skills",
+  },
+  {
+    id: "linux",
+    label: "Linux",
+    type: "skill",
+    shortDesc: "Systems & networking",
+    fullDesc: "Server administration, networking, shell scripting, WSL environments.",
+    tech: ["Bash", "systemd", "Networking", "Docker"],
+    color: "#fbbf24",
+    size: 1.0,
+    cluster: "skills",
+  },
+  {
+    id: "web-dev",
+    label: "Web Dev",
+    type: "skill",
+    shortDesc: "Full-stack (Next.js)",
+    fullDesc: "React/Next.js, Tailwind, Three.js, WebGL. Building this portfolio and interactive demos.",
+    tech: ["React", "Next.js", "Tailwind", "Three.js"],
+    color: "#a855f7",
+    size: 1.0,
+    cluster: "skills",
+  },
+
+  // ── Additional project nodes ──
+  {
+    id: "hetuguard",
+    label: "HetuGuard",
+    type: "project",
+    shortDesc: "Finnish SSN scanner",
+    fullDesc: "CLI tool for detecting and redacting Finnish personal identity codes. 370+ tests, multiple formats.",
+    tech: ["Python", "Regex", "CLI"],
+    link: "https://github.com/Petsku01/hetuguard",
+    color: "#22d3ee",
+    size: 1.1,
+    cluster: "projects",
+  },
+
+  // ── Additional research nodes ──
+  {
+    id: "llm-research",
+    label: "LLM Research Daily",
+    type: "research",
+    shortDesc: "Automated LLM scanning",
+    fullDesc: "Daily automated pipeline scanning Hacker News for LLM research. Multi-model analysis with DeepSeek V4 Pro and Kimi K2.6.",
+    color: "#ef4444",
+    size: 1.0,
+    cluster: "research",
+  },
 ];
 
 export const edges: CortexEdge[] = [
@@ -238,13 +299,34 @@ export const edges: CortexEdge[] = [
   { from: "injection-scanner", to: "psg", strength: 0.9 },
   { from: "injection-scanner", to: "security", strength: 0.8 },
   { from: "injection-scanner", to: "petteri", strength: 0.7 },
+
+  // HetuGuard connections
+  { from: "hetuguard", to: "petteri", strength: 0.7 },
+  { from: "hetuguard", to: "python", strength: 0.8 },
+  { from: "hetuguard", to: "security", strength: 0.6 },
+
+  // Additional skill connections
+  { from: "python", to: "ai-prompting", strength: 0.8 },
+  { from: "python", to: "automation", strength: 0.8 },
+  { from: "python", to: "prompt-optimizer", strength: 0.7 },
+  { from: "linux", to: "security", strength: 0.7 },
+  { from: "linux", to: "cloud", strength: 0.5 },
+  { from: "linux", to: "automation", strength: 0.6 },
+  { from: "web-dev", to: "automation", strength: 0.5 },
+  { from: "web-dev", to: "ai-prompting", strength: 0.4 },
+  { from: "web-dev", to: "injection-scanner", strength: 0.6 },
+
+  // Additional research connections
+  { from: "llm-research", to: "petteri", strength: 0.7 },
+  { from: "llm-research", to: "blog", strength: 0.8 },
+  { from: "llm-research", to: "ai-prompting", strength: 0.7 },
 ];
 
 // Cluster centers for layout (will be spread around these)
 export const clusterPositions: Record<string, [number, number, number]> = {
   core: [0, 0, 0],
-  projects: [4, 0.5, -3],
-  skills: [-4, 0.5, -3],
-  experience: [-3, 0.5, 3],
-  research: [3, 0.5, 3],
+  projects: [5, 0.5, -4],
+  skills: [-5, 0.5, -4],
+  experience: [-4, 0.5, 4],
+  research: [4, 0.5, 4],
 };
