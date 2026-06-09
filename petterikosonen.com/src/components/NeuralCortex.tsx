@@ -402,6 +402,8 @@ function BackgroundParticles({
     if (!points) return;
     const pos = positionsRef.current;
     const vel = velocitiesRef.current;
+    const geo = points.geometry;
+    const attr = geo.getAttribute('position') as THREE.BufferAttribute;
 
     for (let i = 0; i < count; i++) {
       const idx = i * 3;
@@ -435,8 +437,11 @@ function BackgroundParticles({
       }
     }
 
-    (points.geometry.attributes.position as THREE.BufferAttribute).array = pos;
-    points.geometry.attributes.position.needsUpdate = true;
+    // Update buffer attribute properly
+    for (let i = 0; i < count * 3; i++) {
+      attr.array[i] = pos[i];
+    }
+    attr.needsUpdate = true;
   });
 
   return (
@@ -449,9 +454,9 @@ function BackgroundParticles({
       </bufferGeometry>
       <pointsMaterial
         color="#00f0ff"
-        size={0.04}
+        size={0.08}
         transparent
-        opacity={0.35}
+        opacity={0.6}
         sizeAttenuation
       />
     </points>
