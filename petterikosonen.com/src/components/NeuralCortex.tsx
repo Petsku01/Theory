@@ -23,7 +23,16 @@ const CLUSTER_COLORS: Record<string, string> = {
   research: "#ef4444",
 };
 
-// ── Layout: spread nodes around their cluster centers ──
+// ── Layout: organic Fibonacci‑spiral placement around cluster centers ──
+// Deterministic seeded PRNG so layout is stable across renders
+function seededRandom(seed: number) {
+  let s = seed;
+  return () => {
+    s = (s * 16807 + 0) % 2147483647;
+    return (s - 1) / 2147483646;
+  };
+}
+
 function computePositions(nodeList: CortexNode[]): Map<string, THREE.Vector3> {
   const pos = new Map<string, THREE.Vector3>();
   const clusterNodes = new Map<string, CortexNode[]>();
@@ -33,19 +42,39 @@ function computePositions(nodeList: CortexNode[]): Map<string, THREE.Vector3> {
     clusterNodes.set(n.cluster, arr);
   }
 
+  const goldenAngle = Math.PI * (3 - Math.sqrt(5)); // ~2.399 rad
+
   for (const [cluster, clusterList] of clusterNodes) {
     const center = new THREE.Vector3(
       ...(clusterPositions[cluster] ?? [0, 0, 0])
     );
     const count = clusterList.length;
+
+    if (count === 1) {
+      // Core node: stay at center with tiny jitter
+      pos.set(clusterList[0].id, center.clone());
+      continue;
+    }
+
+    // Fibonacci spiral: i-th node at angle i*goldenAngle, radius sqrt(i/count)*spread
+    const spread = 1.6 + count * 0.15;
     clusterList.forEach((node, i) => {
-      const angle = (i / count) * Math.PI * 2;
-      const radius = count === 1 ? 0 : 1.2 + (node.size - 1) * 0.4;
-      const offset = new THREE.Vector3(
-        Math.cos(angle) * radius,
-        Math.sin(angle * 0.5) * 0.6,
-        Math.sin(angle) * radius
+      const angle = i * goldenAngle;
+      const r = Math.sqrt((i + 0.5) / count) * spread;
+      // Add organic Y variation: gentle wave per node
+      const yWave = Math.sin(angle * 1.3 + i * 0.7) * 0.4;
+      // Deterministic per-node jitter
+      const rng = seededRandom(node.id.length * 127 + i * 31);
+      const jitter = new THREE.Vector3(
+        (rng() - 0.5) * 0.3,
+        (rng() - 0.5) * 0.2,
+        (rng() - 0.5) * 0.3
       );
+      const offset = new THREE.Vector3(
+        Math.cos(angle) * r,
+        yWave,
+        Math.sin(angle) * r
+      ).add(jitter);
       pos.set(node.id, center.clone().add(offset));
     });
   }
@@ -946,7 +975,7 @@ function CortexScene({
       <pointLight position={[10, 10, 10]} intensity={0.4} color="#00f0ff" />
       <pointLight position={[-10, -5, -10]} intensity={0.3} color="#22d3ee" />
 
-      <SoftParticles count={500} targetPos={attractionTarget} color="#00f0ff" />
+      <SoftParticles count={1200} targetPos={attractionTarget} color="#00f0ff" />
       <CyberGrid />
       <NetworkEdges positions={positions} selectedId={selectedId} />
 
