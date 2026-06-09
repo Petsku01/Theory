@@ -36,8 +36,8 @@ export default function WasmInteractiveBackground() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const w = canvas.clientWidth;
-    const h = canvas.clientHeight;
+    const w = window.innerWidth;
+    const h = window.innerHeight;
     const dpr = Math.min(window.devicePixelRatio, 2);
 
     if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
