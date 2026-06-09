@@ -61,16 +61,16 @@ function computePositions(nodeList: CortexNode[]): Map<string, THREE.Vector3> {
     clusterList.forEach((node, i) => {
       const angle = i * goldenAngle;
       const r = Math.sqrt((i + 0.5) / count) * spread;
-      // Deterministic per-node jitter -- flat on XZ plane
+      // Deterministic per-node jitter with Y variation
       const rng = seededRandom(node.id.length * 127 + i * 31);
       const jitter = new THREE.Vector3(
         (rng() - 0.5) * 0.3,
-        0,
+        (rng() - 0.5) * 0.6,
         (rng() - 0.5) * 0.3
       );
       const offset = new THREE.Vector3(
         Math.cos(angle) * r,
-        0,
+        Math.sin(angle * 0.7 + i * 1.1) * 0.35,
         Math.sin(angle) * r
       ).add(jitter);
       pos.set(node.id, center.clone().add(offset));
