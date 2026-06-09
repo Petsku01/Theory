@@ -160,8 +160,6 @@ export default function InteractiveBackground() {
       const dpr = window.devicePixelRatio || 1;
       canvas.width = window.innerWidth * dpr;
       canvas.height = window.innerHeight * dpr;
-      canvas.style.width = `${window.innerWidth}px`;
-      canvas.style.height = `${window.innerHeight}px`;
       
       const ctx = canvas.getContext("2d");
       if (ctx) {
