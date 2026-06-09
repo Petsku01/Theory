@@ -58,17 +58,17 @@ export default function Navbar() {
   // Animated underline position tracking
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
   const linksRef = useRef<(HTMLAnchorElement | null)[]>([]);
+  const listRef = useRef<HTMLUListElement>(null);
 
   useEffect(() => {
     const idx = links.findIndex((l) => l.href === pathname || (l.href !== "/" && pathname.startsWith(l.href + "/")));
     const el = linksRef.current[idx];
-    if (el) {
-      const nav = navRef.current;
-      if (!nav) return;
-      const navRect = nav.getBoundingClientRect();
+    const list = listRef.current;
+    if (el && list) {
+      const listRect = list.getBoundingClientRect();
       const elRect = el.getBoundingClientRect();
       setIndicatorStyle({
-        left: elRect.left - navRect.left,
+        left: elRect.left - listRect.left,
         width: elRect.width,
       });
     }
@@ -126,7 +126,7 @@ export default function Navbar() {
           </button>
 
           {/* Desktop links */}
-          <ul className="relative hidden items-center gap-0.5 md:flex">
+          <ul ref={listRef} className="relative hidden items-center gap-0.5 md:flex">
             {/* Animated active indicator */}
             <li
               className="absolute -bottom-1 h-0.5 rounded-full bg-accent-cyan shadow-[0_0_10px_rgba(34,211,238,0.5)] transition-all duration-300 ease-emphasis"
