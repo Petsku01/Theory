@@ -43,8 +43,8 @@ export default function WasmParticleField({ particleCount = 1200, className = ""
     if (!ctx) return;
 
     const dpr = Math.min(window.devicePixelRatio, 2);
-    const w = canvas.clientWidth;
-    const h = canvas.clientHeight;
+    const w = window.innerWidth;
+    const h = window.innerHeight;
 
     if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
       canvas.width = w * dpr;
@@ -113,9 +113,7 @@ export default function WasmParticleField({ particleCount = 1200, className = ""
 
         const canvas = canvasRef.current;
         if (canvas) {
-          const w = canvas.clientWidth;
-          const h = canvas.clientHeight;
-          exports.init(particleCount, w, h, (Date.now() & 0xFFFFFFFF) >>> 0);
+          exports.init(particleCount, window.innerWidth, window.innerHeight, (Date.now() & 0xFFFFFFFF) >>> 0);
         }
 
         setReady(true);
