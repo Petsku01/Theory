@@ -61,18 +61,16 @@ function computePositions(nodeList: CortexNode[]): Map<string, THREE.Vector3> {
     clusterList.forEach((node, i) => {
       const angle = i * goldenAngle;
       const r = Math.sqrt((i + 0.5) / count) * spread;
-      // Add organic Y variation: gentle wave per node
-      const yWave = Math.sin(angle * 1.3 + i * 0.7) * 0.4;
-      // Deterministic per-node jitter
+      // Deterministic per-node jitter -- flat on XZ plane
       const rng = seededRandom(node.id.length * 127 + i * 31);
       const jitter = new THREE.Vector3(
         (rng() - 0.5) * 0.3,
-        (rng() - 0.5) * 0.2,
+        0,
         (rng() - 0.5) * 0.3
       );
       const offset = new THREE.Vector3(
         Math.cos(angle) * r,
-        yWave,
+        0,
         Math.sin(angle) * r
       ).add(jitter);
       pos.set(node.id, center.clone().add(offset));
@@ -698,7 +696,7 @@ function CameraController({
     if (!controls) return;
 
     if (target) {
-      const cameraOffset = new THREE.Vector3(0, 1.5, 5);
+      const cameraOffset = new THREE.Vector3(0, 2, 4);
       const desiredPos = target.clone().add(cameraOffset);
       controls.object.position.lerp(desiredPos, delta * 2);
       controls.target.lerp(target, delta * 3);
@@ -976,7 +974,6 @@ function CortexScene({
       <pointLight position={[-10, -5, -10]} intensity={0.3} color="#22d3ee" />
 
       <SoftParticles count={1200} targetPos={attractionTarget} color="#00f0ff" />
-      <CyberGrid />
       <NetworkEdges positions={positions} selectedId={selectedId} />
 
       {nodes.map((node) => (
@@ -1090,7 +1087,7 @@ export default function NeuralCortex() {
       <GlobalStyles />
       <Suspense fallback={<CortexLoader />}>
         <Canvas
-          camera={{ position: [0, 3, 12], fov: 60, near: 0.1, far: 100 }}
+          camera={{ position: [0, 6, 14], fov: 55, near: 0.1, far: 100 }}
           gl={{
             antialias: true,
             alpha: false,
