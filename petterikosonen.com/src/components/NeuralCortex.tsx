@@ -195,8 +195,14 @@ const NetworkNode = React.memo(function NetworkNode({
 
   const displayText = useScramble(node.label, isHovered);
 
-  // Time‑varying scale oscillation: idle 95‑105%, hover/selected 100‑115%
+  // Time‑varying oscillation: scale + vertical bob for depth perception
   const timeRef = useRef(0);
+  // Per-node phase offset so they don't all bob in sync
+  const phaseOffset = useMemo(() => {
+    let hash = 0;
+    for (let i = 0; i < node.id.length; i++) hash = ((hash << 5) - hash + node.id.charCodeAt(i));
+    return (Math.abs(hash) % 100) / 100 * Math.PI * 2;
+  }, [node.id]);
   useFrame((state, delta) => {
     if (!groupRef.current) return;
     timeRef.current += delta;
@@ -205,6 +211,10 @@ const NetworkNode = React.memo(function NetworkNode({
     const speed = isActive ? 6 : 3;
     const oscillation = 1 + Math.sin(timeRef.current * speed) * amplitude;
     groupRef.current.scale.setScalar(oscillation);
+    // Vertical bob: gentle Y oscillation with per-node phase
+    const bobSpeed = 0.8;
+    const bobAmp = isActive ? 0.12 : 0.06;
+    groupRef.current.position.y = Math.sin(timeRef.current * bobSpeed + phaseOffset) * bobAmp;
 
     // Outer mesh emissive
     if (outerMeshRef.current) {
