@@ -2,7 +2,7 @@
 
 import { Suspense, useCallback, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { OrbitControls, Text } from "@react-three/drei";
+import { OrbitControls, Html } from "@react-three/drei";
 import * as THREE from "three";
 import { nodes, edges, clusterPositions, type CortexNode } from "@/lib/cortex-data";
 
@@ -98,31 +98,22 @@ const NetworkNode = React.memo(function NetworkNode({
         />
       </mesh>
 
-      {/* Label */}
-      <Text
-        position={[0, baseSize + 0.4, 0]}
-        fontSize={0.22}
-        color="#e2e8f0"
-        anchorX="center"
-        anchorY="bottom"
-        font="/fonts/JetBrainsMono-Regular.ttf"
-        outlineWidth={0.02}
-        outlineColor="#0a0a0f"
+      {/* Label (HTML overlay for instant rendering, no font loading) */}
+      <Html
+        position={[0, baseSize + 0.5, 0]}
+        center
+        distanceFactor={8}
+        style={{ pointerEvents: "none" }}
       >
-        {node.label}
-      </Text>
-
-      {/* Subtitle */}
-      <Text
-        position={[0, baseSize + 0.15, 0]}
-        fontSize={0.13}
-        color="#94a3b8"
-        anchorX="center"
-        anchorY="bottom"
-        font="/fonts/JetBrainsMono-Regular.ttf"
-      >
-        {node.shortDesc}
-      </Text>
+        <div className="whitespace-nowrap text-center">
+          <div className="text-sm font-bold text-slate-200" style={{ textShadow: "0 0 8px rgba(0,240,255,0.5)" }}>
+            {node.label}
+          </div>
+          <div className="text-[0.65rem] text-slate-400">
+            {node.shortDesc}
+          </div>
+        </div>
+      </Html>
     </group>
   );
 });
