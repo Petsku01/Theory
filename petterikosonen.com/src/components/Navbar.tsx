@@ -60,7 +60,7 @@ export default function Navbar() {
   const linksRef = useRef<(HTMLAnchorElement | null)[]>([]);
 
   useEffect(() => {
-    const idx = links.findIndex((l) => l.href === pathname);
+    const idx = links.findIndex((l) => l.href === pathname || (l.href !== "/" && pathname.startsWith(l.href + "/")));
     const el = linksRef.current[idx];
     if (el) {
       const nav = navRef.current;
@@ -134,7 +134,7 @@ export default function Navbar() {
               aria-hidden="true"
             />
             {links.map((link, i) => {
-              const active = pathname === link.href;
+              const active = pathname === link.href || (link.href !== "/" && pathname.startsWith(link.href + "/"));
               return (
                 <li key={link.href}>
                   <Link
@@ -179,7 +179,7 @@ export default function Navbar() {
                   href={link.href}
                   onClick={() => setOpen(false)}
                   className={`focus-outline block rounded-lg px-3 py-2.5 text-sm transition-colors duration-200 ${
-                    pathname === link.href
+                    pathname === link.href || (link.href !== "/" && pathname.startsWith(link.href + "/"))
                       ? "bg-accent-cyan/8 text-accent-cyan"
                       : "text-text-1 hover:bg-bg-3/40 hover:text-text-0"
                   }`}
