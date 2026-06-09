@@ -936,7 +936,7 @@ export default function NeuralCortex() {
   }, []);
 
   return (
-    <div className="relative h-screen w-screen overflow-hidden bg-[#0a0a0f]">
+    <div className="fixed inset-0 z-0 overflow-hidden bg-[#0a0a0f]">
       <GlobalStyles />
       <Suspense fallback={<CortexLoader />}>
         <Canvas
