@@ -325,8 +325,8 @@ export const edges: CortexEdge[] = [
 // Cluster centers for layout (will be spread around these)
 export const clusterPositions: Record<string, [number, number, number]> = {
   core: [0, 0, 0],
-  projects: [6, 0, -5],
-  skills: [-6, 0, -5],
-  experience: [-5, 0, 5],
-  research: [5, 0, 5],
+  projects: [6, 0.5, -5],
+  skills: [-6, 0.3, -5],
+  experience: [-5, -0.4, 5],
+  research: [5, 0.6, 5],
 };
