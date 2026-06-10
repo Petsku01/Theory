@@ -105,7 +105,9 @@ export default function Navbar() {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent-green/40" />
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-accent-green shadow-glowGreen" />
             </span>
-            <GlitchText>petteri@secure-console</GlitchText>
+            <span className={isHome ? 'invisible' : ''}>
+              <GlitchText>Petteri Kosonen</GlitchText>
+            </span>
           </Link>
 
           {/* Mobile toggle */}
