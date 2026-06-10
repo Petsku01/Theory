@@ -186,7 +186,6 @@ const NetworkNode = React.memo(function NetworkNode({
 }) {
   const groupRef = useRef<THREE.Group>(null);
   const outerMeshRef = useRef<THREE.Mesh>(null);
-  const innerMeshRef = useRef<THREE.Mesh>(null);
   const wireframeRef = useRef<THREE.LineSegments>(null);
   const baseSize = node.size * 0.22;
   const clusterColor = CLUSTER_COLORS[node.cluster] ?? "#00f0ff";
@@ -224,15 +223,6 @@ const NetworkNode = React.memo(function NetworkNode({
         delta * 8
       );
     }
-    // Inner core
-    if (innerMeshRef.current) {
-      const mat = innerMeshRef.current.material as THREE.MeshStandardMaterial;
-      mat.emissiveIntensity = THREE.MathUtils.lerp(
-        mat.emissiveIntensity,
-        isActive ? 8 : 4,
-        delta * 8
-      );
-    }
   });
 
   return (
@@ -265,22 +255,7 @@ const NetworkNode = React.memo(function NetworkNode({
           />
         </mesh>
 
-        {/* Inner wireframe core */}
-        <mesh ref={innerMeshRef}>
-          <icosahedronGeometry args={[baseSize * 0.5, 1]} />
-          <meshStandardMaterial
-            color={color}
-            emissive={color}
-            emissiveIntensity={4}
-            roughness={0.4}
-            metalness={0.6}
-            wireframe
-            transparent
-            opacity={0.5}
-          />
-        </mesh>
-
-        {/* Outer wireframe lines */}
+        {/* Outer wireframe */}
         <lineSegments
           ref={wireframeRef}
           geometry={new THREE.IcosahedronGeometry(baseSize, 1)}
