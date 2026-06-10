@@ -6,10 +6,8 @@ import { nodes, type CortexNode } from "@/lib/cortex-data";
 import { CortexScene } from "@/components/neural-cortex/CortexScene";
 import { DetailPanel } from "@/components/neural-cortex/DetailPanel";
 import { TitleOverlay } from "@/components/neural-cortex/TitleOverlay";
-import { Scanlines } from "@/components/neural-cortex/Scanlines";
-import { Vignette } from "@/components/neural-cortex/Vignette";
+import { Scanlines, Vignette, CortexLoader } from "@/components/neural-cortex/Overlays";
 import { AccessibleNav } from "@/components/neural-cortex/AccessibleNav";
-import { CortexLoader } from "@/components/neural-cortex/CortexLoader";
 
 // ── Global keyframes ──
 function GlobalStyles() {
