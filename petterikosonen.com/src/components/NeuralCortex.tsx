@@ -188,7 +188,6 @@ const NetworkNode = React.memo(function NetworkNode({
   const outerMeshRef = useRef<THREE.Mesh>(null);
   const innerMeshRef = useRef<THREE.Mesh>(null);
   const wireframeRef = useRef<THREE.LineSegments>(null);
-  const glowRef = useRef<THREE.Mesh>(null);
   const baseSize = node.size * 0.22;
   const clusterColor = CLUSTER_COLORS[node.cluster] ?? "#00f0ff";
   const color = useMemo(() => new THREE.Color(clusterColor), [clusterColor]);
@@ -231,15 +230,6 @@ const NetworkNode = React.memo(function NetworkNode({
       mat.emissiveIntensity = THREE.MathUtils.lerp(
         mat.emissiveIntensity,
         isActive ? 8 : 4,
-        delta * 8
-      );
-    }
-    // Glow halo
-    if (glowRef.current) {
-      const mat = glowRef.current.material as THREE.MeshBasicMaterial;
-      mat.opacity = THREE.MathUtils.lerp(
-        mat.opacity,
-        isActive ? 0.4 : 0.08,
         delta * 8
       );
     }
@@ -291,12 +281,6 @@ const NetworkNode = React.memo(function NetworkNode({
           <lineBasicMaterial color={color} transparent opacity={0.3} />
         </lineSegments>
       </group>
-
-      {/* Glow halo (larger transparent sphere) */}
-      <mesh ref={glowRef} scale={[1.7, 1.7, 1.7]}>
-        <sphereGeometry args={[baseSize, 16, 16]} />
-        <meshBasicMaterial color={color} transparent opacity={0.08} />
-      </mesh>
 
       {/* HTML label */}
       <Html
