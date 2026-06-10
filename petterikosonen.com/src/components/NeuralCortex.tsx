@@ -594,6 +594,7 @@ function SoftParticles({
 // When a node is selected, particles burst outward.
 // When deselected, existing particles keep drifting freely (never vanish).
 // Each new selection spawns a fresh batch that joins the swarm.
+// Each particle retains the color it was emitted with.
 function BurstParticles({
   origin,
   color = "#00f0ff",
@@ -605,7 +606,19 @@ function BurstParticles({
 }) {
   const meshRef = useRef<THREE.Points>(null);
   const texture = useMemo(() => createSoftCircleTexture(), []);
-  const hasSpawned = useRef(false); // track if we've ever been active
+  const hasSpawned = useRef(false);
+
+  // Per-particle color storage (set at spawn time, never changes)
+  const particleColors = useMemo(() => {
+    const colors = new Float32Array(count * 3);
+    const c = new THREE.Color("#00f0ff");
+    for (let i = 0; i < count * 3; i += 3) {
+      colors[i] = c.r;
+      colors[i + 1] = c.g;
+      colors[i + 2] = c.b;
+    }
+    return colors;
+  }, [count]);
 
   const { positions, sizes, alphas, velocities, lifetimes, free } = useMemo(() => {
     const pos = new Float32Array(count * 3);
@@ -613,11 +626,11 @@ function BurstParticles({
     const a = new Float32Array(count);
     const vel = new Float32Array(count * 3);
     const life = new Float32Array(count);
-    const fr = new Uint8Array(count); // 0 = spawning, 1 = free-floating
+    const fr = new Uint8Array(count);
     for (let i = 0; i < count; i++) {
       s[i] = 0.04 + Math.random() * 0.06;
       a[i] = 0;
-      life[i] = 1; // start "dead" -- will be respawned on first selection
+      life[i] = 1;
       fr[i] = 0;
     }
     return { positions: pos, sizes: s, alphas: a, velocities: vel, lifetimes: life, free: fr };
@@ -626,55 +639,59 @@ function BurstParticles({
   const material = useMemo(() => {
     return new THREE.ShaderMaterial({
       uniforms: {
-        color: { value: new THREE.Color(color) },
         map: { value: texture },
       },
       vertexShader: /* glsl */ `
         attribute float size;
         attribute float alpha;
+        attribute vec3 particleColor;
         varying float vAlpha;
+        varying vec3 vColor;
         void main() {
           vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
           gl_Position = projectionMatrix * mvPosition;
           gl_PointSize = size * (200.0 / -mvPosition.z);
           vAlpha = alpha;
+          vColor = particleColor;
         }
       `,
       fragmentShader: /* glsl */ `
-        uniform vec3 color;
         uniform sampler2D map;
         varying float vAlpha;
+        varying vec3 vColor;
         void main() {
           vec4 texColor = texture2D(map, gl_PointCoord);
           float alpha = texColor.a * vAlpha;
-          gl_FragColor = vec4(color, alpha);
+          gl_FragColor = vec4(vColor, alpha);
         }
       `,
       transparent: true,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
     });
-  }, [color, texture]);
+  }, [texture]);
 
   const posRef = useRef(positions);
   const velRef = useRef(velocities);
   const alphaRef = useRef(alphas);
   const lifeRef = useRef(lifetimes);
   const freeRef = useRef(free);
+  const colorRef = useRef(particleColors);
 
   useFrame((_, delta) => {
     if (!meshRef.current) return;
     const geo = meshRef.current.geometry;
     const posAttr = geo.getAttribute("position") as THREE.BufferAttribute;
     const alphaAttr = geo.getAttribute("alpha") as THREE.BufferAttribute;
+    const colorAttr = geo.getAttribute("particleColor") as THREE.BufferAttribute;
     const pos = posRef.current;
     const vel = velRef.current;
     const alpha = alphaRef.current;
     const life = lifeRef.current;
     const fr = freeRef.current;
+    const colors = colorRef.current;
     const isActive = origin !== null;
 
-    // When a new selection starts, reset all particles to burst mode
     if (isActive) {
       hasSpawned.current = true;
     }
@@ -683,11 +700,9 @@ function BurstParticles({
       const idx = i * 3;
 
       if (isActive && fr[i] === 0) {
-        // Burst mode: emit from origin, cycle lifecycle
         life[i] += delta * 0.5;
 
         if (life[i] >= 1) {
-          // Respawn at origin
           life[i] = 0;
           pos[idx] = origin!.x + (Math.random() - 0.5) * 0.1;
           pos[idx + 1] = origin!.y + (Math.random() - 0.5) * 0.1;
@@ -698,6 +713,11 @@ function BurstParticles({
           vel[idx] = Math.sin(phi) * Math.cos(theta) * speed;
           vel[idx + 1] = Math.sin(phi) * Math.sin(theta) * speed;
           vel[idx + 2] = Math.cos(phi) * speed;
+          // Set particle color at spawn time
+          const c = new THREE.Color(color);
+          colors[idx] = c.r;
+          colors[idx + 1] = c.g;
+          colors[idx + 2] = c.b;
         } else {
           pos[idx] += vel[idx];
           pos[idx + 1] += vel[idx + 1];
@@ -707,12 +727,10 @@ function BurstParticles({
           vel[idx + 2] *= 0.98;
         }
 
-        // Fade in then out during burst
         alpha[i] = life[i] < 0.15
           ? life[i] / 0.15 * 0.7
           : (1 - life[i]) * 0.7;
       } else if (isActive && fr[i] === 1) {
-        // Was free, now re-selected: pull gently toward new origin
         const dx = origin!.x - pos[idx];
         const dy = origin!.y - pos[idx + 1];
         const dz = origin!.z - pos[idx + 2];
@@ -720,7 +738,6 @@ function BurstParticles({
         vel[idx] += (dx / dist) * 0.0004;
         vel[idx + 1] += (dy / dist) * 0.0004;
         vel[idx + 2] += (dz / dist) * 0.0004;
-        // Clamp
         const maxV = 0.015;
         for (let j = 0; j < 3; j++) {
           if (Math.abs(vel[idx + j]) > maxV) vel[idx + j] = maxV * Math.sign(vel[idx + j]);
@@ -730,23 +747,18 @@ function BurstParticles({
         pos[idx + 2] += vel[idx + 2];
         alpha[i] = Math.min(alpha[i] + delta * 0.5, 0.45);
       } else {
-        // Free-floating: gentle drift, join ambient field
         if (fr[i] === 0 && life[i] > 0 && life[i] < 1) {
-          // Just released: transition to free
           fr[i] = 1;
         }
-        // Tiny random drift
         vel[idx] += (Math.random() - 0.5) * 0.0002;
         vel[idx + 1] += (Math.random() - 0.5) * 0.0002;
         vel[idx + 2] += (Math.random() - 0.5) * 0.0002;
-        // Dampen
         vel[idx] *= 0.995;
         vel[idx + 1] *= 0.995;
         vel[idx + 2] *= 0.995;
         pos[idx] += vel[idx];
         pos[idx + 1] += vel[idx + 1];
         pos[idx + 2] += vel[idx + 2];
-        // Soft boundary bounce
         const bounds = 15;
         for (let j = 0; j < 3; j++) {
           const b = j === 0 ? bounds : 10;
@@ -755,7 +767,6 @@ function BurstParticles({
             vel[idx + j] *= -0.2;
           }
         }
-        // Steady ambient glow
         alpha[i] = alpha[i] + (0.25 - alpha[i]) * delta * 0.3;
       }
     }
@@ -764,9 +775,10 @@ function BurstParticles({
     posAttr.needsUpdate = true;
     for (let i = 0; i < count; i++) alphaAttr.array[i] = alpha[i];
     alphaAttr.needsUpdate = true;
+    for (let i = 0; i < count * 3; i++) colorAttr.array[i] = colors[i];
+    colorAttr.needsUpdate = true;
   });
 
-  // Never unmount -- particles persist across selections
   if (!hasSpawned.current && !origin) return null;
 
   return (
@@ -783,6 +795,10 @@ function BurstParticles({
         <bufferAttribute
           attach="attributes-alpha"
           args={[alphas, 1]}
+        />
+        <bufferAttribute
+          attach="attributes-particleColor"
+          args={[particleColors, 3]}
         />
       </bufferGeometry>
       <primitive object={material} attach="material" />
