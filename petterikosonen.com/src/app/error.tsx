@@ -12,7 +12,9 @@ export default function GlobalError({
       <p className="section-label">/error --runtime</p>
       <h2 className="mt-4 text-2xl font-semibold text-text-0">Something went wrong</h2>
       <p className="mt-2 max-w-xl text-sm text-text-1">
-        {error.message || "An unexpected application error occurred."}
+        {process.env.NODE_ENV === "development"
+          ? error.message || "An unexpected application error occurred."
+          : "An unexpected application error occurred."}
       </p>
       <button
         type="button"

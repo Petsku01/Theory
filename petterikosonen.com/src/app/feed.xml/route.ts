@@ -2,6 +2,7 @@ import { blogPosts, researchPosts } from "@/lib/data";
 
 function escapeXml(str: string): string {
   return str
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "") // Remove control chars except \t \n \r
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")

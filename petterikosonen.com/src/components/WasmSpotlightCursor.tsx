@@ -2,6 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+import { verifyWasmIntegrity } from "@/lib/wasm-integrity";
+
+const SPRING_CURSOR_HASH =
+  "4c76dc0ff626a208ce6aec77d3bbf28769f675f1d98053be0c95d0da4ce100a03f5ccbcee429841ba09a1ccdeb04a6fa";
 
 /**
  * WASM-powered spotlight cursor with spring physics.
@@ -35,6 +39,9 @@ export default function WasmSpotlightCursor() {
       try {
         const resp = await fetch("/spring_cursor.wasm");
         const bytes = await resp.arrayBuffer();
+        if (!(await verifyWasmIntegrity(bytes, SPRING_CURSOR_HASH))) {
+          throw new Error("WASM integrity check failed for spring_cursor.wasm");
+        }
         const { instance } = await WebAssembly.instantiate(bytes, {
           env: { abort: () => {} },
         });
