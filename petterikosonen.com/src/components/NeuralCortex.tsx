@@ -1135,6 +1135,7 @@ function ProximitySelector({
   const { camera } = useThree();
   const autoIdRef = useRef<string | null>(null);
   const lastChangeRef = useRef<number>(0);
+  const lastSelectRef = useRef<number>(0);
 
   useFrame(() => {
     const now = performance.now();
@@ -1155,13 +1156,18 @@ function ProximitySelector({
     }
 
     // Hysteresis thresholds
-    const SELECT_DIST = 4;
-    const DESELECT_DIST = 5.5;
+    // SELECT_DIST must be large enough that camera-at-offset (0,2,4) ≈ 4.5 is inside
+    // DESELECT_DIST must give camera time to arrive after auto-select
+    const SELECT_DIST = 7;
+    const DESELECT_DIST = 12;
 
     if (autoIdRef.current !== null) {
       // Currently auto-selected -- check if should deselect
+      // Grace period: don't deselect for 2s after selecting (camera needs time to arrive)
+      const graceElapsed = now - lastSelectRef.current > 2000;
+
       const autoPos = positions.get(autoIdRef.current);
-      if (autoPos) {
+      if (autoPos && graceElapsed) {
         const dist = camPos.distanceTo(autoPos);
         if (dist > DESELECT_DIST) {
           autoIdRef.current = null;
@@ -1170,6 +1176,7 @@ function ProximitySelector({
           // Check if another node is close enough
           if (closestId && minDist <= SELECT_DIST) {
             autoIdRef.current = closestId;
+            lastSelectRef.current = now;
             onProximitySelect(closestId);
           }
           return;
@@ -1181,6 +1188,7 @@ function ProximitySelector({
       if (selectedId === null && closestId && minDist <= SELECT_DIST) {
         autoIdRef.current = closestId;
         lastChangeRef.current = now;
+        lastSelectRef.current = now;
         onProximitySelect(closestId);
       }
     }
