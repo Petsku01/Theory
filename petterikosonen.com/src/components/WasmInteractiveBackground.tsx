@@ -2,6 +2,10 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+import { verifyWasmIntegrity } from "@/lib/wasm-integrity";
+
+const MOUSE_TRAIL_HASH =
+  "96c2c4cc25757839c8fc4ecde00e36c1d243b7f13a14403bcb1731c9bef70d64f387e681712fb4ec9571902d4a96d1f2";
 
 /**
  * WASM-powered interactive mouse trail background.
@@ -134,6 +138,9 @@ export default function WasmInteractiveBackground() {
       try {
         const resp = await fetch("/mouse_trail.wasm");
         const bytes = await resp.arrayBuffer();
+        if (!(await verifyWasmIntegrity(bytes, MOUSE_TRAIL_HASH))) {
+          throw new Error("WASM integrity check failed for mouse_trail.wasm");
+        }
         const { instance } = await WebAssembly.instantiate(bytes, {
           env: {
             abort: () => {},
