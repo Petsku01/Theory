@@ -1127,20 +1127,45 @@ function ProximitySelector({
   positions,
   onProximitySelect,
   selectedId,
+  nodeSizes,
 }: {
   positions: Map<string, THREE.Vector3>;
   onProximitySelect: (id: string | null) => void;
   selectedId: string | null;
+  nodeSizes: Map<string, number>;
 }) {
   const { camera } = useThree();
   const autoIdRef = useRef<string | null>(null);
-  const lastChangeRef = useRef<number>(0);
+  const throttleRef = useRef<number>(0);
   const lastSelectRef = useRef<number>(0);
+  const selectedIdRef = useRef(selectedId);
+
+  // Sync selectedId to ref to avoid stale closure in useFrame
+  useEffect(() => { selectedIdRef.current = selectedId; }, [selectedId]);
+
+  // Reset auto-tracking when user manually selects (click overrides proximity)
+  useEffect(() => {
+    if (selectedId !== null) {
+      autoIdRef.current = null;
+    }
+  }, [selectedId]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (autoIdRef.current !== null) {
+        onProximitySelect(null);
+      }
+    };
+  }, [onProximitySelect]);
 
   useFrame(() => {
     const now = performance.now();
     // Throttle: check once every 200ms
-    if (now - lastChangeRef.current < 200) return;
+    if (now - throttleRef.current < 200) return;
+    throttleRef.current = now;
+
+    if (positions.size === 0) return;
 
     const camPos = camera.position;
 
@@ -1155,35 +1180,40 @@ function ProximitySelector({
       }
     }
 
-    // Hysteresis thresholds -- scaled by node size so bigger nodes are easier to select
-    // Find the closest node and its size
-    let closestSize = 1;
-    for (const n of nodes) {
-      if (n.id === closestId) {
-        closestSize = n.size;
-        break;
-      }
-    }
-    const SELECT_DIST = 4 + closestSize * 2;
-    const DESELECT_DIST = SELECT_DIST + 5;
-
     if (autoIdRef.current !== null) {
       // Currently auto-selected -- check if should deselect
+
+      // Handle deleted node: force deselect
+      const autoPos = positions.get(autoIdRef.current);
+      if (!autoPos) {
+        autoIdRef.current = null;
+        onProximitySelect(null);
+        return;
+      }
+
+      // Use AUTO-SELECTED node's size for deselect threshold (not closest)
+      const autoSize = nodeSizes.get(autoIdRef.current) ?? 1;
+      const SELECT_DIST = 4 + autoSize * 2;
+      const DESELECT_DIST = SELECT_DIST + 3 + autoSize * 2;
+
       // Grace period: don't deselect for 2s after selecting (camera needs time to arrive)
       const graceElapsed = now - lastSelectRef.current > 2000;
+      const dist = camPos.distanceTo(autoPos);
 
-      const autoPos = positions.get(autoIdRef.current);
-      if (autoPos && graceElapsed) {
-        const dist = camPos.distanceTo(autoPos);
+      // Deselect if: grace period elapsed AND too far, OR extremely far (break grace)
+      if (graceElapsed || dist > DESELECT_DIST * 2.5) {
         if (dist > DESELECT_DIST) {
           autoIdRef.current = null;
-          lastChangeRef.current = now;
           onProximitySelect(null);
           // Check if another node is close enough
-          if (closestId && minDist <= SELECT_DIST) {
-            autoIdRef.current = closestId;
-            lastSelectRef.current = now;
-            onProximitySelect(closestId);
+          if (closestId) {
+            const closestSize = nodeSizes.get(closestId) ?? 1;
+            const newSelectDist = 4 + closestSize * 2;
+            if (minDist <= newSelectDist) {
+              autoIdRef.current = closestId;
+              lastSelectRef.current = now;
+              onProximitySelect(closestId);
+            }
           }
           return;
         }
@@ -1191,22 +1221,18 @@ function ProximitySelector({
     } else {
       // No auto-selection -- check if a node is close enough
       // Don't auto-select if there's already a manual (click) selection
-      if (selectedId === null && closestId && minDist <= SELECT_DIST) {
-        autoIdRef.current = closestId;
-        lastChangeRef.current = now;
-        lastSelectRef.current = now;
-        onProximitySelect(closestId);
+      if (selectedIdRef.current === null && closestId) {
+        const closestSize = nodeSizes.get(closestId) ?? 1;
+        const SELECT_DIST = 4 + closestSize * 2;
+        if (minDist <= SELECT_DIST) {
+          autoIdRef.current = closestId;
+          throttleRef.current = now;
+          lastSelectRef.current = now;
+          onProximitySelect(closestId);
+        }
       }
     }
   });
-
-  // Reset auto-tracking when user manually selects
-  useEffect(() => {
-    if (selectedId !== null && selectedId !== autoIdRef.current) {
-      // Manual click selection -- clear auto-tracking
-      autoIdRef.current = selectedId;
-    }
-  }, [selectedId]);
 
   return null;
 }
@@ -1224,6 +1250,11 @@ function CortexScene({
   shakeTimestamp: number;
 }) {
   const positions = useMemo(() => computePositions(nodes), []);
+  const nodeSizes = useMemo(() => {
+    const sizes = new Map<string, number>();
+    for (const n of nodes) sizes.set(n.id, n.size);
+    return sizes;
+  }, []);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const controlsRef = useRef<any>(null);
 
@@ -1308,6 +1339,7 @@ function CortexScene({
         positions={positions}
         onProximitySelect={handleProximitySelect}
         selectedId={selectedId}
+        nodeSizes={nodeSizes}
       />
       <OrbitControls
         ref={controlsRef}
