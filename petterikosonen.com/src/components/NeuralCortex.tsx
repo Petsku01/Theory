@@ -258,6 +258,8 @@ const NetworkNode = React.memo(function NetworkNode({
             emissiveIntensity={2}
             roughness={0.4}
             metalness={0.6}
+            transparent
+            opacity={0.08}
           />
         </mesh>
 
@@ -270,6 +272,8 @@ const NetworkNode = React.memo(function NetworkNode({
             emissiveIntensity={4}
             roughness={0.4}
             metalness={0.6}
+            transparent
+            opacity={0.05}
           />
         </mesh>
 
@@ -278,7 +282,7 @@ const NetworkNode = React.memo(function NetworkNode({
           ref={wireframeRef}
           geometry={new THREE.IcosahedronGeometry(baseSize, 1)}
         >
-          <lineBasicMaterial color={color} transparent opacity={0.3} />
+          <lineBasicMaterial color={color} transparent opacity={0.6} />
         </lineSegments>
       </group>
 
