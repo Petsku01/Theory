@@ -591,6 +591,9 @@ function SoftParticles({
 }
 
 // ── Burst particles emitted from selected node ──
+// When a node is selected, particles burst outward.
+// When deselected, existing particles keep drifting freely (never vanish).
+// Each new selection spawns a fresh batch that joins the swarm.
 function BurstParticles({
   origin,
   color = "#00f0ff",
@@ -602,20 +605,22 @@ function BurstParticles({
 }) {
   const meshRef = useRef<THREE.Points>(null);
   const texture = useMemo(() => createSoftCircleTexture(), []);
-  const active = origin !== null;
+  const hasSpawned = useRef(false); // track if we've ever been active
 
-  const { positions, sizes, alphas, velocities, lifetimes } = useMemo(() => {
+  const { positions, sizes, alphas, velocities, lifetimes, free } = useMemo(() => {
     const pos = new Float32Array(count * 3);
     const s = new Float32Array(count);
     const a = new Float32Array(count);
     const vel = new Float32Array(count * 3);
     const life = new Float32Array(count);
+    const fr = new Uint8Array(count); // 0 = spawning, 1 = free-floating
     for (let i = 0; i < count; i++) {
       s[i] = 0.04 + Math.random() * 0.06;
       a[i] = 0;
-      life[i] = Math.random(); // stagger initial spawn
+      life[i] = 1; // start "dead" -- will be respawned on first selection
+      fr[i] = 0;
     }
-    return { positions: pos, sizes: s, alphas: a, velocities: vel, lifetimes: life };
+    return { positions: pos, sizes: s, alphas: a, velocities: vel, lifetimes: life, free: fr };
   }, [count]);
 
   const material = useMemo(() => {
@@ -655,9 +660,10 @@ function BurstParticles({
   const velRef = useRef(velocities);
   const alphaRef = useRef(alphas);
   const lifeRef = useRef(lifetimes);
+  const freeRef = useRef(free);
 
   useFrame((_, delta) => {
-    if (!active || !meshRef.current) return;
+    if (!meshRef.current) return;
     const geo = meshRef.current.geometry;
     const posAttr = geo.getAttribute("position") as THREE.BufferAttribute;
     const alphaAttr = geo.getAttribute("alpha") as THREE.BufferAttribute;
@@ -665,38 +671,93 @@ function BurstParticles({
     const vel = velRef.current;
     const alpha = alphaRef.current;
     const life = lifeRef.current;
-    const ox = origin!.x, oy = origin!.y, oz = origin!.z;
+    const fr = freeRef.current;
+    const isActive = origin !== null;
+
+    // When a new selection starts, reset all particles to burst mode
+    if (isActive) {
+      hasSpawned.current = true;
+    }
 
     for (let i = 0; i < count; i++) {
       const idx = i * 3;
-      life[i] += delta * 0.6;
 
-      if (life[i] >= 1) {
-        // Respawn at origin with random outward velocity
-        life[i] = 0;
-        pos[idx] = ox + (Math.random() - 0.5) * 0.1;
-        pos[idx + 1] = oy + (Math.random() - 0.5) * 0.1;
-        pos[idx + 2] = oz + (Math.random() - 0.5) * 0.1;
-        const speed = 0.008 + Math.random() * 0.012;
-        const theta = Math.random() * Math.PI * 2;
-        const phi = Math.acos(2 * Math.random() - 1);
-        vel[idx] = Math.sin(phi) * Math.cos(theta) * speed;
-        vel[idx + 1] = Math.sin(phi) * Math.sin(theta) * speed;
-        vel[idx + 2] = Math.cos(phi) * speed;
-      } else {
-        // Move outward, slow down
+      if (isActive && fr[i] === 0) {
+        // Burst mode: emit from origin, cycle lifecycle
+        life[i] += delta * 0.5;
+
+        if (life[i] >= 1) {
+          // Respawn at origin
+          life[i] = 0;
+          pos[idx] = origin!.x + (Math.random() - 0.5) * 0.1;
+          pos[idx + 1] = origin!.y + (Math.random() - 0.5) * 0.1;
+          pos[idx + 2] = origin!.z + (Math.random() - 0.5) * 0.1;
+          const speed = 0.008 + Math.random() * 0.012;
+          const theta = Math.random() * Math.PI * 2;
+          const phi = Math.acos(2 * Math.random() - 1);
+          vel[idx] = Math.sin(phi) * Math.cos(theta) * speed;
+          vel[idx + 1] = Math.sin(phi) * Math.sin(theta) * speed;
+          vel[idx + 2] = Math.cos(phi) * speed;
+        } else {
+          pos[idx] += vel[idx];
+          pos[idx + 1] += vel[idx + 1];
+          pos[idx + 2] += vel[idx + 2];
+          vel[idx] *= 0.98;
+          vel[idx + 1] *= 0.98;
+          vel[idx + 2] *= 0.98;
+        }
+
+        // Fade in then out during burst
+        alpha[i] = life[i] < 0.15
+          ? life[i] / 0.15 * 0.7
+          : (1 - life[i]) * 0.7;
+      } else if (isActive && fr[i] === 1) {
+        // Was free, now re-selected: pull gently toward new origin
+        const dx = origin!.x - pos[idx];
+        const dy = origin!.y - pos[idx + 1];
+        const dz = origin!.z - pos[idx + 2];
+        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) + 0.001;
+        vel[idx] += (dx / dist) * 0.0004;
+        vel[idx + 1] += (dy / dist) * 0.0004;
+        vel[idx + 2] += (dz / dist) * 0.0004;
+        // Clamp
+        const maxV = 0.015;
+        for (let j = 0; j < 3; j++) {
+          if (Math.abs(vel[idx + j]) > maxV) vel[idx + j] = maxV * Math.sign(vel[idx + j]);
+        }
         pos[idx] += vel[idx];
         pos[idx + 1] += vel[idx + 1];
         pos[idx + 2] += vel[idx + 2];
-        vel[idx] *= 0.98;
-        vel[idx + 1] *= 0.98;
-        vel[idx + 2] *= 0.98;
+        alpha[i] = Math.min(alpha[i] + delta * 0.5, 0.45);
+      } else {
+        // Free-floating: gentle drift, join ambient field
+        if (fr[i] === 0 && life[i] > 0 && life[i] < 1) {
+          // Just released: transition to free
+          fr[i] = 1;
+        }
+        // Tiny random drift
+        vel[idx] += (Math.random() - 0.5) * 0.0002;
+        vel[idx + 1] += (Math.random() - 0.5) * 0.0002;
+        vel[idx + 2] += (Math.random() - 0.5) * 0.0002;
+        // Dampen
+        vel[idx] *= 0.995;
+        vel[idx + 1] *= 0.995;
+        vel[idx + 2] *= 0.995;
+        pos[idx] += vel[idx];
+        pos[idx + 1] += vel[idx + 1];
+        pos[idx + 2] += vel[idx + 2];
+        // Soft boundary bounce
+        const bounds = 15;
+        for (let j = 0; j < 3; j++) {
+          const b = j === 0 ? bounds : 10;
+          if (Math.abs(pos[idx + j]) > b) {
+            pos[idx + j] = (b - 0.1) * -Math.sign(pos[idx + j]);
+            vel[idx + j] *= -0.2;
+          }
+        }
+        // Steady ambient glow
+        alpha[i] = alpha[i] + (0.25 - alpha[i]) * delta * 0.3;
       }
-
-      // Fade in then out: peak at life=0.2, gone at life=1
-      alpha[i] = life[i] < 0.15
-        ? life[i] / 0.15 * 0.7
-        : (1 - life[i]) * 0.7;
     }
 
     for (let i = 0; i < count * 3; i++) posAttr.array[i] = pos[i];
@@ -705,7 +766,8 @@ function BurstParticles({
     alphaAttr.needsUpdate = true;
   });
 
-  if (!active) return null;
+  // Never unmount -- particles persist across selections
+  if (!hasSpawned.current && !origin) return null;
 
   return (
     <points ref={meshRef}>
