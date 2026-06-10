@@ -590,6 +590,144 @@ function SoftParticles({
   );
 }
 
+// ── Burst particles emitted from selected node ──
+function BurstParticles({
+  origin,
+  color = "#00f0ff",
+  count = 80,
+}: {
+  origin: THREE.Vector3 | null;
+  color?: string;
+  count?: number;
+}) {
+  const meshRef = useRef<THREE.Points>(null);
+  const texture = useMemo(() => createSoftCircleTexture(), []);
+  const active = origin !== null;
+
+  const { positions, sizes, alphas, velocities, lifetimes } = useMemo(() => {
+    const pos = new Float32Array(count * 3);
+    const s = new Float32Array(count);
+    const a = new Float32Array(count);
+    const vel = new Float32Array(count * 3);
+    const life = new Float32Array(count);
+    for (let i = 0; i < count; i++) {
+      s[i] = 0.04 + Math.random() * 0.06;
+      a[i] = 0;
+      life[i] = Math.random(); // stagger initial spawn
+    }
+    return { positions: pos, sizes: s, alphas: a, velocities: vel, lifetimes: life };
+  }, [count]);
+
+  const material = useMemo(() => {
+    return new THREE.ShaderMaterial({
+      uniforms: {
+        color: { value: new THREE.Color(color) },
+        map: { value: texture },
+      },
+      vertexShader: /* glsl */ `
+        attribute float size;
+        attribute float alpha;
+        varying float vAlpha;
+        void main() {
+          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+          gl_Position = projectionMatrix * mvPosition;
+          gl_PointSize = size * (200.0 / -mvPosition.z);
+          vAlpha = alpha;
+        }
+      `,
+      fragmentShader: /* glsl */ `
+        uniform vec3 color;
+        uniform sampler2D map;
+        varying float vAlpha;
+        void main() {
+          vec4 texColor = texture2D(map, gl_PointCoord);
+          float alpha = texColor.a * vAlpha;
+          gl_FragColor = vec4(color, alpha);
+        }
+      `,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+  }, [color, texture]);
+
+  const posRef = useRef(positions);
+  const velRef = useRef(velocities);
+  const alphaRef = useRef(alphas);
+  const lifeRef = useRef(lifetimes);
+
+  useFrame((_, delta) => {
+    if (!active || !meshRef.current) return;
+    const geo = meshRef.current.geometry;
+    const posAttr = geo.getAttribute("position") as THREE.BufferAttribute;
+    const alphaAttr = geo.getAttribute("alpha") as THREE.BufferAttribute;
+    const pos = posRef.current;
+    const vel = velRef.current;
+    const alpha = alphaRef.current;
+    const life = lifeRef.current;
+    const ox = origin!.x, oy = origin!.y, oz = origin!.z;
+
+    for (let i = 0; i < count; i++) {
+      const idx = i * 3;
+      life[i] += delta * 0.6;
+
+      if (life[i] >= 1) {
+        // Respawn at origin with random outward velocity
+        life[i] = 0;
+        pos[idx] = ox + (Math.random() - 0.5) * 0.1;
+        pos[idx + 1] = oy + (Math.random() - 0.5) * 0.1;
+        pos[idx + 2] = oz + (Math.random() - 0.5) * 0.1;
+        const speed = 0.008 + Math.random() * 0.012;
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(2 * Math.random() - 1);
+        vel[idx] = Math.sin(phi) * Math.cos(theta) * speed;
+        vel[idx + 1] = Math.sin(phi) * Math.sin(theta) * speed;
+        vel[idx + 2] = Math.cos(phi) * speed;
+      } else {
+        // Move outward, slow down
+        pos[idx] += vel[idx];
+        pos[idx + 1] += vel[idx + 1];
+        pos[idx + 2] += vel[idx + 2];
+        vel[idx] *= 0.98;
+        vel[idx + 1] *= 0.98;
+        vel[idx + 2] *= 0.98;
+      }
+
+      // Fade in then out: peak at life=0.2, gone at life=1
+      alpha[i] = life[i] < 0.15
+        ? life[i] / 0.15 * 0.7
+        : (1 - life[i]) * 0.7;
+    }
+
+    for (let i = 0; i < count * 3; i++) posAttr.array[i] = pos[i];
+    posAttr.needsUpdate = true;
+    for (let i = 0; i < count; i++) alphaAttr.array[i] = alpha[i];
+    alphaAttr.needsUpdate = true;
+  });
+
+  if (!active) return null;
+
+  return (
+    <points ref={meshRef}>
+      <bufferGeometry>
+        <bufferAttribute
+          attach="attributes-position"
+          args={[positions, 3]}
+        />
+        <bufferAttribute
+          attach="attributes-size"
+          args={[sizes, 1]}
+        />
+        <bufferAttribute
+          attach="attributes-alpha"
+          args={[alphas, 1]}
+        />
+      </bufferGeometry>
+      <primitive object={material} attach="material" />
+    </points>
+  );
+}
+
 // ── Canvas‑textured grid floor ──
 function CyberGrid() {
   const texture = useMemo(() => {
@@ -950,6 +1088,14 @@ function CortexScene({
       <pointLight position={[-10, -5, -10]} intensity={0.3} color="#22d3ee" />
 
       <SoftParticles count={1200} targetPos={attractionTarget} color="#00f0ff" />
+      <BurstParticles
+        origin={targetPosition}
+        color={
+          selectedId
+            ? CLUSTER_COLORS[nodes.find((n) => n.id === selectedId)?.cluster ?? "core"] ?? "#00f0ff"
+            : "#00f0ff"
+        }
+      />
       <NetworkEdges positions={positions} selectedId={selectedId} />
 
       {nodes.map((node) => (
