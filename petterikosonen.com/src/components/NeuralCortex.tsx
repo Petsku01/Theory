@@ -239,6 +239,7 @@ const NetworkNode = React.memo(function NetworkNode({
     <group position={position}>
       <group ref={groupRef}>
         {/* Outer emissive solid */}
+        {/* Outer wireframe */}
         <mesh
           ref={outerMeshRef}
           onClick={(e) => {
@@ -258,12 +259,13 @@ const NetworkNode = React.memo(function NetworkNode({
             emissiveIntensity={2}
             roughness={0.4}
             metalness={0.6}
+            wireframe
             transparent
-            opacity={0.08}
+            opacity={0.8}
           />
         </mesh>
 
-        {/* Inner bright core */}
+        {/* Inner wireframe core */}
         <mesh ref={innerMeshRef}>
           <icosahedronGeometry args={[baseSize * 0.5, 1]} />
           <meshStandardMaterial
@@ -272,12 +274,13 @@ const NetworkNode = React.memo(function NetworkNode({
             emissiveIntensity={4}
             roughness={0.4}
             metalness={0.6}
+            wireframe
             transparent
-            opacity={0.05}
+            opacity={0.5}
           />
         </mesh>
 
-        {/* Thin wireframe overlay */}
+        {/* Outer wireframe lines */}
         <lineSegments
           ref={wireframeRef}
           geometry={new THREE.IcosahedronGeometry(baseSize, 1)}
