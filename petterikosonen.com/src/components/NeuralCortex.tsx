@@ -747,8 +747,20 @@ function BurstParticles({
         pos[idx + 2] += vel[idx + 2];
         alpha[i] = Math.min(alpha[i] + delta * 0.5, 0.45);
       } else {
-        if (fr[i] === 0 && life[i] > 0 && life[i] < 1) {
+        // Free-floating: gentle drift, join ambient field
+        if (fr[i] === 0) {
+          // Transition from burst to free -- regardless of life state
           fr[i] = 1;
+          // If particle was "dead" (life >= 1) or invisible, respawn at random location
+          if (life[i] >= 1 || alpha[i] <= 0) {
+            pos[idx] = (Math.random() - 0.5) * 20;
+            pos[idx + 1] = (Math.random() - 0.5) * 14;
+            pos[idx + 2] = (Math.random() - 0.5) * 14;
+            vel[idx] = (Math.random() - 0.5) * 0.002;
+            vel[idx + 1] = (Math.random() - 0.5) * 0.002;
+            vel[idx + 2] = (Math.random() - 0.5) * 0.002;
+            alpha[i] = 0.25;
+          }
         }
         vel[idx] += (Math.random() - 0.5) * 0.0002;
         vel[idx + 1] += (Math.random() - 0.5) * 0.0002;
