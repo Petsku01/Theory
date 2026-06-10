@@ -13,6 +13,7 @@ const links = [
   { href: "/about", label: "About" },
   { href: "/labs", label: "Labs" },
   { href: "/kuu", label: "Kuu" },
+  { href: "/contact", label: "Contact" },
 ] as const;
 
 export default function Navbar() {
@@ -167,7 +168,7 @@ export default function Navbar() {
 
           {/* CTA */}
           <Link
-            href="/#contact"
+            href="/contact"
             className="focus-outline hidden items-center gap-2 rounded-xl border border-accent-cyan/30 bg-accent-cyan/6 px-4 py-2 text-xs font-mono uppercase tracking-wider text-accent-cyan transition-all duration-300 hover:border-accent-cyan/50 hover:bg-accent-cyan/12 hover:shadow-glowCyan md:inline-flex"
           >
             <span className="h-1.5 w-1.5 rounded-full bg-accent-cyan" aria-hidden="true" />
@@ -202,7 +203,7 @@ export default function Navbar() {
             ))}
             <li className="border-t border-line-0/40 pt-2 mt-1">
               <Link
-                href="/#contact"
+                href="/contact"
                 onClick={() => setOpen(false)}
                 className="focus-outline block rounded-lg px-3 py-2.5 text-sm font-medium text-accent-cyan"
               >
