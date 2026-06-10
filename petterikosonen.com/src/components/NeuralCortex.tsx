@@ -1122,6 +1122,81 @@ function AccessibleNav({ onSelect }: { onSelect: (id: string) => void }) {
   );
 }
 
+// ── Proximity auto-select: zoom close enough and node opens without click ──
+function ProximitySelector({
+  positions,
+  onProximitySelect,
+  selectedId,
+}: {
+  positions: Map<string, THREE.Vector3>;
+  onProximitySelect: (id: string | null) => void;
+  selectedId: string | null;
+}) {
+  const { camera } = useThree();
+  const autoIdRef = useRef<string | null>(null);
+  const lastChangeRef = useRef<number>(0);
+
+  useFrame(() => {
+    const now = performance.now();
+    // Throttle: check once every 200ms
+    if (now - lastChangeRef.current < 200) return;
+
+    const camPos = camera.position;
+
+    // Find closest node to camera
+    let closestId: string | null = null;
+    let minDist = Infinity;
+    for (const [id, pos] of positions) {
+      const dist = camPos.distanceTo(pos);
+      if (dist < minDist) {
+        minDist = dist;
+        closestId = id;
+      }
+    }
+
+    // Hysteresis thresholds
+    const SELECT_DIST = 4;
+    const DESELECT_DIST = 5.5;
+
+    if (autoIdRef.current !== null) {
+      // Currently auto-selected -- check if should deselect
+      const autoPos = positions.get(autoIdRef.current);
+      if (autoPos) {
+        const dist = camPos.distanceTo(autoPos);
+        if (dist > DESELECT_DIST) {
+          autoIdRef.current = null;
+          lastChangeRef.current = now;
+          onProximitySelect(null);
+          // Check if another node is close enough
+          if (closestId && minDist <= SELECT_DIST) {
+            autoIdRef.current = closestId;
+            onProximitySelect(closestId);
+          }
+          return;
+        }
+      }
+    } else {
+      // No auto-selection -- check if a node is close enough
+      // Don't auto-select if there's already a manual (click) selection
+      if (selectedId === null && closestId && minDist <= SELECT_DIST) {
+        autoIdRef.current = closestId;
+        lastChangeRef.current = now;
+        onProximitySelect(closestId);
+      }
+    }
+  });
+
+  // Reset auto-tracking when user manually selects
+  useEffect(() => {
+    if (selectedId !== null && selectedId !== autoIdRef.current) {
+      // Manual click selection -- clear auto-tracking
+      autoIdRef.current = selectedId;
+    }
+  }, [selectedId]);
+
+  return null;
+}
+
 // ── Main 3D scene ──
 function CortexScene({
   selectedId,
@@ -1152,6 +1227,16 @@ function CortexScene({
       document.body.style.cursor = id ? "pointer" : "default";
     },
     [onNodeHover]
+  );
+
+  // Proximity auto-select: when camera zooms close, select node
+  const handleProximitySelect = useCallback(
+    (id: string | null) => {
+      // Only auto-select if no manual click selection is active
+      // (proximity doesn't override click)
+      onNodeSelect(id);
+    },
+    [onNodeSelect]
   );
 
   useEffect(() => {
@@ -1204,6 +1289,11 @@ function CortexScene({
         target={targetPosition}
         controlsRef={controlsRef}
         shakeTimestamp={shakeTimestamp}
+      />
+      <ProximitySelector
+        positions={positions}
+        onProximitySelect={handleProximitySelect}
+        selectedId={selectedId}
       />
       <OrbitControls
         ref={controlsRef}
