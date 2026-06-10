@@ -1155,11 +1155,17 @@ function ProximitySelector({
       }
     }
 
-    // Hysteresis thresholds
-    // SELECT_DIST must be large enough that camera-at-offset (0,2,4) ≈ 4.5 is inside
-    // DESELECT_DIST must give camera time to arrive after auto-select
-    const SELECT_DIST = 7;
-    const DESELECT_DIST = 12;
+    // Hysteresis thresholds -- scaled by node size so bigger nodes are easier to select
+    // Find the closest node and its size
+    let closestSize = 1;
+    for (const n of nodes) {
+      if (n.id === closestId) {
+        closestSize = n.size;
+        break;
+      }
+    }
+    const SELECT_DIST = 4 + closestSize * 2;
+    const DESELECT_DIST = SELECT_DIST + 5;
 
     if (autoIdRef.current !== null) {
       // Currently auto-selected -- check if should deselect
