@@ -1,5 +1,4 @@
 import NeuralCortex from "@/components/NeuralCortex";
-import ContactConsole from "@/components/ContactConsole";
 
 export const metadata = {
   title: "Petteri Kosonen -- Security Engineer + AI Researcher",
@@ -8,12 +7,5 @@ export const metadata = {
 };
 
 export default function Home() {
-  return (
-    <>
-      <NeuralCortex />
-      <div className="mx-auto max-w-3xl px-4 pb-12">
-        <ContactConsole />
-      </div>
-    </>
-  );
+  return <NeuralCortex />;
 }
