@@ -8,7 +8,15 @@ import { type CortexNode } from "@/lib/cortex-data";
 import { CLUSTER_COLORS } from "@/components/neural-cortex/utils";
 import { useScramble } from "@/components/neural-cortex/hooks/useScramble";
 
-// ── 3D Node: wireframe cage + inner glowing core + orbital torus rings ──
+// ── Deterministic phase offset from node id ──
+function hashPhase(id: string): number {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++)
+    hash = ((hash << 5) - hash + id.charCodeAt(i)) | 0;
+  return ((Math.abs(hash) % 100) / 100) * Math.PI * 2;
+}
+
+// ── 3D Node: inner glowing core + wireframe cage + orbital torus rings ──
 export const NetworkNode = React.memo(function NetworkNode({
   node,
   position,
@@ -25,114 +33,109 @@ export const NetworkNode = React.memo(function NetworkNode({
   onHover: (id: string | null) => void;
 }) {
   const groupRef = useRef<THREE.Group>(null);
-  const outerMeshRef = useRef<THREE.Mesh>(null);
-  const coreMeshRef = useRef<THREE.Mesh>(null);
+  const outerRef = useRef<THREE.Mesh>(null);
+  const coreRef = useRef<THREE.Mesh>(null);
   const ring1Ref = useRef<THREE.Mesh>(null);
   const ring2Ref = useRef<THREE.Mesh>(null);
 
   const baseSize = node.size * 0.22;
-  const coreSize = baseSize * 0.4;
+  const coreRadius = baseSize * 0.4;
   const clusterColor = CLUSTER_COLORS[node.cluster] ?? "#00f0ff";
   const color = useMemo(() => new THREE.Color(clusterColor), [clusterColor]);
 
   const displayText = useScramble(node.label, isHovered);
+  const phase = useMemo(() => hashPhase(node.id), [node.id]);
+  const timeRef = useRef(0);
 
-  // Per-node phase offset for organic desync
-  const phaseOffset = useMemo(() => {
-    let hash = 0;
-    for (let i = 0; i < node.id.length; i++)
-      hash = (hash << 5) - hash + node.id.charCodeAt(i);
-    return ((Math.abs(hash) % 100) / 100) * Math.PI * 2;
-  }, [node.id]);
-
-  // Ring tilt angles — deterministic per node
-  const ringTilts = useMemo(
-    () => [
-      [0.3 + (phaseOffset / Math.PI) * 0.5, phaseOffset * 0.7, 0],
-      [1.2, phaseOffset * 0.3, 0.4 + (phaseOffset / Math.PI) * 0.3],
-    ],
-    [phaseOffset]
-  );
-
-  // Ring geometry (shared across nodes — React.memo prevents re-creation)
-  const ringGeom1 = useMemo(
+  // Ring geometry — memoized
+  const ring1Geom = useMemo(
     () => new THREE.TorusGeometry(baseSize * 2.2, 0.008, 8, 64),
     [baseSize]
   );
-  const ringGeom2 = useMemo(
+  const ring2Geom = useMemo(
     () => new THREE.TorusGeometry(baseSize * 1.7, 0.005, 8, 64),
     [baseSize]
   );
 
-  const timeRef = useRef(0);
+  // Deterministic ring tilt angles
+  const tilt1: [number, number, number] = useMemo(
+    () => [0.3 + (phase / Math.PI) * 0.5, phase * 0.7, 0],
+    [phase]
+  );
+  const tilt2: [number, number, number] = useMemo(
+    () => [1.2, phase * 0.3, 0.4 + (phase / Math.PI) * 0.3],
+    [phase]
+  );
+
   useFrame((state, delta) => {
     if (!groupRef.current) return;
     timeRef.current += delta;
     const t = timeRef.current;
-    const isActive = isHovered || isSelected;
+    const active = isHovered || isSelected;
 
-    // Organic breathing: slow sine wave, faster when active
-    const breatheSpeed = isActive ? 4.5 : 2.0;
-    const breatheAmp = isActive ? 0.08 : 0.04;
-    const scale = 1 + Math.sin(t * breatheSpeed + phaseOffset) * breatheAmp;
+    // Organic breathing — slower when idle, faster when active
+    const breathSpeed = active ? 4.5 : 2.0;
+    const breathAmp = active ? 0.08 : 0.04;
+    const scale = 1 + Math.sin(t * breathSpeed + phase) * breathAmp;
     groupRef.current.scale.setScalar(scale);
 
-    // Vertical bob: gentle Y oscillation
-    const bobAmp = isActive ? 0.1 : 0.04;
+    // Vertical bob — per-node phase for desync
+    const bobAmp = active ? 0.1 : 0.04;
     const bobSpeed = 0.7;
     groupRef.current.position.y =
-      position.y + Math.sin(t * bobSpeed + phaseOffset) * bobAmp;
+      position.y + Math.sin(t * bobSpeed + phase) * bobAmp;
 
-    // Outer mesh emissive
-    if (outerMeshRef.current) {
-      const mat = outerMeshRef.current.material as THREE.MeshStandardMaterial;
+    // Outer wireframe emissive lerp
+    if (outerRef.current) {
+      const mat = outerRef.current.material as THREE.MeshStandardMaterial;
       mat.emissiveIntensity = THREE.MathUtils.lerp(
         mat.emissiveIntensity,
-        isActive ? 6 : 1.8,
-        delta * 8
+        active ? 6 : 1.8,
+        Math.min(1, delta * 8)
       );
     }
 
-    // Inner core emissive pulse
-    if (coreMeshRef.current) {
-      const mat = coreMeshRef.current.material as THREE.MeshStandardMaterial;
-      const corePulse = 1.5 + Math.sin(t * 3 + phaseOffset) * 0.5;
+    // Inner core pulsing
+    if (coreRef.current) {
+      const mat = coreRef.current.material as THREE.MeshStandardMaterial;
+      const corePulse = 1.5 + Math.sin(t * 3 + phase) * 0.5;
       mat.emissiveIntensity = THREE.MathUtils.lerp(
         mat.emissiveIntensity,
-        isActive ? 8 : corePulse,
-        delta * 6
+        active ? 8 : corePulse,
+        Math.min(1, delta * 6)
       );
       mat.opacity = THREE.MathUtils.lerp(
         mat.opacity,
-        isActive ? 0.8 : 0.45,
-        delta * 5
+        active ? 0.8 : 0.45,
+        Math.min(1, delta * 5)
       );
     }
 
-    // Orbital rings rotation
-    const ringSpeed1 = isActive ? 1.2 : 0.4;
-    const ringSpeed2 = isActive ? -0.8 : -0.25;
+    // Orbital ring rotation — faster when active
+    const ringSpeed1 = active ? 1.2 : 0.4;
+    const ringSpeed2 = active ? -0.8 : -0.25;
+
     if (ring1Ref.current) {
+      ring1Ref.current.rotation.x = tilt1[0];
+      ring1Ref.current.rotation.y = tilt1[1] + t * 0.15;
       ring1Ref.current.rotation.z += delta * ringSpeed1;
-      ring1Ref.current.rotation.x = ringTilts[0][0];
-      ring1Ref.current.rotation.y = ringTilts[0][1] + t * 0.15;
-      (ring1Ref.current.material as THREE.MeshBasicMaterial).opacity =
-        THREE.MathUtils.lerp(
-          (ring1Ref.current.material as THREE.MeshBasicMaterial).opacity,
-          isActive ? 0.6 : 0.3,
-          delta * 4
-        );
+      const mat1 = ring1Ref.current.material as THREE.MeshBasicMaterial;
+      mat1.opacity = THREE.MathUtils.lerp(
+        mat1.opacity,
+        active ? 0.6 : 0.3,
+        Math.min(1, delta * 4)
+      );
     }
     if (ring2Ref.current) {
+      ring2Ref.current.rotation.x = tilt2[0];
+      ring2Ref.current.rotation.y = tilt2[1] - t * 0.1;
       ring2Ref.current.rotation.z += delta * ringSpeed2;
-      ring2Ref.current.rotation.x = ringTilts[1][0];
-      ring2Ref.current.rotation.y = ringTilts[1][1] - t * 0.1;
-      (ring2Ref.current.material as THREE.MeshBasicMaterial).opacity =
-        THREE.MathUtils.lerp(
-          (ring2Ref.current.material as THREE.MeshBasicMaterial).opacity,
-          isActive ? 0.45 : 0.2,
-          delta * 4
-        );
+      const mat2 = ring2Ref.current.material as THREE.MeshBasicMaterial;
+      mat2.opacity = THREE.MathUtils.lerp(
+        mat2.opacity,
+        active ? 0.45 : 0.2,
+        Math.min(1, delta * 4)
+      );
     }
   });
 
@@ -140,8 +143,8 @@ export const NetworkNode = React.memo(function NetworkNode({
     <group position={[position.x, position.y, position.z]}>
       <group ref={groupRef}>
         {/* Inner glowing core — semi-transparent emissive sphere */}
-        <mesh ref={coreMeshRef}>
-          <icosahedronGeometry args={[coreSize, 1]} />
+        <mesh ref={coreRef}>
+          <icosahedronGeometry args={[coreRadius, 1]} />
           <meshStandardMaterial
             color={color}
             emissive={color}
@@ -153,9 +156,9 @@ export const NetworkNode = React.memo(function NetworkNode({
           />
         </mesh>
 
-        {/* Outer wireframe cage */}
+        {/* Outer wireframe cage — click/hover handlers here */}
         <mesh
-          ref={outerMeshRef}
+          ref={outerRef}
           onClick={(e) => {
             e.stopPropagation();
             onSelect(node.id);
@@ -180,30 +183,24 @@ export const NetworkNode = React.memo(function NetworkNode({
         </mesh>
 
         {/* Orbital ring 1 — larger, brighter */}
-        <mesh
-          ref={ring1Ref}
-          rotation={ringTilts[0] as unknown as [number, number, number]}
-          geometry={ringGeom1}
-        >
+        <mesh ref={ring1Ref} geometry={ring1Geom}>
           <meshBasicMaterial
             color={color}
             transparent
             opacity={0.3}
             side={THREE.DoubleSide}
+            depthWrite={false}
           />
         </mesh>
 
         {/* Orbital ring 2 — smaller, subtler */}
-        <mesh
-          ref={ring2Ref}
-          rotation={ringTilts[1] as unknown as [number, number, number]}
-          geometry={ringGeom2}
-        >
+        <mesh ref={ring2Ref} geometry={ring2Geom}>
           <meshBasicMaterial
             color={color}
             transparent
             opacity={0.2}
             side={THREE.DoubleSide}
+            depthWrite={false}
           />
         </mesh>
       </group>
