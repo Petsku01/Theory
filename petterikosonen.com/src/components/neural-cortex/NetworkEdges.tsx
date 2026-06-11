@@ -119,8 +119,8 @@ export const NetworkEdges = React.memo(function NetworkEdges({
   return (
     <>
       {edgeData.map((ed) => {
-        const wireOpacity = ed.highlight ? 0.4 : 0.12;
-        const pulseOpacity = ed.highlight ? 1 : 0.4;
+        const wireOpacity = ed.highlight ? 0.5 : 0.2;
+        const pulseOpacity = ed.highlight ? 1 : 0.5;
         const pulseSpeed = ed.highlight ? 1.2 : 2.0;
         return (
           <group key={ed.key}>
@@ -130,7 +130,7 @@ export const NetworkEdges = React.memo(function NetworkEdges({
               to={ed.to}
               color={ed.color}
               opacity={wireOpacity}
-              thickness={0.015}
+              thickness={0.02}
             />
             {/* Glow cylinder only when highlighted */}
             {ed.highlight && (
