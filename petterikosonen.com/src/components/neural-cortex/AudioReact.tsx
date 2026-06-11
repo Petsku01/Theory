@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { type CortexNode } from "@/lib/cortex-data";
+import React, { useCallback, useEffect, useRef } from "react";
 import { nodes } from "@/lib/cortex-data";
 import { CLUSTER_COLORS } from "@/components/neural-cortex/utils";
 

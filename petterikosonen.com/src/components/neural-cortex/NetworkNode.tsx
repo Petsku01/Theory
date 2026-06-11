@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useRef } from "react";
+import React, { useMemo, useRef, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Html } from "@react-three/drei";
 import * as THREE from "three";
@@ -45,9 +45,8 @@ export const NetworkNode = React.memo(function NetworkNode({
 
   const displayText = useScramble(node.label, isHovered);
   const phase = useMemo(() => hashPhase(node.id), [node.id]);
-  const timeRef = useRef(0);
 
-  // Ring geometry — memoized
+  // Ring geometry — memoized + disposed on unmount
   const ring1Geom = useMemo(
     () => new THREE.TorusGeometry(baseSize * 2.2, 0.008, 8, 64),
     [baseSize]
@@ -56,6 +55,12 @@ export const NetworkNode = React.memo(function NetworkNode({
     () => new THREE.TorusGeometry(baseSize * 1.7, 0.005, 8, 64),
     [baseSize]
   );
+  useEffect(() => {
+    return () => {
+      ring1Geom.dispose();
+      ring2Geom.dispose();
+    };
+  }, [ring1Geom, ring2Geom]);
 
   // Deterministic ring tilt angles
   const tilt1: [number, number, number] = useMemo(
@@ -69,8 +74,7 @@ export const NetworkNode = React.memo(function NetworkNode({
 
   useFrame((state, delta) => {
     if (!groupRef.current) return;
-    timeRef.current += delta;
-    const t = timeRef.current;
+    const t = state.clock.elapsedTime;
     const active = isHovered || isSelected;
 
     // Organic breathing — slower when idle, faster when active
@@ -111,14 +115,14 @@ export const NetworkNode = React.memo(function NetworkNode({
       );
     }
 
-    // Orbital ring rotation — faster when active
+    // Orbital ring rotation — absolute from time (no drift)
     const ringSpeed1 = active ? 1.2 : 0.4;
     const ringSpeed2 = active ? -0.8 : -0.25;
 
     if (ring1Ref.current) {
       ring1Ref.current.rotation.x = tilt1[0];
       ring1Ref.current.rotation.y = tilt1[1] + t * 0.15;
-      ring1Ref.current.rotation.z += delta * ringSpeed1;
+      ring1Ref.current.rotation.z = t * ringSpeed1;
       const mat1 = ring1Ref.current.material as THREE.MeshBasicMaterial;
       mat1.opacity = THREE.MathUtils.lerp(
         mat1.opacity,
@@ -129,7 +133,7 @@ export const NetworkNode = React.memo(function NetworkNode({
     if (ring2Ref.current) {
       ring2Ref.current.rotation.x = tilt2[0];
       ring2Ref.current.rotation.y = tilt2[1] - t * 0.1;
-      ring2Ref.current.rotation.z += delta * ringSpeed2;
+      ring2Ref.current.rotation.z = t * ringSpeed2;
       const mat2 = ring2Ref.current.material as THREE.MeshBasicMaterial;
       mat2.opacity = THREE.MathUtils.lerp(
         mat2.opacity,
@@ -182,8 +186,8 @@ export const NetworkNode = React.memo(function NetworkNode({
           />
         </mesh>
 
-        {/* Orbital ring 1 — larger, brighter */}
-        <mesh ref={ring1Ref} geometry={ring1Geom}>
+        {/* Orbital ring 1 — pointer-events disabled */}
+        <mesh ref={ring1Ref} geometry={ring1Geom} raycast={() => null}>
           <meshBasicMaterial
             color={color}
             transparent
@@ -193,8 +197,8 @@ export const NetworkNode = React.memo(function NetworkNode({
           />
         </mesh>
 
-        {/* Orbital ring 2 — smaller, subtler */}
-        <mesh ref={ring2Ref} geometry={ring2Geom}>
+        {/* Orbital ring 2 — pointer-events disabled */}
+        <mesh ref={ring2Ref} geometry={ring2Geom} raycast={() => null}>
           <meshBasicMaterial
             color={color}
             transparent
