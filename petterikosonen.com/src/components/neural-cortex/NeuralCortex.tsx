@@ -72,7 +72,7 @@ export default function NeuralCortex() {
   }, []);
 
   return (
-    <div className="fixed inset-0 z-0 overflow-hidden bg-[#05070A]">
+    <div className="fixed inset-0 z-[5] overflow-hidden bg-[#05070A]">
       <GlobalStyles />
 
       {/* Splash screen before entering */}
