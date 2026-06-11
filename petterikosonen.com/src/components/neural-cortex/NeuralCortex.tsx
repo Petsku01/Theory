@@ -8,7 +8,7 @@ import { DetailPanel } from "@/components/neural-cortex/DetailPanel";
 
 import { Scanlines, Vignette, CortexLoader } from "@/components/neural-cortex/Overlays";
 import { AccessibleNav } from "@/components/neural-cortex/AccessibleNav";
-import { AudioReact } from "@/components/neural-cortex/AudioReact";
+
 import { SplashScreen } from "@/components/neural-cortex/SplashScreen";
 
 // ── Global keyframes ──
@@ -147,7 +147,6 @@ export default function NeuralCortex() {
           />
 
           <AccessibleNav onSelect={(id) => handleNodeSelect(id)} />
-          <AudioReact selectedId={selectedId} />
         </>
       )}
     </div>
