@@ -32,9 +32,9 @@ const EdgeCylinder = React.memo(function EdgeCylinder({
   }, [from, to]);
 
   return (
-    <mesh position={position} quaternion={quaternion}>
-      <cylinderGeometry args={[thickness, thickness, length, 6, 1]} />
-      <meshBasicMaterial color={color} transparent opacity={opacity} />
+    <mesh position={position} quaternion={quaternion} renderOrder={0}>
+    <cylinderGeometry args={[thickness, thickness, length, 6, 1]} />
+    <meshBasicMaterial color={color} transparent opacity={opacity} depthWrite={false} />
     </mesh>
   );
 });
@@ -67,9 +67,9 @@ function EnergyPulse({
   });
 
   return (
-    <mesh ref={sphereRef}>
+    <mesh ref={sphereRef} renderOrder={0}>
       <sphereGeometry args={[pulseSize, 8, 8]} />
-      <meshBasicMaterial color={color} transparent opacity={opacity} />
+      <meshBasicMaterial color={color} transparent opacity={opacity} depthWrite={false} />
     </mesh>
   );
 }
