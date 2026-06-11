@@ -31,7 +31,6 @@ export default function StatusPill({ label, variant = "cyan" }: StatusPillProps)
 
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 font-mono text-[0.68rem] uppercase tracking-widest ${classes}`}>
-      <span className={`h-1.5 w-1.5 rounded-full ${dot}`} aria-hidden="true" />
       {label}
     </span>
   );
