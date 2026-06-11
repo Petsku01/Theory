@@ -87,7 +87,7 @@ export const NetworkNode = React.memo(function NetworkNode({
     const bobAmp = active ? 0.1 : 0.04;
     const bobSpeed = 0.7;
     groupRef.current.position.y =
-      position.y + Math.sin(t * bobSpeed + phase) * bobAmp;
+      Math.sin(t * bobSpeed + phase) * bobAmp;
 
     // Outer wireframe emissive lerp
     if (outerRef.current) {
