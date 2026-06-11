@@ -3,9 +3,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
-import { EffectComposer, Bloom } from "@react-three/postprocessing";
+import { EffectComposer, Bloom, DepthOfField } from "@react-three/postprocessing";
 import * as THREE from "three";
-import { nodes } from "@/lib/cortex-data";
+import { nodes, edges } from "@/lib/cortex-data";
 import { CLUSTER_COLORS, computePositions } from "@/components/neural-cortex/utils";
 import { NetworkNode } from "@/components/neural-cortex/NetworkNode";
 import { NetworkEdges } from "@/components/neural-cortex/NetworkEdges";
@@ -35,6 +35,12 @@ export function CortexScene({
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const controlsRef = useRef<any>(null);
 
+  // Target position for DoF focus
+  const selectedPosition = useMemo(() => {
+    if (!selectedId) return new THREE.Vector3(0, 0, 0);
+    return positions.get(selectedId) ?? new THREE.Vector3(0, 0, 0);
+  }, [selectedId, positions]);
+
   const handleSelect = useCallback(
     (id: string) => {
       onNodeSelect(selectedId === id ? null : id);
@@ -51,11 +57,8 @@ export function CortexScene({
     [onNodeHover]
   );
 
-  // Proximity auto-select: when camera zooms close, select node
   const handleProximitySelect = useCallback(
     (id: string | null) => {
-      // Only auto-select if no manual click selection is active
-      // (proximity doesn't override click)
       onNodeSelect(id);
     },
     [onNodeSelect]
@@ -80,11 +83,11 @@ export function CortexScene({
 
   return (
     <>
-      <ambientLight intensity={0.12} />
+      <ambientLight intensity={0.1} />
       <pointLight position={[10, 10, 10]} intensity={0.4} color="#00f0ff" />
       <pointLight position={[-10, -5, -10]} intensity={0.3} color="#22d3ee" />
 
-      <SoftParticles count={1200} targetPos={attractionTarget} color="#00f0ff" />
+      <SoftParticles count={1800} targetPos={attractionTarget} color="#00f0ff" />
       <BurstParticles
         origin={targetPosition}
         color={
@@ -129,13 +132,18 @@ export function CortexScene({
         autoRotateSpeed={0.3}
       />
 
-      {/* Bloom post-processing — makes emissive materials glow */}
+      {/* Post-processing: Bloom + Depth of Field */}
       <EffectComposer>
         <Bloom
-          luminanceThreshold={0.2}
+          luminanceThreshold={0.15}
           luminanceSmoothing={0.9}
-          intensity={1.5}
+          intensity={1.8}
           mipmapBlur
+        />
+        <DepthOfField
+          focusDistance={selectedId ? 0.01 : 0.5}
+          focalLength={selectedId ? 0.02 : 0.1}
+          bokehScale={selectedId ? 3 : 0}
         />
       </EffectComposer>
     </>

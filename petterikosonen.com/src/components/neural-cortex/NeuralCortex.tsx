@@ -8,6 +8,7 @@ import { DetailPanel } from "@/components/neural-cortex/DetailPanel";
 import { TitleOverlay } from "@/components/neural-cortex/TitleOverlay";
 import { Scanlines, Vignette, CortexLoader } from "@/components/neural-cortex/Overlays";
 import { AccessibleNav } from "@/components/neural-cortex/AccessibleNav";
+import { AudioReact } from "@/components/neural-cortex/AudioReact";
 
 // ── Global keyframes ──
 function GlobalStyles() {
@@ -85,6 +86,9 @@ export default function NeuralCortex() {
           }}
           dpr={[1, 2]}
         >
+          {/* Colored fog for depth atmosphere */}
+          <fog attach="fog" args={["#060818", 12, 40]} />
+
           <CortexScene
             selectedId={selectedId}
             onNodeSelect={handleNodeSelect}
@@ -142,6 +146,7 @@ export default function NeuralCortex() {
       />
 
       <AccessibleNav onSelect={(id) => handleNodeSelect(id)} />
+      <AudioReact selectedId={selectedId} />
     </div>
   );
 }
