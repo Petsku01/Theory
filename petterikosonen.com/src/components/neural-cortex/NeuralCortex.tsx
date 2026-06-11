@@ -81,6 +81,13 @@ export default function NeuralCortex() {
       {/* Main 3D scene -- only renders after entering */}
       {entered && (
         <>
+          {/* Name overlay */}
+          <div className="pointer-events-none absolute left-6 top-5 z-30 select-none">
+            <span className="text-sm font-semibold tracking-wide text-slate-400/70 font-mono">
+              Petteri Kosonen
+            </span>
+          </div>
+
           <Suspense fallback={<CortexLoader />}>
             <Canvas
               camera={{ position: [0, 8, 16], fov: 55, near: 0.1, far: 100 }}
