@@ -83,7 +83,7 @@ export default function NeuralCortex() {
         <>
           {/* Name overlay */}
           <div className="pointer-events-none absolute left-6 top-5 z-30 select-none">
-            <span className="text-sm font-semibold tracking-wide text-slate-400/70 font-mono">
+            <span className="text-sm font-bold tracking-wide text-slate-100 font-mono">
               Petteri Kosonen
             </span>
           </div>
