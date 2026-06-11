@@ -30,9 +30,9 @@ export const nodes: CortexNode[] = [
     id: "petteri",
     label: "Petteri Kosonen",
     type: "core",
-    shortDesc: "Security Engineer + AI Researcher",
+    shortDesc: "Application Specialist + AI Researcher",
     fullDesc:
-      "Building tools that make AI safer. Security engineer at 2M-IT, focused on LLM fine-tuning, prompt security, and trustworthy automation.",
+      "Application Specialist at 2M-IT by day, AI researcher by night. Building tools for prompt security, fine-tuning, and trustworthy automation.",
     color: "#00ff88",
     size: 2.0,
     cluster: "core",
