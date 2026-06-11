@@ -4,7 +4,9 @@ import React, { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 
-// ── Camera controller with sinusoidal shake ──
+// ── Camera controller with sinusoidal shake + user override ──
+// When user manually interacts with OrbitControls, auto-lerp stops.
+// Auto-lerp resumes when a new target is selected.
 export function CameraController({
   target,
   controlsRef,
@@ -16,6 +18,28 @@ export function CameraController({
 }) {
   const shakeStartTime = useRef<number>(0);
   const shakeDirection = useRef<THREE.Vector3>(new THREE.Vector3());
+  const isUserControlled = useRef(false);
+
+  // Reset auto-lerp when target changes
+  const targetKey = target
+    ? `${target.x.toFixed(4)}_${target.y.toFixed(4)}_${target.z.toFixed(4)}`
+    : "null";
+
+  useEffect(() => {
+    isUserControlled.current = false;
+
+    const controls = controlsRef.current;
+    if (!controls) return;
+
+    const onStart = () => {
+      isUserControlled.current = true;
+    };
+
+    controls.addEventListener("start", onStart);
+    return () => {
+      controls.removeEventListener("start", onStart);
+    };
+  }, [targetKey, controlsRef]);
 
   useEffect(() => {
     if (shakeTimestamp > 0) {
@@ -34,11 +58,12 @@ export function CameraController({
     const controls = controlsRef.current;
     if (!controls) return;
 
-    if (target) {
+    // Gentle lerp toward target only when user hasn't manually controlled camera
+    if (target && !isUserControlled.current) {
       const cameraOffset = new THREE.Vector3(0, 2, 4);
       const desiredPos = target.clone().add(cameraOffset);
-      controls.object.position.lerp(desiredPos, delta * 2);
-      controls.target.lerp(target, delta * 3);
+      controls.object.position.lerp(desiredPos, delta * 1.5);
+      controls.target.lerp(target, delta * 2);
     }
 
     const elapsed = (performance.now() - shakeStartTime.current) / 1000;

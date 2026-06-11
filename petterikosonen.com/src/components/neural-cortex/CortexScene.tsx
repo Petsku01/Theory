@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
-import { EffectComposer, Bloom, DepthOfField } from "@react-three/postprocessing";
+import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import * as THREE from "three";
 import { nodes, edges } from "@/lib/cortex-data";
 import { CLUSTER_COLORS, computePositions } from "@/components/neural-cortex/utils";
@@ -126,18 +126,13 @@ export function CortexScene({
         autoRotateSpeed={0.3}
       />
 
-      {/* Post-processing: Bloom + Depth of Field */}
+      {/* Post-processing: Bloom only */}
       <EffectComposer>
         <Bloom
           luminanceThreshold={0.15}
           luminanceSmoothing={0.9}
           intensity={1.8}
           mipmapBlur
-        />
-        <DepthOfField
-          focusDistance={selectedId ? 0.03 : 0.5}
-          focalLength={selectedId ? 0.05 : 0.1}
-          bokehScale={selectedId ? 2 : 0}
         />
       </EffectComposer>
     </>
