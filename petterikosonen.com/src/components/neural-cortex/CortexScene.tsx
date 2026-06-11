@@ -12,7 +12,7 @@ import { NetworkEdges } from "@/components/neural-cortex/NetworkEdges";
 import { SoftParticles } from "@/components/neural-cortex/SoftParticles";
 import { BurstParticles } from "@/components/neural-cortex/BurstParticles";
 import { CameraController } from "@/components/neural-cortex/CameraController";
-import { ProximitySelector } from "@/components/neural-cortex/ProximitySelector";
+
 
 // ── Main 3D scene ──
 export function CortexScene({
@@ -27,11 +27,6 @@ export function CortexScene({
   shakeTimestamp: number;
 }) {
   const positions = useMemo(() => computePositions(nodes), []);
-  const nodeSizes = useMemo(() => {
-    const sizes = new Map<string, number>();
-    for (const n of nodes) sizes.set(n.id, n.size);
-    return sizes;
-  }, []);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const controlsRef = useRef<any>(null);
 
@@ -49,13 +44,6 @@ export function CortexScene({
       document.body.style.cursor = id ? "pointer" : "default";
     },
     [onNodeHover]
-  );
-
-  const handleProximitySelect = useCallback(
-    (id: string | null) => {
-      onNodeSelect(id);
-    },
-    [onNodeSelect]
   );
 
   useEffect(() => {
@@ -108,12 +96,6 @@ export function CortexScene({
         target={targetPosition}
         controlsRef={controlsRef}
         shakeTimestamp={shakeTimestamp}
-      />
-      <ProximitySelector
-        positions={positions}
-        onProximitySelect={handleProximitySelect}
-        selectedId={selectedId}
-        nodeSizes={nodeSizes}
       />
       <OrbitControls
         ref={controlsRef}
