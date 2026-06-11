@@ -127,7 +127,7 @@ export default function HeroSection() {
 
           <AnimateIn delay={400}>
             <p className="max-w-lg text-base leading-relaxed text-text-1 sm:text-lg lg:text-xl">
-              {"Security engineer building resilient systems, LLM fine-tuning pipelines, and trustworthy automation. I bridge "}<span className="font-semibold text-accent-cyan">security</span>{" and "}<span className="font-semibold text-accent-violet">AI engineering</span>.
+              {"Application Specialist building resilient systems, LLM fine-tuning pipelines, and trustworthy automation. I bridge "}<span className="font-semibold text-accent-cyan">security</span>{" and "}<span className="font-semibold text-accent-violet">AI engineering</span>.
             </p>
           </AnimateIn>
 

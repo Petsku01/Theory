@@ -16,11 +16,11 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL("https://petterikosonen.com"),
   title: {
-    default: "Petteri Kosonen — Security Engineer",
+    default: "Petteri Kosonen — Application Specialist",
     template: "%s | Petteri Kosonen",
   },
   description:
-    "B.Eng. student specializing in Data Networks and Cybersecurity. Building practical AI safety tools and resilient security systems.",
+    "Application Specialist at 2M-IT, B.Eng. student in Cybersecurity. Building practical AI tools and resilient systems.",
   keywords: ["Petteri Kosonen", "Cybersecurity", "IT Support", "WebAssembly", "AI Safety", "Finland"],
   authors: [{ name: "Petteri Kosonen" }],
   manifest: "/manifest.json",
@@ -33,16 +33,16 @@ export const metadata: Metadata = {
     types: { "application/rss+xml": "/feed.xml" },
   },
   openGraph: {
-    title: "Petteri Kosonen — Security Engineer",
-    description: "B.Eng. student specializing in Data Networks and Cybersecurity. WASM-powered portfolio.",
+    title: "Petteri Kosonen — Application Specialist",
+    description: "Application Specialist at 2M-IT. Cybersecurity, AI research, and prompt engineering.",
     type: "website",
     locale: "en_US",
     url: "https://petterikosonen.com",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Petteri Kosonen — Security Engineer",
-    description: "Cybersecurity, AI safety, and WebAssembly",
+    title: "Petteri Kosonen — Application Specialist",
+    description: "Cybersecurity, AI research, and prompt engineering",
   },
   robots: { index: true, follow: true },
 };
