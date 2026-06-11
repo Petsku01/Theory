@@ -223,9 +223,6 @@ export const NetworkNode = React.memo(function NetworkNode({
           >
             {displayText}
           </div>
-          <div className="text-[0.65rem] text-slate-400 mt-0.5">
-            {node.shortDesc}
-          </div>
         </div>
       </Html>
     </group>
