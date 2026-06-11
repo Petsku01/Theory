@@ -36,6 +36,7 @@ export function TitleOverlay({
     <AnimatePresence>
       {!hasInteracted && (
         <motion.div
+          key="title-overlay"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0, scale: 0.95, filter: "blur(8px)" }}

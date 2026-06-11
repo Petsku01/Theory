@@ -19,7 +19,7 @@ function ConnectionMiniMap({ node }: { node: CortexNode }) {
   const clusterColor = CLUSTER_COLORS[node.cluster] ?? "#00f0ff";
 
   return (
-    <div className="mt-3 flex items-center gap-1.5">
+    <div className="relative mt-3 flex items-center gap-1.5">
       {/* Center node */}
       <div className="flex flex-col items-center gap-0.5">
         <div
@@ -118,7 +118,7 @@ export function DetailPanel({
   stage: "show" | "hiding" | "hidden";
   onCloseAction: () => void;
 }) {
-  if (!node || stage === "hidden") return null;
+  if (!node) return null;
 
   const clusterColor = CLUSTER_COLORS[node.cluster] ?? "#00f0ff";
 
