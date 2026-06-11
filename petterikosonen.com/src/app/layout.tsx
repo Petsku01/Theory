@@ -80,7 +80,7 @@ export default function RootLayout({
           Skip to content
         </a>
 
-        <div className="relative z-10 flex min-h-screen flex-col">
+        <div className="relative z-[45] flex min-h-screen flex-col">
           <div className="container-shell py-4">
             <Navbar />
             <main id="main-content" role="main" className="mt-8 flex-1 pb-12">
