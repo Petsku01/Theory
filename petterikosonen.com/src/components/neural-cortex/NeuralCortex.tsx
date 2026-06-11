@@ -5,7 +5,7 @@ import { Canvas } from "@react-three/fiber";
 import { nodes, type CortexNode } from "@/lib/cortex-data";
 import { CortexScene } from "@/components/neural-cortex/CortexScene";
 import { DetailPanel } from "@/components/neural-cortex/DetailPanel";
-import { TitleOverlay } from "@/components/neural-cortex/TitleOverlay";
+
 import { Scanlines, Vignette, CortexLoader } from "@/components/neural-cortex/Overlays";
 import { AccessibleNav } from "@/components/neural-cortex/AccessibleNav";
 import { AudioReact } from "@/components/neural-cortex/AudioReact";
@@ -26,7 +26,6 @@ function GlobalStyles() {
 // ── Exported wrapper ──
 export default function NeuralCortex() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [hasInteracted, setHasInteracted] = useState(false);
   const [entered, setEntered] = useState(false);
   const [shakeTimestamp, setShakeTimestamp] = useState(0);
 
@@ -59,14 +58,11 @@ export default function NeuralCortex() {
   const handleNodeSelect = useCallback(
     (id: string | null) => {
       setSelectedId(id);
-      if (id !== null && !hasInteracted) {
-        setHasInteracted(true);
-      }
       if (id !== null) {
         setShakeTimestamp((prev) => prev + 1);
       }
     },
-    [hasInteracted]
+    []
   );
 
   const handleNodeHover = useCallback((_id: string | null) => {}, []);
@@ -107,8 +103,6 @@ export default function NeuralCortex() {
 
           <Scanlines />
           <Vignette />
-
-          <TitleOverlay hasInteracted={hasInteracted} />
 
           {selectedId && (
             <button
