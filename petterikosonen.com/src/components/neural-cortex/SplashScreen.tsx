@@ -34,9 +34,9 @@ export function SplashScreen({
           {/* Name */}
           <motion.p
             initial={{ opacity: 0 }}
-            animate={{ opacity: 0.5 }}
+            animate={{ opacity: 0.8 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-sm font-semibold tracking-wide text-slate-400/70 font-mono"
+            className="text-sm font-bold tracking-wide text-slate-100 font-mono"
           >
             Petteri Kosonen
           </motion.p>
