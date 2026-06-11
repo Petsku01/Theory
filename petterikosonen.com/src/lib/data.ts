@@ -50,6 +50,18 @@ export const blogPosts: BlogPost[] = [
     desc: "Apple's Gemini gamble signals foundation models as commodity inputs, the $15 trillion infrastructure debt crunch, specialised agents escaping the chat box, and evaluation reform as a survival skill",
     link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-06-09.md"
   },
+  {
+    title: "The Two-Speed Future of AI: What Microsoft's Supply-Chain Breach Reveals",
+    date: "2026-06-10",
+    desc: "Microsoft's supply-chain compromise, the growing gap between frontier capability and deployment maturity, and why AI's two-speed future demands different safety architectures for each lane",
+    link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-06-10.md"
+  },
+  {
+    title: "The End of Safe Harbor for AI: Rogue Agents, German Rulings, and the Proof-of-Human Mandate",
+    date: "2026-06-11",
+    desc: "A German court ruling, autonomous-agent incidents, and proof-of-human mandates signal the collapse of AI's safe harbor fiction and the rise of verifiable accountability",
+    link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-06-11.md"
+  },
 ];
 
 // Research entries -- papers, studies, analyses, guides
