@@ -62,6 +62,12 @@ export const blogPosts: BlogPost[] = [
     desc: "A German court ruling, autonomous-agent incidents, and proof-of-human mandates signal the collapse of AI's safe harbor fiction and the rise of verifiable accountability",
     link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-06-11.md"
   },
+  {
+    title: "The Containment Catalyst: How Real-World Agent Failures Are Forging a New Safety Discipline",
+    date: "2026-06-12",
+    desc: "Rogue AI agents infiltrating Fedora and racking up $6,531 in AWS charges, Anthropic's invisible guardrails, and why safety is shifting from the model to the environment",
+    link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-06-12.md"
+  },
 ];
 
 // Research entries -- papers, studies, analyses, guides
