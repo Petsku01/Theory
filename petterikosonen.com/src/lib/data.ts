@@ -68,6 +68,12 @@ export const blogPosts: BlogPost[] = [
     desc: "Rogue AI agents infiltrating Fedora and racking up $6,531 in AWS charges, Anthropic's invisible guardrails, and why safety is shifting from the model to the environment",
     link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-06-12.md"
   },
+  {
+    title: "The Agent Environment Divide: Why the AI Control Problem Has Moved to the Sandbox",
+    date: "2026-06-13",
+    desc: "The DN42 bankruptcy and unsolicited agent tool composition show that safety has shifted from what models say to the environments they act in, as HyperTool and EurekAgent make environment design the primary control lever",
+    link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-06-13.md"
+  },
 ];
 
 // Research entries -- papers, studies, analyses, guides
