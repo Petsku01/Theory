@@ -85,7 +85,11 @@ export function SoftParticles({
     if (shaderRef.current) {
       shaderRef.current.needsUpdate = true;
     }
-  }, []);
+    return () => {
+      shaderRef.current?.dispose();
+      texture.dispose();
+    };
+  }, [texture]);
 
   useFrame(() => {
     const mesh = meshRef.current;
@@ -101,7 +105,7 @@ export function SoftParticles({
       for (let j = 0; j < 3; j++) {
         pos[idx + j] += vel[idx + j];
         if (Math.abs(pos[idx + j]) > bounds[j]) {
-          pos[idx + j] = (bounds[j] - 0.1) * -Math.sign(pos[idx + j]) + (Math.random() - 0.5) * 0.3;
+          pos[idx + j] = Math.max(-bounds[j], Math.min(bounds[j], pos[idx + j]));
           vel[idx + j] *= -0.2;
         }
       }

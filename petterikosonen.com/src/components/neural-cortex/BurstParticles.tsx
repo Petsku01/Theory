@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { createSoftCircleTexture } from "@/components/neural-cortex/utils";
@@ -92,6 +92,14 @@ export function BurstParticles({
   const lifeRef = useRef(lifetimes);
   const freeRef = useRef(free);
   const colorRef = useRef(particleColors);
+
+  // Dispose material and texture on unmount
+  useEffect(() => {
+    return () => {
+      material.dispose();
+      texture.dispose();
+    };
+  }, [material, texture]);
 
   useFrame((_, delta) => {
     if (!meshRef.current) return;
@@ -190,7 +198,7 @@ export function BurstParticles({
         for (let j = 0; j < 3; j++) {
           const b = j === 0 ? bounds : 10;
           if (Math.abs(pos[idx + j]) > b) {
-            pos[idx + j] = (b - 0.1) * -Math.sign(pos[idx + j]);
+            pos[idx + j] = Math.max(-b, Math.min(b, pos[idx + j]));
             vel[idx + j] *= -0.2;
           }
         }

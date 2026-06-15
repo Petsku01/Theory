@@ -56,6 +56,8 @@ export default function WasmMatrixRain() {
       }
     }
 
+    let initialized = false;
+
     function doResize() {
       const parent = canvas!.parentElement;
       if (!parent || !wasm) return;
@@ -63,7 +65,12 @@ export default function WasmMatrixRain() {
       const h = parent.clientHeight;
       canvas!.width = w;
       canvas!.height = h;
-      wasm.init(w, h, (Date.now() & 0xFFFFFFFF) >>> 0);
+      if (!initialized) {
+        wasm!.init(w, h, (Date.now() & 0xFFFFFFFF) >>> 0);
+        initialized = true;
+      } else {
+        wasm!.resize(w, h);
+      }
     }
 
     function draw(time: number) {

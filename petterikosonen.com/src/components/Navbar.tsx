@@ -181,6 +181,7 @@ export default function Navbar() {
           className={`grid transition-[grid-template-rows] duration-300 ease-emphasis md:hidden ${
             open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
           }`}
+          {...(open ? {} : { inert: true, "aria-hidden": "true" })}
         >
           <ul className="overflow-hidden">
             <li className="pt-3" aria-hidden="true">

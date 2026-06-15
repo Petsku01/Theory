@@ -39,13 +39,18 @@ export default function HeroSection() {
   const containerRef = useRef<HTMLElement>(null);
   const [mousePos, setMousePos] = useState({ x: 0.5, y: 0.5 });
 
-  // Parallax mouse tracking for the hero
+  // Parallax mouse tracking for the hero (RAF-throttled)
+  const rafRef = useRef<number>(0);
   const onMouseMove = useCallback((e: React.MouseEvent<HTMLElement>) => {
     if (reduced) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    setMousePos({
-      x: (e.clientX - rect.left) / rect.width,
-      y: (e.clientY - rect.top) / rect.height,
+    if (rafRef.current) return; // throttle to one update per frame
+    rafRef.current = requestAnimationFrame(() => {
+      const rect = e.currentTarget.getBoundingClientRect();
+      setMousePos({
+        x: (e.clientX - rect.left) / rect.width,
+        y: (e.clientY - rect.top) / rect.height,
+      });
+      rafRef.current = 0;
     });
   }, [reduced]);
 
