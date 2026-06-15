@@ -24,42 +24,49 @@ interface WasmExports {
 }
 
 let wasmExports: WasmExports | null = null;
-let wasmLoading = false;
+let wasmPromise: Promise<boolean> | null = null;
 let wasmStatus: "loading" | "wasm" | "js" = "loading";
 
 export function getWasmStatus() {
   return wasmStatus;
 }
 
+async function loadWasm(): Promise<boolean> {
+  const response = await fetch("/wasm/wasm_particles_bg.wasm");
+  if (!response.ok) {
+    throw new Error(`WASM fetch failed: ${response.status}`);
+  }
+  const { instance } = await WebAssembly.instantiateStreaming(response, {
+    "./wasm_particles_bg.js": {
+      __wbg___wbindgen_throw_ea4887a5f8f9a9db: function(arg0: number, arg1: number) {
+        throw new Error(`WASM throw at offset ${arg0}, len ${arg1}`);
+      },
+      __wbindgen_init_externref_table: function() {
+        // Required by wasm-bindgen externref table initialization
+      },
+    },
+  });
+  const exports = instance.exports as unknown as WasmExports;
+  if (typeof exports.particlesystem_new !== "function") {
+    throw new Error("Missing required WASM export: particlesystem_new");
+  }
+  if (exports.__wbindgen_start) {
+    exports.__wbindgen_start();
+  }
+  wasmExports = exports;
+  wasmStatus = "wasm";
+  return true;
+}
+
 async function ensureWasm(): Promise<boolean> {
   if (wasmExports) return true;
-  if (wasmLoading) return false;
-  wasmLoading = true;
-
-  try {
-    const response = await fetch("/wasm/wasm_particles_bg.wasm");
-    const { instance } = await WebAssembly.instantiateStreaming(response, {
-      "./wasm_particles_bg.js": {
-        __wbg___wbindgen_throw_ea4887a5f8f9a9db: function(arg0: number, arg1: number) {
-          throw new Error(`WASM throw at offset ${arg0}, len ${arg1}`);
-        },
-        __wbindgen_init_externref_table: function() {
-          // Required by wasm-bindgen externref table initialization
-        },
-      },
-    });
-    const exports = instance.exports as unknown as WasmExports;
-    if (exports.__wbindgen_start) {
-      exports.__wbindgen_start();
-    }
-    wasmExports = exports;
-    wasmStatus = "wasm";
-    return true;
-  } catch (err) {
+  wasmPromise ??= loadWasm().catch((err) => {
     console.warn("[WasmSoftParticles] WASM load failed, using JS fallback:", err);
+    wasmPromise = null; // Allow retry on next mount
     wasmStatus = "js";
     return false;
-  }
+  });
+  return wasmPromise;
 }
 
 export function WasmSoftParticles({
