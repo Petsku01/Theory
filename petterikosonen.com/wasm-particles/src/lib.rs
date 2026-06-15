@@ -21,6 +21,16 @@ pub struct ParticleSystem {
 impl ParticleSystem {
     #[wasm_bindgen(constructor)]
     pub fn new(count: usize, x_bound: f32, y_bound: f32, z_bound: f32) -> ParticleSystem {
+        // Guard against overflow: count * PARTICLE_STRIDE must fit in usize
+        const MAX_PARTICLES: usize = 100_000;
+        let count = count.min(MAX_PARTICLES);
+        if count == 0 {
+            return ParticleSystem {
+                data: Vec::new(),
+                count: 0,
+                bounds: [x_bound, y_bound, z_bound],
+            };
+        }
         let mut data = vec![0.0f32; count * PARTICLE_STRIDE];
         for i in 0..count {
             let base = i * PARTICLE_STRIDE;
@@ -113,15 +123,6 @@ impl ParticleSystem {
         }
 
         data.as_ptr()
-    }
-
-    /// Get pointer to size data (count f32s, stride PARTICLE_STRIDE)
-    #[wasm_bindgen]
-    pub fn sizes_ptr(&self) -> *const f32 {
-        // Sizes are at offset 6 within each particle
-        // For JS, we need a packed array. We'll copy sizes into a separate buffer.
-        // Actually, return the raw data pointer and let JS handle stride.
-        self.data.as_ptr()
     }
 
     /// Get the particle count

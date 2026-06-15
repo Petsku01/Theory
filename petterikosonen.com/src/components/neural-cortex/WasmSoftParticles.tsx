@@ -213,6 +213,10 @@ export function WasmSoftParticles({
           vel[idx + 1] += (dy / dist) * 0.0003;
           vel[idx + 2] += (dz / dist) * 0.0003;
         }
+        // Damping (matches WASM DAMPING = 0.998)
+        vel[idx] *= 0.998;
+        vel[idx + 1] *= 0.998;
+        vel[idx + 2] *= 0.998;
         const maxVel = 0.02;
         for (let j = 0; j < 3; j++) {
           if (Math.abs(vel[idx + j]) > maxVel) vel[idx + j] = maxVel * Math.sign(vel[idx + j]);
