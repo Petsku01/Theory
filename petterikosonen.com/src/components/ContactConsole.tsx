@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import StatusPill from "@/components/StatusPill";
 import { useInView } from "@/hooks/useInView";
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 
 const EMAIL = "petteri.a.kosonen@proton.me";
 
@@ -25,11 +26,17 @@ const SOCIAL_LINKS = [
 ] as const;
 
 /** Terminal typing animation for the console */
-function useTerminalType(text: string, speed = 35, startDelay = 600) {
-  const [displayed, setDisplayed] = useState("");
-  const [done, setDone] = useState(false);
+function useTerminalType(text: string, speed = 35, startDelay = 600, reduced = false) {
+  const [displayed, setDisplayed] = useState(reduced ? text : "");
+  const [done, setDone] = useState(reduced);
 
   useEffect(() => {
+    if (reduced) {
+      setDisplayed(text);
+      setDone(true);
+      return;
+    }
+
     let i = 0;
     let timeout: ReturnType<typeof setTimeout>;
 
@@ -49,23 +56,26 @@ function useTerminalType(text: string, speed = 35, startDelay = 600) {
       clearTimeout(startTimeout);
       clearTimeout(timeout);
     };
-  }, [text, speed, startDelay]);
+  }, [text, speed, startDelay, reduced]);
 
   return { displayed, done };
 }
 
 export default function ContactConsole() {
   const [copied, setCopied] = useState(false);
+  const reduced = usePrefersReducedMotion();
   const { ref: sectionRef, inView } = useInView<HTMLElement>({ threshold: 0.15 });
   const { displayed: commandText, done: cmdDone } = useTerminalType(
     "whoami --contact",
     40,
-    inView ? 400 : 99999 // only start when in view
+    inView ? 400 : 99999,
+    reduced
   );
   const { displayed: emailText } = useTerminalType(
     EMAIL,
     25,
-    inView ? 1200 : 99999
+    inView ? 1200 : 99999,
+    reduced
   );
 
   const copyEmail = useCallback(async () => {
@@ -83,7 +93,7 @@ export default function ContactConsole() {
       ref={sectionRef}
       id="contact"
       className={`relative overflow-hidden rounded-3xl glass-card p-8 shadow-terminal-lg sm:p-12 ${
-        inView ? "animate-fade-in-up opacity-100 translate-y-0" : "opacity-100"
+        inView ? "animate-fade-in-up opacity-100 translate-y-0" : "opacity-0 translate-y-4"
       }`}
     >
       {/* Decorative glows */}
