@@ -26,14 +26,14 @@ export function BurstParticles({
   // Per-particle color storage (set at spawn time, never changes)
   const particleColors = useMemo(() => {
     const colors = new Float32Array(count * 3);
-    const c = new THREE.Color("#00f0ff");
+    const c = new THREE.Color(color);
     for (let i = 0; i < count * 3; i += 3) {
       colors[i] = c.r;
       colors[i + 1] = c.g;
       colors[i + 2] = c.b;
     }
     return colors;
-  }, [count]);
+  }, [count, color]);
 
   const { positions, sizes, alphas, velocities, lifetimes, free } = useMemo(() => {
     const pos = new Float32Array(count * 3);
