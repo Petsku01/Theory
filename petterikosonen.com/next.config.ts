@@ -20,6 +20,12 @@ const nextConfig: NextConfig = {
 
     return [
       {
+        source: "/wasm/:path*.wasm",
+        headers: [
+          { key: "Content-Type", value: "application/wasm" },
+        ],
+      },
+      {
         source: "/(.*)",
         headers: [
           { key: "X-Frame-Options", value: "DENY" },
