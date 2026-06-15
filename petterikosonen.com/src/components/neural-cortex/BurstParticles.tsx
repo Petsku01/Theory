@@ -13,7 +13,7 @@ import { createSoftCircleTexture } from "@/components/neural-cortex/utils";
 export function BurstParticles({
   origin,
   color = "#00f0ff",
-  count = 80,
+  count = 160,
 }: {
   origin: THREE.Vector3 | null;
   color?: string;

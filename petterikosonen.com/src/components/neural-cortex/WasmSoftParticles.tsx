@@ -70,7 +70,7 @@ async function ensureWasm(): Promise<boolean> {
 }
 
 export function WasmSoftParticles({
-  count = 1800,
+  count = 3600,
   targetPos,
   color = "#00f0ff",
 }: {

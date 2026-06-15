@@ -69,7 +69,7 @@ export function CortexScene({
       <pointLight position={[10, 10, 10]} intensity={0.4} color="#00f0ff" />
       <pointLight position={[-10, -5, -10]} intensity={0.3} color="#22d3ee" />
 
-      <WasmSoftParticles count={1800} targetPos={attractionTarget} color="#00f0ff" />
+      <WasmSoftParticles count={3600} targetPos={attractionTarget} color="#00f0ff" />
       <BurstParticles
         origin={targetPosition}
         color={

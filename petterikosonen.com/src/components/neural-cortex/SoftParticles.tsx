@@ -7,7 +7,7 @@ import { createSoftCircleTexture } from "@/components/neural-cortex/utils";
 
 // ── Soft-circle particles with per-particle alpha & attraction ──
 export function SoftParticles({
-  count = 500,
+  count = 1000,
   targetPos,
   color = "#00f0ff",
 }: {
