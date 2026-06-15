@@ -4,6 +4,7 @@ import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } fr
 import { Canvas } from "@react-three/fiber";
 import { nodes, type CortexNode } from "@/lib/cortex-data";
 import { CortexScene } from "@/components/neural-cortex/CortexScene";
+import { getWasmStatus } from "@/components/neural-cortex/WasmSoftParticles";
 import { DetailPanel } from "@/components/neural-cortex/DetailPanel";
 
 import { Scanlines, Vignette, CortexLoader } from "@/components/neural-cortex/Overlays";
@@ -154,8 +155,28 @@ export default function NeuralCortex() {
           />
 
           <AccessibleNav onSelect={(id) => handleNodeSelect(id)} />
+
+          {/* WASM status badge */}
+          <WasmBadge />
         </>
       )}
+    </div>
+  );
+}
+
+function WasmBadge() {
+  const [status, setStatus] = useState(getWasmStatus());
+  useEffect(() => {
+    const id = setInterval(() => setStatus(getWasmStatus()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const label = status === "wasm" ? "WASM" : status === "js" ? "JS" : "...";
+  const color = status === "wasm" ? "text-emerald-400 border-emerald-500/40" : status === "js" ? "text-amber-400 border-amber-500/40" : "text-slate-500 border-slate-600/40";
+  return (
+    <div className="pointer-events-none absolute bottom-6 right-6 z-20 select-none">
+      <span className={`rounded border px-2 py-0.5 font-mono text-[10px] ${color} bg-[#0a0a0f]/80 backdrop-blur-sm`}>
+        {label}
+      </span>
     </div>
   );
 }

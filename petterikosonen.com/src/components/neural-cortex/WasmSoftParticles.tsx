@@ -25,6 +25,11 @@ interface WasmExports {
 
 let wasmExports: WasmExports | null = null;
 let wasmLoading = false;
+let wasmStatus: "loading" | "wasm" | "js" = "loading";
+
+export function getWasmStatus() {
+  return wasmStatus;
+}
 
 async function ensureWasm(): Promise<boolean> {
   if (wasmExports) return true;
@@ -48,9 +53,11 @@ async function ensureWasm(): Promise<boolean> {
       exports.__wbindgen_start();
     }
     wasmExports = exports;
+    wasmStatus = "wasm";
     return true;
   } catch (err) {
     console.warn("[WasmSoftParticles] WASM load failed, using JS fallback:", err);
+    wasmStatus = "js";
     return false;
   }
 }
