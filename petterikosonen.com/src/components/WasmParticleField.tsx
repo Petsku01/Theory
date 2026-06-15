@@ -32,6 +32,7 @@ export default function WasmParticleField({ particleCount = 1200, className = ""
   const wasmRef = useRef<ParticleExports | null>(null);
   const rafRef = useRef<number>(0);
   const mouseRef = useRef({ x: 0, y: 0, active: false });
+  const sizeRef = useRef({ w: 0, h: 0 });
   const [ready, setReady] = useState(false);
 
   const render = useCallback(() => {
@@ -42,16 +43,7 @@ export default function WasmParticleField({ particleCount = 1200, className = ""
     const ctx = canvas.getContext("2d", { alpha: true });
     if (!ctx) return;
 
-    const dpr = Math.min(window.devicePixelRatio, 2);
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-
-    if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
-      canvas.width = w * dpr;
-      canvas.height = h * dpr;
-      ctx.scale(dpr, dpr);
-      wasm.init(particleCount, w, h, (Date.now() & 0xFFFFFFFF) >>> 0);
-    }
+    const { w, h } = sizeRef.current;
 
     const mouse = mouseRef.current;
     wasm.update(w, h, mouse.x, mouse.y, mouse.active ? 1 : 0, performance.now());
@@ -113,7 +105,15 @@ export default function WasmParticleField({ particleCount = 1200, className = ""
 
         const canvas = canvasRef.current;
         if (canvas) {
-          exports.init(particleCount, window.innerWidth, window.innerHeight, (Date.now() & 0xFFFFFFFF) >>> 0);
+          const dpr = Math.min(window.devicePixelRatio, 2);
+          const w = canvas.clientWidth;
+          const h = canvas.clientHeight;
+          canvas.width = w * dpr;
+          canvas.height = h * dpr;
+          const ctx = canvas.getContext("2d", { alpha: true });
+          if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          sizeRef.current = { w, h };
+          exports.init(particleCount, w, h, (Date.now() & 0xFFFFFFFF) >>> 0);
         }
 
         setReady(true);
@@ -141,11 +141,31 @@ export default function WasmParticleField({ particleCount = 1200, className = ""
     window.addEventListener("mousemove", onMouseMove, { passive: true });
     window.addEventListener("mouseleave", onMouseLeave);
 
+    // ResizeObserver for canvas sizing
+    const onResize = () => {
+      const canvas = canvasRef.current;
+      const wasm = wasmRef.current;
+      if (!canvas || !wasm) return;
+      const dpr = Math.min(window.devicePixelRatio, 2);
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      const ctx = canvas.getContext("2d", { alpha: true });
+      if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      sizeRef.current = { w, h };
+      wasm.update(w, h, 0, 0, 0, performance.now());
+    };
+
+    const resizeObserver = new ResizeObserver(onResize);
+    if (canvasRef.current) resizeObserver.observe(canvasRef.current);
+
     return () => {
       cancelled = true;
       cancelAnimationFrame(rafRef.current);
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseleave", onMouseLeave);
+      resizeObserver.disconnect();
     };
   }, [reducedMotion, particleCount, render]);
 

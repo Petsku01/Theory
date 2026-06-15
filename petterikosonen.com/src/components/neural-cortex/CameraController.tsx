@@ -20,6 +20,9 @@ export function CameraController({
   const shakeDirection = useRef<THREE.Vector3>(new THREE.Vector3());
   const isUserControlled = useRef(false);
   const isLerping = useRef(false);
+  // Reusable vectors to avoid per-frame allocations
+  const cameraOffset = useRef(new THREE.Vector3(0, 2, 4));
+  const desiredPos = useRef(new THREE.Vector3());
 
   // Reset auto-lerp when target changes
   const targetKey = target
@@ -65,13 +68,12 @@ export function CameraController({
 
     // Lerp toward target only when actively lerping (not user-controlled)
     if (target && isLerping.current) {
-      const cameraOffset = new THREE.Vector3(0, 2, 4);
-      const desiredPos = target.clone().add(cameraOffset);
-      controls.object.position.lerp(desiredPos, delta * 1.2);
+      desiredPos.current.copy(target).add(cameraOffset.current);
+      controls.object.position.lerp(desiredPos.current, delta * 1.2);
       controls.target.lerp(target, delta * 1.5);
 
       // Check if we've arrived close enough -- stop lerping
-      const dist = controls.object.position.distanceTo(desiredPos);
+      const dist = controls.object.position.distanceTo(desiredPos.current);
       if (dist < 0.3) {
         isLerping.current = false;
       }

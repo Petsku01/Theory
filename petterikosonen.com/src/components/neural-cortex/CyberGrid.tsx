@@ -1,11 +1,13 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 
-// ── Canvas-textured grid floor ──
+// ── Canvas-textured grid floor (SSR-safe) ──
 export function CyberGrid() {
-  const texture = useMemo(() => {
+  const textureRef = useRef<THREE.CanvasTexture | null>(null);
+
+  const createTexture = () => {
     const canvas = document.createElement("canvas");
     canvas.width = 1024;
     canvas.height = 1024;
@@ -43,8 +45,27 @@ export function CyberGrid() {
 
     const tex = new THREE.CanvasTexture(canvas);
     tex.needsUpdate = true;
+    textureRef.current = tex;
     return tex;
+  };
+
+  // Create texture client-side only
+  const texture = useMemo(() => {
+    if (typeof document === "undefined") return null;
+    return createTexture();
   }, []);
+
+  // Dispose texture on unmount
+  useEffect(() => {
+    return () => {
+      if (textureRef.current) {
+        textureRef.current.dispose();
+        textureRef.current = null;
+      }
+    };
+  }, []);
+
+  if (!texture) return null;
 
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -3, 0]}>

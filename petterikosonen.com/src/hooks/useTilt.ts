@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, type MouseEvent as ReactMouseEvent } from "react";
+import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 
 interface TiltConfig {
   maxDeg?: number;
@@ -13,6 +14,7 @@ interface TiltConfig {
  * 3D card tilt effect driven by mouse position.
  * Returns handlers and a ref for the container.
  * Applies CSS transform directly for zero re-renders.
+ * Respects prefers-reduced-motion by disabling tilt.
  */
 export function useTilt<T extends HTMLElement = HTMLDivElement>({
   maxDeg = 8,
@@ -21,9 +23,11 @@ export function useTilt<T extends HTMLElement = HTMLDivElement>({
   speed = 400,
 }: TiltConfig = {}) {
   const ref = useRef<T>(null);
+  const reduced = usePrefersReducedMotion();
 
   const onMouseMove = useCallback(
     (e: ReactMouseEvent<T>) => {
+      if (reduced) return;
       const el = ref.current;
       if (!el) return;
 
@@ -36,7 +40,7 @@ export function useTilt<T extends HTMLElement = HTMLDivElement>({
       el.style.transform = `perspective(${perspective}px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(${scale}, ${scale}, ${scale})`;
       el.style.transition = `transform ${speed * 0.3}ms ease-out`;
     },
-    [maxDeg, perspective, scale, speed]
+    [maxDeg, perspective, scale, speed, reduced],
   );
 
   const onMouseLeave = useCallback(() => {

@@ -15,17 +15,23 @@ export default function ScrollProgress({ sections }: ScrollProgressProps) {
   useEffect(() => {
     if (sections.length === 0) return;
 
+    let ticking = false;
     const onScroll = () => {
-      const midpoint = window.innerHeight * 0.32;
-      for (const section of sections) {
-        const el = document.getElementById(section.id);
-        if (!el) continue;
-        const rect = el.getBoundingClientRect();
-        if (rect.top <= midpoint && rect.bottom > midpoint) {
-          setActive(section.id);
-          break;
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        const midpoint = window.innerHeight * 0.32;
+        for (const section of sections) {
+          const el = document.getElementById(section.id);
+          if (!el) continue;
+          const rect = el.getBoundingClientRect();
+          if (rect.top <= midpoint && rect.bottom > midpoint) {
+            setActive(section.id);
+            break;
+          }
         }
-      }
+        ticking = false;
+      });
     };
 
     onScroll();

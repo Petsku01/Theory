@@ -54,7 +54,7 @@ export default function WasmSecurityShield() {
     if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
       canvas.width = w * dpr;
       canvas.height = h * dpr;
-      ctx.scale(dpr, dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
 
     const dt = Math.min((timestamp - lastTimeRef.current) / 1000, 0.05);
