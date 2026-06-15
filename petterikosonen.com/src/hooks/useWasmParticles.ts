@@ -42,6 +42,7 @@ export function useWasmParticles(
   const wasmRef = useRef<ParticleExports | null>(null);
   const rafRef = useRef<number>(0);
   const mouseRef = useRef({ x: 0, y: 0, active: false });
+  const rectRef = useRef<DOMRect | null>(null);
 
   const render = useCallback(() => {
     const wasm = wasmRef.current;
@@ -58,9 +59,11 @@ export function useWasmParticles(
     if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
       canvas.width = w * dpr;
       canvas.height = h * dpr;
-      ctx.scale(dpr, dpr);
-      // Reinit particles on resize
-      wasm.init(particleCount, w, h, (Date.now() & 0xFFFFFFFF) >>> 0);
+      // setTransform resets the transform matrix before applying the scale
+      // (ctx.scale accumulates on each resize, corrupting coordinates)
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      // Cache the bounding rect after resize so mousemove doesn't force layout
+      rectRef.current = null;
     }
 
     const mouse = mouseRef.current;
@@ -146,11 +149,15 @@ export function useWasmParticles(
 
     loadWasm();
 
-    // Mouse tracking
+    // Mouse tracking (cached bounding rect to avoid forced layout in mousemove)
     const onMouseMove = (e: MouseEvent) => {
       const canvas = canvasRef.current;
       if (!canvas) return;
-      const rect = canvas.getBoundingClientRect();
+      // Cache the rect, invalidate on resize/scroll
+      if (!rectRef.current) {
+        rectRef.current = canvas.getBoundingClientRect();
+      }
+      const rect = rectRef.current;
       mouseRef.current.x = e.clientX - rect.left;
       mouseRef.current.y = e.clientY - rect.top;
       mouseRef.current.active = true;
@@ -160,14 +167,22 @@ export function useWasmParticles(
       mouseRef.current.active = false;
     };
 
+    const invalidateRect = () => {
+      rectRef.current = null;
+    };
+
     window.addEventListener("mousemove", onMouseMove, { passive: true });
     window.addEventListener("mouseleave", onMouseLeave);
+    window.addEventListener("resize", invalidateRect, { passive: true });
+    window.addEventListener("scroll", invalidateRect, { passive: true });
 
     return () => {
       cancelled = true;
       cancelAnimationFrame(rafRef.current);
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseleave", onMouseLeave);
+      window.removeEventListener("resize", invalidateRect);
+      window.removeEventListener("scroll", invalidateRect);
     };
   }, [enabled, particleCount, render]);
 

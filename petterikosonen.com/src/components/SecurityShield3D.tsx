@@ -6,6 +6,7 @@ import { Center, Float, Sparkles } from "@react-three/drei";
 import type { AmbientLight, Group, Mesh, Points } from "three";
 import { AdditiveBlending, Color } from "three";
 import type { MeshPhysicalMaterial, MeshStandardMaterial } from "three";
+import { useReducedMotion } from "framer-motion";
 
 function seededUnit(seed: number) {
   const x = Math.sin(seed * 12.9898) * 43758.5453;
@@ -252,6 +253,7 @@ function MobileFallback() {
 
 export default function SecurityShield3D() {
   const [isMobile, setIsMobile] = useState(false);
+  const reduceMotion = useReducedMotion();
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 767px)");
@@ -272,12 +274,12 @@ export default function SecurityShield3D() {
     };
   }, []);
 
-  if (isMobile) {
+  if (isMobile || reduceMotion) {
     return <MobileFallback />;
   }
 
   return (
-    <div className="h-full w-full">
+    <div className="h-full w-full" role="img" aria-label="Interactive 3D security visualization">
       <Canvas
         camera={{ position: [0, 0, 7], fov: 45 }}
         dpr={[1, 1.5]}

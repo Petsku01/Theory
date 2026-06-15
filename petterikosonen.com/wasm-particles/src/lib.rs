@@ -78,17 +78,17 @@ impl ParticleSystem {
             py += vy;
             pz += vz;
 
-            // Boundary reflection (matches JS: bounce back with dampened velocity)
+            // Boundary reflection with clamping (matches JS: bounce back with dampened velocity)
             if px.abs() > bounds[0] {
-                px = (bounds[0] - 0.1) * -px.signum() + (pseudo_random(i, 10) - 0.5) * 0.3;
+                px = px.clamp(-bounds[0], bounds[0]);
                 vx *= -0.2;
             }
             if py.abs() > bounds[1] {
-                py = (bounds[1] - 0.1) * -py.signum() + (pseudo_random(i, 11) - 0.5) * 0.3;
+                py = py.clamp(-bounds[1], bounds[1]);
                 vy *= -0.2;
             }
             if pz.abs() > bounds[2] {
-                pz = (bounds[2] - 0.1) * -pz.signum() + (pseudo_random(i, 12) - 0.5) * 0.3;
+                pz = pz.clamp(-bounds[2], bounds[2]);
                 vz *= -0.2;
             }
 

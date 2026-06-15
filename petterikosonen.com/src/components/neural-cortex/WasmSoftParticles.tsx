@@ -85,22 +85,24 @@ export function WasmSoftParticles({
   const particlePtr = useRef<number>(0);
 
   // JS fallback state (identical to original SoftParticles)
-  const { positions, sizes, alphas, velocities } = useMemo(() => {
+  const { positions, sizes, alphas, velocities, baseSizes } = useMemo(() => {
     const pos = new Float32Array(count * 3);
     const s = new Float32Array(count);
     const a = new Float32Array(count);
     const vel = new Float32Array(count * 3);
+    const base = new Float32Array(count);
     for (let i = 0; i < count; i++) {
       pos[i * 3] = (Math.random() - 0.5) * 30;
       pos[i * 3 + 1] = (Math.random() - 0.5) * 20;
       pos[i * 3 + 2] = (Math.random() - 0.5) * 20;
       s[i] = 0.06 + Math.random() * 0.06;
+      base[i] = s[i];
       a[i] = 0.3 + Math.random() * 0.4;
       vel[i * 3] = (Math.random() - 0.5) * 0.005;
       vel[i * 3 + 1] = (Math.random() - 0.5) * 0.005;
       vel[i * 3 + 2] = (Math.random() - 0.5) * 0.005;
     }
-    return { positions: pos, sizes: s, alphas: a, velocities: vel };
+    return { positions: pos, sizes: s, alphas: a, velocities: vel, baseSizes: base };
   }, [count]);
 
   const texture = useMemo(() => createSoftCircleTexture(), []);
@@ -119,6 +121,7 @@ export function WasmSoftParticles({
           vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
           gl_Position = projectionMatrix * mvPosition;
           gl_PointSize = size * (200.0 / -mvPosition.z);
+          gl_PointSize = min(gl_PointSize, 64.0);
           vAlpha = alpha;
         }
       `,
@@ -140,6 +143,16 @@ export function WasmSoftParticles({
 
   const posRef = useRef(positions);
   const velRef = useRef(velocities);
+  const alphasRef = useRef(alphas);
+  const baseSizesRef = useRef(baseSizes);
+
+  // FIX 1: Reset fallback refs when count changes so they stay in sync with the geometry
+  useEffect(() => {
+    posRef.current = positions;
+    velRef.current = velocities;
+    alphasRef.current = alphas;
+    baseSizesRef.current = baseSizes;
+  }, [count, positions, velocities, alphas, baseSizes]);
 
   useEffect(() => {
     let cancelled = false;
@@ -158,7 +171,24 @@ export function WasmSoftParticles({
     };
   }, [count, bounds]);
 
-  useFrame(() => {
+  // FIX 3: Dispose ShaderMaterial and texture when no longer needed
+  useEffect(() => {
+    return () => {
+      material.dispose();
+    };
+  }, [material]);
+
+  useEffect(() => {
+    return () => {
+      texture.dispose();
+      meshRef.current?.geometry?.dispose();
+    };
+  }, []);
+
+  useFrame((state, delta) => {
+    // FIX 4: Skip updates when the page/tab is hidden
+    if (typeof document !== "undefined" && document.hidden) return;
+
     const mesh = meshRef.current;
     if (!mesh) return;
     const geo = mesh.geometry;
@@ -199,9 +229,14 @@ export function WasmSoftParticles({
       sizeAttr.needsUpdate = true;
       alphaAttr.needsUpdate = true;
     } else {
-      // JS fallback (original SoftParticles logic)
+      // FIX 2: JS fallback must also update sizes and alphas
       const pos = posRef.current;
       const vel = velRef.current;
+      const al = alphaAttr.array as Float32Array;
+      const sz = sizeAttr.array as Float32Array;
+      const baseSizes = baseSizesRef.current;
+      const time = state.clock.elapsedTime;
+
       for (let i = 0; i < count; i++) {
         const idx = i * 3;
         for (let j = 0; j < 3; j++) {
@@ -228,9 +263,21 @@ export function WasmSoftParticles({
         for (let j = 0; j < 3; j++) {
           if (Math.abs(vel[idx + j]) > maxVel) vel[idx + j] = maxVel * Math.sign(vel[idx + j]);
         }
+
+        // Fade alpha over time, then respawn the particle's opacity
+        al[i] -= delta * 0.15;
+        if (al[i] <= 0.05) {
+          al[i] = 0.3 + Math.random() * 0.4;
+        }
+
+        // Vary size smoothly using a stored base size
+        sz[i] = baseSizes[i] * (1.0 + 0.5 * Math.sin(time * 1.5 + i));
       }
+
       for (let i = 0; i < count * 3; i++) posAttr.array[i] = pos[i];
       posAttr.needsUpdate = true;
+      sizeAttr.needsUpdate = true;
+      alphaAttr.needsUpdate = true;
     }
   });
 
