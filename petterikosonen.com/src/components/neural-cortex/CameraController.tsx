@@ -2,6 +2,8 @@
 
 import React, { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
+import { OrbitControls } from "@react-three/drei";
+import { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import * as THREE from "three";
 
 // ── Camera controller with sinusoidal shake + user override ──
@@ -13,7 +15,7 @@ export function CameraController({
   shakeTimestamp,
 }: {
   target: THREE.Vector3 | null;
-  controlsRef: React.RefObject<any>;
+  controlsRef: React.RefObject<OrbitControlsImpl | null>;
   shakeTimestamp: number;
 }) {
   const shakeStartTime = useRef<number>(0);

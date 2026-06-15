@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
+import { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import * as THREE from "three";
 import { nodes, edges } from "@/lib/cortex-data";
@@ -28,7 +29,7 @@ export function CortexScene({
 }) {
   const positions = useMemo(() => computePositions(nodes), []);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const controlsRef = useRef<any>(null);
+  const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const selectedIdRef = useRef(selectedId);
   selectedIdRef.current = selectedId;
 
