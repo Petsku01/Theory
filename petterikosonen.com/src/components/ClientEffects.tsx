@@ -2,6 +2,7 @@
 
 import WasmParticleField from "@/components/WasmParticleField";
 import WasmSpotlightCursor from "@/components/WasmSpotlightCursor";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 /**
  * Client-only visual effects wrapper.
@@ -15,9 +16,9 @@ import WasmSpotlightCursor from "@/components/WasmSpotlightCursor";
  */
 export default function ClientEffects() {
   return (
-    <>
+    <ErrorBoundary fallback={null}>
       <WasmParticleField particleCount={1200} />
       <WasmSpotlightCursor />
-    </>
+    </ErrorBoundary>
   );
 }

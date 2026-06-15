@@ -39,6 +39,9 @@ const EdgeCylinder = React.memo(function EdgeCylinder({
   );
 });
 
+// ── Shared geometry for energy pulses (avoid per-instance allocation) ──
+const PULSE_GEOMETRY = /* @__PURE__ */ new THREE.SphereGeometry(1, 8, 8);
+
 // ── Energy Pulse (travelling light along an edge) ──
 function EnergyPulse({
   from,
@@ -57,18 +60,19 @@ function EnergyPulse({
 }) {
   const sphereRef = useRef<THREE.Mesh>(null);
   const offsetRef = useRef(Math.random() * speed);
+  const posRef = useRef(new THREE.Vector3());
 
   useFrame((state) => {
     if (!sphereRef.current) return;
     const t = (state.clock.elapsedTime + offsetRef.current) % speed;
     const progress = t / speed;
-    const pos = new THREE.Vector3().lerpVectors(from, to, progress);
-    sphereRef.current.position.copy(pos);
+    posRef.current.lerpVectors(from, to, progress);
+    sphereRef.current.position.copy(posRef.current);
   });
 
   return (
-    <mesh ref={sphereRef} renderOrder={0}>
-      <sphereGeometry args={[pulseSize, 8, 8]} />
+    <mesh ref={sphereRef} renderOrder={0} scale={pulseSize}>
+      <primitive object={PULSE_GEOMETRY} attach="geometry" />
       <meshBasicMaterial color={color} transparent opacity={opacity} depthWrite={false} />
     </mesh>
   );

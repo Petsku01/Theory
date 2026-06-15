@@ -54,6 +54,8 @@ export default function InteractiveBackground() {
       }
 
       trail.push({ x: mouse.x, y: mouse.y, age: 0 });
+      // Cap trail length to prevent unbounded growth
+      if (trail.length > 200) trail.splice(0, trail.length - 200);
       lastMouseRef.current = { x: mouse.x, y: mouse.y };
     }
 
@@ -71,8 +73,10 @@ export default function InteractiveBackground() {
     }
     trailRef.current = newTrail;
 
-    // Draw trail lines with gradient
+    // Draw trail lines with gradient (batch every 2nd point for perf)
     if (newTrail.length > 1) {
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
       for (let i = 1; i < newTrail.length; i++) {
         const prev = newTrail[i - 1];
         const curr = newTrail[i];
@@ -157,14 +161,13 @@ export default function InteractiveBackground() {
     if (!canvas) return;
 
     const resize = () => {
-      const dpr = window.devicePixelRatio || 1;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
       canvas.width = window.innerWidth * dpr;
       canvas.height = window.innerHeight * dpr;
       
       const ctx = canvas.getContext("2d");
       if (ctx) {
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.scale(dpr, dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       }
     };
 
@@ -175,6 +178,15 @@ export default function InteractiveBackground() {
       mouseRef.current = { x: e.clientX, y: e.clientY };
     };
 
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 0) return;
+      const touch = e.touches[0];
+      if (mouseRef.current.x < 0) {
+        lastMouseRef.current = { x: touch.clientX, y: touch.clientY };
+      }
+      mouseRef.current = { x: touch.clientX, y: touch.clientY };
+    };
+
     const handleMouseLeave = () => {
       mouseRef.current = { x: -1000, y: -1000 };
     };
@@ -182,6 +194,7 @@ export default function InteractiveBackground() {
     resize();
     window.addEventListener("resize", resize);
     window.addEventListener("mousemove", handleMouseMove, { passive: true });
+    window.addEventListener("touchmove", handleTouchMove, { passive: true });
     window.addEventListener("mouseleave", handleMouseLeave);
 
     animationRef.current = requestAnimationFrame(() => animateRef.current());
@@ -189,6 +202,7 @@ export default function InteractiveBackground() {
     return () => {
       window.removeEventListener("resize", resize);
       window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("touchmove", handleTouchMove);
       window.removeEventListener("mouseleave", handleMouseLeave);
       cancelAnimationFrame(animationRef.current);
     };

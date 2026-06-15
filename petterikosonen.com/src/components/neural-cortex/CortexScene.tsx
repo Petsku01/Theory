@@ -29,12 +29,14 @@ export function CortexScene({
   const positions = useMemo(() => computePositions(nodes), []);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const controlsRef = useRef<any>(null);
+  const selectedIdRef = useRef(selectedId);
+  selectedIdRef.current = selectedId;
 
   const handleSelect = useCallback(
     (id: string) => {
-      onNodeSelect(selectedId === id ? null : id);
+      onNodeSelect(selectedIdRef.current === id ? null : id);
     },
-    [selectedId, onNodeSelect]
+    [onNodeSelect]
   );
 
   const handleHover = useCallback(

@@ -131,6 +131,8 @@ export function DetailPanel({
           animate={stage === "show" ? "show" : "hiding"}
           exit="hiding"
           className="pointer-events-auto fixed right-4 top-20 z-50 w-80 max-w-[calc(100vw-2rem)] rounded-2xl border border-white/10 bg-black/40 p-5 shadow-2xl backdrop-blur-xl max-md:bottom-0 max-md:left-0 max-md:top-auto max-md:w-full max-md:rounded-b-none"
+          role="dialog"
+          aria-label={`Details for ${node.label}`}
           style={{
             borderColor: `${clusterColor}30`,
             boxShadow: `0 0 40px ${clusterColor}10, inset 0 0 20px ${clusterColor}05`,
