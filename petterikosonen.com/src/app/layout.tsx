@@ -61,11 +61,7 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap"
           rel="stylesheet"
         />
-        <link rel="preload" href="/particles.wasm" as="fetch" crossOrigin="anonymous" integrity="sha384-mSscRsS-Upa-hE7fZOrwO63AJXkfF3jnT99AmIQ83H5io74rQugGDEDauXsUmI1u" />
-        <link rel="preload" href="/renderer3d.wasm" as="fetch" crossOrigin="anonymous" integrity="sha384-2Kjv4ZyG00nEvh6mTRBmOfmRyEKT5rLImWQzgkcDkPYuIKe4PKqNXC5kRUwT77CV" />
-        <link rel="preload" href="/matrix_rain.wasm" as="fetch" crossOrigin="anonymous" integrity="sha384-69lVbCTiLE3REwlpSF21vaeOLEO4cwHWm44_ADhUWuFkWeVtaAU93ndqypfHNk4m" />
-        <link rel="preload" href="/spring_cursor.wasm" as="fetch" crossOrigin="anonymous" integrity="sha384-THbcD_YmogjOaux307vyh2n2dfHZgFO-DJXQ2kzhAKA_XMvO5CmEG6CaHM3rBKb6" />
-        <link rel="preload" href="/wasm/wasm_particles_bg.wasm" as="fetch" crossOrigin="anonymous" integrity="sha384-EBKBC4eTKHOk8xDNioPw9SYRnHUHZEdXlPhCI2Y9xo0SoqnE6vjDD23Y7wnDbdbR" />
+
       </head>
       <body className="relative min-h-screen overflow-x-hidden">
         {/* Background layers */}
