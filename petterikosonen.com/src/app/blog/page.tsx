@@ -18,7 +18,7 @@ export default function Blog() {
 
       <SectionFrame command="/blog --daily" title="Blog Posts" description="Timely analysis and commentary on AI, security, and the industry.">
         <div className="space-y-3">
-          {blogPosts.map((post) => (
+          {[...blogPosts].reverse().map((post) => (
             <a
               key={post.link}
               href={post.link}
