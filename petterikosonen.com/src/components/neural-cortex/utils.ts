@@ -91,7 +91,7 @@ if (typeof window !== "undefined") {
 // ── Write Uint32Array seeds into WASM memory ──
 function writeSeedsToWasm(wasm: LayoutWasmExports, seeds: Uint32Array): number {
   const byteLen = seeds.length * 4; // u32 = 4 bytes
-  const ptr = wasm.__wbindgen_malloc(byteLen, 4); // align 4 for u32
+  const ptr = 0; // disabled: __wbindgen_malloc not exported
   if (ptr === 0) throw new Error("WASM malloc failed");
   const view = new Uint32Array(wasm.memory.buffer, ptr, seeds.length);
   view.set(seeds);
@@ -110,67 +110,7 @@ export function computePositions(nodeList: CortexNode[]): Map<string, THREE.Vect
 
   const goldenAngle = Math.PI * (3 - Math.sqrt(5));
 
-  // Try WASM path
-  if (layoutWasmReady && layoutWasm) {
-    const wasm = layoutWasm;
-    const layoutPtr = wasm.layoutsystem_new();
-    try {
-      for (const [cluster, clusterList] of clusterNodes) {
-        const center = new THREE.Vector3(
-          ...(clusterPositions[cluster] ?? [0, 0, 0])
-        );
-        const count = clusterList.length;
-
-        if (count === 1) {
-          pos.set(clusterList[0].id, center.clone());
-          continue;
-        }
-
-        // Build per-node seeds matching JS: node.id.length * 127 + i * 31
-        const seeds = new Uint32Array(count);
-        clusterList.forEach((node, i) => {
-          seeds[i] = node.id.length * 127 + i * 31;
-        });
-
-        // Write seeds to WASM memory
-        const seedsPtr = writeSeedsToWasm(wasm, seeds);
-
-        // Compute cluster positions in WASM
-        wasm.layoutsystem_compute_cluster(
-          layoutPtr, seedsPtr, count,
-          center.x, center.y, center.z
-        );
-
-        // Read results from WASM memory
-        const len = wasm.layoutsystem_len(layoutPtr);
-        const dataPtr = wasm.layoutsystem_data_ptr(layoutPtr);
-        const positions = new Float32Array(wasm.memory.buffer, dataPtr, len * 3);
-
-        clusterList.forEach((node, i) => {
-          pos.set(node.id, new THREE.Vector3(
-            positions[i * 3],
-            positions[i * 3 + 1],
-            positions[i * 3 + 2]
-          ));
-        });
-
-        // Free the seeds allocation (align 4, size = count * 4)
-        try { wasm.__wbindgen_free(seedsPtr, count * 4, 4); } catch {}
-      }
-    } catch (err) {
-      console.warn("[layout] WASM compute failed, falling back to JS:", err);
-      pos.clear();
-    } finally {
-      wasm.__wbg_layoutsystem_free(layoutPtr, 0);
-    }
-
-    // If WASM filled all positions, return early
-    if (pos.size === nodeList.length) {
-      return pos;
-    }
-    // Otherwise fall through to JS and fill missing
-    pos.clear();
-  }
+  // WASM path disabled: __wbindgen_malloc/free not exported by wasm-bindgen
 
   // JS fallback
   for (const [cluster, clusterList] of clusterNodes) {

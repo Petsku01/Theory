@@ -146,101 +146,14 @@ export const NetworkNode = React.memo(function NetworkNode({
 
   // Initialize WASM animation system (single node, count=1)
   useEffect(() => {
-    if (!nodeAnimWasmReady || !nodeAnimWasm) {
-      if (!nodeAnimWasmReady && !nodeAnimWasmFailed) {
-        ensureNodeAnimWasm().then((ok) => {
-          if (ok) setWasmFlag(true);
-        });
-      }
-      return;
-    }
-
-    const wasm = nodeAnimWasm;
-    const ptr = wasm.nodeanimationsystem_new();
-    animPtr.current = ptr;
-
-    // Write phase and tilts to WASM memory
-    const phases = new Float32Array([phase]);
-    const tilts = new Float32Array([tilt1[0], tilt1[1], tilt2[0], tilt2[1], tilt2[2]]);
-
-    const phasesWasmPtr = wasm.__wbindgen_malloc(4, 4);
-    const tiltsWasmPtr = wasm.__wbindgen_malloc(20, 4);
-    phasesPtr.current = phasesWasmPtr;
-    tiltsPtr.current = tiltsWasmPtr;
-
-    new Float32Array(wasm.memory.buffer, phasesWasmPtr, 1).set(phases);
-    new Float32Array(wasm.memory.buffer, tiltsWasmPtr, 5).set(tilts);
-
-    // Allocate flags buffer (reused per frame)
-    const flagsWasmPtr = wasm.__wbindgen_malloc(4, 4);
-    flagsPtr.current = flagsWasmPtr;
-
-    wasm.nodeanimationsystem_init(ptr, phasesWasmPtr, tiltsWasmPtr, 1);
-    wasmReady.current = true;
-
-    return () => {
-      if (animPtr.current && nodeAnimWasm) {
-        try { nodeAnimWasm.__wbg_nodeanimationsystem_free(animPtr.current, 0); } catch {}
-        animPtr.current = 0;
-      }
-      if (phasesPtr.current && nodeAnimWasm) { try { nodeAnimWasm.__wbindgen_free(phasesPtr.current, 4, 4); } catch {} }
-      if (tiltsPtr.current && nodeAnimWasm) { try { nodeAnimWasm.__wbindgen_free(tiltsPtr.current, 20, 4); } catch {} }
-      if (flagsPtr.current && nodeAnimWasm) { try { nodeAnimWasm.__wbindgen_free(flagsPtr.current, 4, 4); } catch {} }
-      phasesPtr.current = 0;
-      tiltsPtr.current = 0;
-      flagsPtr.current = 0;
-      wasmReady.current = false;
-    };
+    // WASM path disabled: __wbindgen_malloc/free not exported by wasm-bindgen
+    void phase; void tilt1; void tilt2;
   }, [phase, tilt1, tilt2]);
 
   useFrame((state, delta) => {
     if (!groupRef.current) return;
     const t = state.clock.elapsedTime;
     const active = isHovered || isSelected;
-
-    // ── WASM path ──
-    if (wasmReady.current && nodeAnimWasm && animPtr.current && flagsPtr.current) {
-      const wasm = nodeAnimWasm;
-
-      // Write active flag
-      new Uint32Array(wasm.memory.buffer, flagsPtr.current, 1)[0] = active ? 1 : 0;
-
-      // Update
-      wasm.nodeanimationsystem_update(animPtr.current, t, delta, flagsPtr.current);
-
-      // Read output (16 f32s for 1 node)
-      const dataPtr = wasm.nodeanimationsystem_data_ptr(animPtr.current);
-      const data = new Float32Array(wasm.memory.buffer, dataPtr, 16);
-
-      // Apply to Three.js objects
-      groupRef.current.scale.setScalar(data[0]);
-      groupRef.current.position.y = data[1];
-
-      if (outerRef.current) {
-        const mat = outerRef.current.material as THREE.MeshStandardMaterial;
-        mat.emissiveIntensity = data[2];
-      }
-      if (coreRef.current) {
-        const mat = coreRef.current.material as THREE.MeshStandardMaterial;
-        mat.emissiveIntensity = data[3];
-        mat.opacity = data[4];
-      }
-      if (ring1Ref.current) {
-        ring1Ref.current.rotation.x = data[5];
-        ring1Ref.current.rotation.y = data[6];
-        ring1Ref.current.rotation.z = data[7];
-        const mat1 = ring1Ref.current.material as THREE.MeshBasicMaterial;
-        mat1.opacity = data[8];
-      }
-      if (ring2Ref.current) {
-        ring2Ref.current.rotation.x = data[9];
-        ring2Ref.current.rotation.y = data[10];
-        ring2Ref.current.rotation.z = data[11];
-        const mat2 = ring2Ref.current.material as THREE.MeshBasicMaterial;
-        mat2.opacity = data[12];
-      }
-      return;
-    }
 
     // ── JS fallback (original implementation) ──
     const breathSpeed = active ? 4.5 : 2.0;

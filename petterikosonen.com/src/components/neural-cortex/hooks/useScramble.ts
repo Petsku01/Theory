@@ -127,63 +127,7 @@ export function useScramble(text: string, isHovered: boolean): string {
       const finalText = text;
       const length = finalText.length;
 
-      // WASM path
-      if (scrambleWasmReady && scrambleWasm && scramblePtr.current && length > 0) {
-        const wasm = scrambleWasm;
-
-        // Write char codes to WASM memory
-        const charCodes = new Uint8Array(length);
-        for (let i = 0; i < length; i++) {
-          charCodes[i] = finalText.charCodeAt(i);
-        }
-
-        const byteLen = length * 1; // u8 = 1 byte
-        const codesPtr = wasm.__wbindgen_malloc(byteLen, 1);
-        if (codesPtr === 0) {
-          // malloc failed, fall through to JS
-          return;
-        }
-        const view = new Uint8Array(wasm.memory.buffer, codesPtr, length);
-        view.set(charCodes);
-
-        wasm.scramblesystem_init(scramblePtr.current, codesPtr, length);
-        try { wasm.__wbindgen_free(codesPtr, byteLen, 1); } catch {}
-
-        // Scramble interval: generate scrambled text via WASM
-        scrambleIntervalRef.current = setInterval(() => {
-          wasm.scramblesystem_tick(scramblePtr.current);
-          const dataPtr = wasm.scramblesystem_data_ptr(scramblePtr.current);
-          const data = new Uint8Array(wasm.memory.buffer, dataPtr, length);
-          setDisplay(String.fromCharCode(...data));
-        }, 60);
-
-        // Reveal one char at a time
-        let revealIdx = 0;
-        const revealNext = () => {
-          if (revealIdx < length) {
-            wasm.scramblesystem_reveal_next(scramblePtr.current);
-            revealIdx++;
-
-            if (wasm.scramblesystem_is_complete(scramblePtr.current)) {
-              if (scrambleIntervalRef.current) {
-                clearInterval(scrambleIntervalRef.current);
-                scrambleIntervalRef.current = null;
-              }
-              setDisplay(finalText);
-            } else {
-              const timer = setTimeout(revealNext, 30);
-              resolveTimersRef.current.push(timer);
-            }
-          }
-        };
-        const startTimer = setTimeout(revealNext, 120);
-        resolveTimersRef.current.push(startTimer);
-
-        return () => {
-          clearAll();
-          setDisplay(finalText);
-        };
-      }
+      // WASM path disabled: __wbindgen_malloc/free not exported by wasm-bindgen
 
       // JS fallback (original implementation)
       const revealed = new Array<boolean>(length).fill(false);

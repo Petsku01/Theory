@@ -89,8 +89,8 @@ if (typeof window !== "undefined") {
 // ── Write Float32Array into WASM memory ──
 function writeF32ToWasm(wasm: EdgeWasmExports, data: Float32Array): number {
   const byteLen = data.length * 4;
-  const ptr = wasm.__wbindgen_malloc(byteLen, 4);
-  if (ptr === 0) throw new Error("WASM malloc failed");
+  const ptr = 0; // disabled: __wbindgen_malloc not exported
+  if (ptr === 0) throw new Error("WASM malloc disabled");
   const view = new Float32Array(wasm.memory.buffer, ptr, data.length);
   view.set(data);
   return ptr;
@@ -99,7 +99,7 @@ function writeF32ToWasm(wasm: EdgeWasmExports, data: Float32Array): number {
 // ── Write Uint32Array into WASM memory ──
 function writeU32ToWasm(wasm: EdgeWasmExports, data: Uint32Array): number {
   const byteLen = data.length * 4;
-  const ptr = wasm.__wbindgen_malloc(byteLen, 4);
+  const ptr = 0; // disabled
   if (ptr === 0) throw new Error("WASM malloc failed");
   const view = new Uint32Array(wasm.memory.buffer, ptr, data.length);
   view.set(data);
@@ -229,83 +229,14 @@ export const NetworkEdges = React.memo(function NetworkEdges({
 
   // Initialize WASM edges when edgeData changes
   useEffect(() => {
-    if (!edgeWasmReady || !edgeWasm || edgeData.length === 0) return;
-    const wasm = edgeWasm;
-
-    // Free previous WASM memory if any
-    if (fromWasmPtrRef.current) { try { wasm.__wbindgen_free(fromWasmPtrRef.current, fromPositionsRef.current!.length * 4, 4); } catch {} }
-    if (toWasmPtrRef.current) { try { wasm.__wbindgen_free(toWasmPtrRef.current, toPositionsRef.current!.length * 4, 4); } catch {} }
-    if (edgePtr.current) { try { wasm.__wbg_edgesystem_free(edgePtr.current, 0); } catch {} }
-
-    // Build flat position arrays
-    const fromArr = new Float32Array(edgeData.length * 3);
-    const toArr = new Float32Array(edgeData.length * 3);
-    const flags = new Uint32Array(edgeData.length);
-
-    edgeData.forEach((ed, i) => {
-      fromArr[i * 3] = ed.from.x;
-      fromArr[i * 3 + 1] = ed.from.y;
-      fromArr[i * 3 + 2] = ed.from.z;
-      toArr[i * 3] = ed.to.x;
-      toArr[i * 3 + 1] = ed.to.y;
-      toArr[i * 3 + 2] = ed.to.z;
-      flags[i] = ed.highlight ? 1 : 0;
-    });
-
-    const ptr = wasm.edgesystem_new();
-    edgePtr.current = ptr;
-
-    // Allocate WASM memory once for from/to positions (reused across frames)
-    const fromWasmPtr = writeF32ToWasm(wasm, fromArr);
-    const toWasmPtr = writeF32ToWasm(wasm, toArr);
-    const flagsWasmPtr = writeU32ToWasm(wasm, flags);
-
-    try {
-      wasm.edgesystem_init_edges(ptr, fromWasmPtr, toWasmPtr, edgeData.length, flagsWasmPtr);
-
-      // Read cylinder data back
-      const cylPtr = wasm.edgesystem_cylinder_data_ptr(ptr);
-      const cylStride = wasm.edgesystem_cylinder_stride(ptr);
-      const cylData = new Float32Array(wasm.memory.buffer, cylPtr, edgeData.length * cylStride);
-
-      const cylPositions: [number, number, number][] = [];
-      const cylQuats: THREE.Quaternion[] = [];
-      const cylLengths: number[] = [];
-
-      for (let i = 0; i < edgeData.length; i++) {
-        const base = i * cylStride;
-        cylPositions.push([cylData[base], cylData[base + 1], cylData[base + 2]]);
-        cylLengths.push(cylData[base + 3]);
-        cylQuats.push(new THREE.Quaternion(cylData[base + 4], cylData[base + 5], cylData[base + 6], cylData[base + 7]));
-      }
-
-      cylinderDataRef.current = { positions: cylPositions, quaternions: cylQuats, lengths: cylLengths };
-      fromPositionsRef.current = fromArr;
-      toPositionsRef.current = toArr;
-      fromWasmPtrRef.current = fromWasmPtr;
-      toWasmPtrRef.current = toWasmPtr;
-    } catch (err) {
-      console.warn("[edges] WASM init failed, using JS fallback:", err);
-      edgePtr.current = 0;
-      try { wasm.__wbindgen_free(fromWasmPtr, fromArr.length * 4, 4); } catch {}
-      try { wasm.__wbindgen_free(toWasmPtr, toArr.length * 4, 4); } catch {}
-    } finally {
-      // Free the flags array (only needed during init)
-      try { wasm.__wbindgen_free(flagsWasmPtr, flags.length * 4, 4); } catch {}
-    }
+    // WASM path disabled: __wbindgen_malloc/free not exported by wasm-bindgen
+    void edgeData;
   }, [edgeData]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (edgeWasm) {
-        if (fromWasmPtrRef.current) { try { edgeWasm.__wbindgen_free(fromWasmPtrRef.current, fromPositionsRef.current!.length * 4, 4); } catch {} }
-        if (toWasmPtrRef.current) { try { edgeWasm.__wbindgen_free(toWasmPtrRef.current, toPositionsRef.current!.length * 4, 4); } catch {} }
-        if (edgePtr.current) { try { edgeWasm.__wbg_edgesystem_free(edgePtr.current, 0); } catch {} }
-        edgePtr.current = 0;
-        fromWasmPtrRef.current = 0;
-        toWasmPtrRef.current = 0;
-      }
+      // WASM path disabled -- nothing to clean up
     };
   }, []);
 
@@ -347,7 +278,7 @@ export const NetworkEdges = React.memo(function NetworkEdges({
   });
 
   // ── Render ──
-  const useWasm = edgePtr.current && cylinderDataRef.current;
+  const useWasm = false && edgePtr.current && cylinderDataRef.current;
   const cylData = useWasm ? cylinderDataRef.current! : null;
 
   return (
