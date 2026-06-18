@@ -15,3 +15,21 @@ pub use camera_system::CameraSystem;
 pub use scramble::ScrambleSystem;
 pub use grid_generator::GridGenerator;
 pub use node_animation::NodeAnimationSystem;
+
+use wasm_bindgen::prelude::*;
+
+/// Exported allocator: JS calls this to allocate WASM memory for array transfer.
+/// Returns a pointer (as usize) to the allocated block.
+/// JS writes data via TypedArray view into wasm.memory.buffer at this offset.
+#[wasm_bindgen]
+pub fn wasm_alloc(size: usize) -> usize {
+    let layout = std::alloc::Layout::from_size_align(size, 4).unwrap();
+    unsafe { std::alloc::alloc(layout) as usize }
+}
+
+/// Exported deallocator: JS calls this to free WASM memory allocated by wasm_alloc.
+#[wasm_bindgen]
+pub fn wasm_free(ptr: usize, size: usize) {
+    let layout = std::alloc::Layout::from_size_align(size, 4).unwrap();
+    unsafe { std::alloc::dealloc(ptr as *mut u8, layout) }
+}

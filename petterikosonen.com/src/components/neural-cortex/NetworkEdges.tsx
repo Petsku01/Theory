@@ -1,110 +1,20 @@
 "use client";
 
-import React, { useMemo, useRef, useEffect } from "react";
+import React, { useMemo, useRef, useEffect, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { nodes, edges } from "@/lib/cortex-data";
-import { CLUSTER_COLORS, blendColors } from "@/components/neural-cortex/utils";
-
-// ── WASM edge loader ──
-// Loads wasm_cortex_bg.wasm for edge computation (cylinder geometry + pulse positions).
-// Same .wasm as layout/particles but separate instance to avoid import ordering issues.
-
-interface EdgeWasmExports {
-  memory: WebAssembly.Memory;
-  edgesystem_new(): number;
-  edgesystem_init_edges(
-    ptr: number,
-    from_ptr: number,
-    to_ptr: number,
-    edge_count: number,
-    flags_ptr: number
-  ): number;
-  edgesystem_update_pulses(
-    ptr: number,
-    from_ptr: number,
-    to_ptr: number,
-    elapsed: number
-  ): number;
-  edgesystem_update_highlights(ptr: number, flags_ptr: number): void;
-  edgesystem_cylinder_data_ptr(ptr: number): number;
-  edgesystem_pulse_data_ptr(ptr: number): number;
-  edgesystem_len(ptr: number): number;
-  edgesystem_cylinder_stride(ptr: number): number;
-  edgesystem_pulse_stride(ptr: number): number;
-  edgesystem_is_highlighted(ptr: number, index: number): number;
-  __wbg_edgesystem_free(ptr: number, del: number): void;
-  __wbindgen_malloc(size: number, align: number): number;
-  __wbindgen_free(ptr: number, len: number, align: number): void;
-  __wbindgen_start(): void;
-  __wbindgen_externrefs: WebAssembly.Table;
-}
-
-let edgeWasm: EdgeWasmExports | null = null;
-let edgeWasmPromise: Promise<boolean> | null = null;
-let edgeWasmReady = false;
-let edgeWasmFailed = false;
-
-async function loadEdgeWasm(): Promise<boolean> {
-  const response = await fetch("/wasm/wasm_cortex_bg.wasm");
-  if (!response.ok) {
-    throw new Error(`WASM fetch failed: ${response.status}`);
-  }
-  const { instance } = await WebAssembly.instantiateStreaming(response, {
-    "./wasm_cortex_bg.js": {
-      __wbg___wbindgen_throw_ea4887a5f8f9a9db: function (arg0: number, arg1: number) {
-        throw new Error(`WASM throw at offset ${arg0}, len ${arg1}`);
-      },
-      __wbindgen_init_externref_table: function () {},
-    },
-  });
-  const exports = instance.exports as unknown as EdgeWasmExports;
-  if (typeof exports.edgesystem_new !== "function") {
-    throw new Error("Missing required WASM export: edgesystem_new");
-  }
-  if (exports.__wbindgen_start) {
-    exports.__wbindgen_start();
-  }
-  edgeWasm = exports;
-  edgeWasmReady = true;
-  return true;
-}
-
-function ensureEdgeWasm(): Promise<boolean> {
-  if (edgeWasm) return Promise.resolve(true);
-  if (edgeWasmFailed) return Promise.resolve(false);
-  edgeWasmPromise ??= loadEdgeWasm().catch((err) => {
-    console.warn("[edges] WASM load failed, using JS fallback:", err);
-    edgeWasmPromise = null;
-    edgeWasmFailed = true;
-    return false;
-  });
-  return edgeWasmPromise;
-}
-
-if (typeof window !== "undefined") {
-  ensureEdgeWasm();
-}
-
-// ── Write Float32Array into WASM memory ──
-function writeF32ToWasm(wasm: EdgeWasmExports, data: Float32Array): number {
-  const byteLen = data.length * 4;
-  const ptr = 0; // disabled: __wbindgen_malloc not exported
-  if (ptr === 0) throw new Error("WASM malloc disabled");
-  const view = new Float32Array(wasm.memory.buffer, ptr, data.length);
-  view.set(data);
-  return ptr;
-}
-
-// ── Write Uint32Array into WASM memory ──
-function writeU32ToWasm(wasm: EdgeWasmExports, data: Uint32Array): number {
-  const byteLen = data.length * 4;
-  const ptr = 0; // disabled
-  if (ptr === 0) throw new Error("WASM malloc failed");
-  const view = new Uint32Array(wasm.memory.buffer, ptr, data.length);
-  view.set(data);
-  return ptr;
-}
+import {
+  CLUSTER_COLORS,
+  blendColors,
+  ensureCortexWasm,
+  isCortexWasmReady,
+  getCortexWasm,
+  writeF32ToWasm,
+  writeU32ToWasm,
+  freeWasmPtr,
+  type CortexWasmExports,
+} from "@/components/neural-cortex/utils";
 
 // ── Shared geometry for energy pulses ──
 const PULSE_GEOMETRY = /* @__PURE__ */ new THREE.SphereGeometry(1, 8, 8);
@@ -144,7 +54,7 @@ function WasmEnergyPulse({
 }: {
   edgeIndex: number;
   edgePtr: number;
-  wasm: EdgeWasmExports;
+  wasm: CortexWasmExports;
   color: string;
   opacity: number;
   pulseSize?: number;
@@ -216,7 +126,6 @@ export const NetworkEdges = React.memo(function NetworkEdges({
 
   // ── WASM path ──
   const edgePtr = useRef<number>(0);
-  // Persistent WASM memory pointers for from/to positions (allocated once)
   const fromWasmPtrRef = useRef<number>(0);
   const toWasmPtrRef = useRef<number>(0);
   const fromPositionsRef = useRef<Float32Array | null>(null);
@@ -226,17 +135,99 @@ export const NetworkEdges = React.memo(function NetworkEdges({
     quaternions: THREE.Quaternion[];
     lengths: number[];
   } | null>(null);
+  const [, setWasmReadyFlag] = useState(false);
 
-  // Initialize WASM edges when edgeData changes
+  // Initialize WASM edges when edgeData changes or WASM becomes ready
   useEffect(() => {
-    // WASM path disabled: __wbindgen_malloc/free not exported by wasm-bindgen
-    void edgeData;
+    if (!isCortexWasmReady() || !getCortexWasm() || edgeData.length === 0) {
+      if (!isCortexWasmReady()) {
+        ensureCortexWasm().then((ok) => { if (ok) setWasmReadyFlag(true); });
+      }
+      return;
+    }
+    const wasm = getCortexWasm()!;
+
+    // Free previous WASM memory if any
+    if (fromWasmPtrRef.current && fromPositionsRef.current) {
+      freeWasmPtr(wasm, fromWasmPtrRef.current, fromPositionsRef.current.length * 4);
+    }
+    if (toWasmPtrRef.current && toPositionsRef.current) {
+      freeWasmPtr(wasm, toWasmPtrRef.current, toPositionsRef.current.length * 4);
+    }
+    if (edgePtr.current) { try { wasm.__wbg_edgesystem_free(edgePtr.current, 0); } catch {} }
+
+    // Build flat position arrays
+    const fromArr = new Float32Array(edgeData.length * 3);
+    const toArr = new Float32Array(edgeData.length * 3);
+    const flags = new Uint32Array(edgeData.length);
+
+    edgeData.forEach((ed, i) => {
+      fromArr[i * 3] = ed.from.x;
+      fromArr[i * 3 + 1] = ed.from.y;
+      fromArr[i * 3 + 2] = ed.from.z;
+      toArr[i * 3] = ed.to.x;
+      toArr[i * 3 + 1] = ed.to.y;
+      toArr[i * 3 + 2] = ed.to.z;
+      flags[i] = ed.highlight ? 1 : 0;
+    });
+
+    const ptr = wasm.edgesystem_new();
+    edgePtr.current = ptr;
+
+    const fromWasmPtr = writeF32ToWasm(wasm, fromArr);
+    const toWasmPtr = writeF32ToWasm(wasm, toArr);
+    const flagsWasmPtr = writeU32ToWasm(wasm, flags);
+    const flagsByteLen = flags.length * 4;
+
+    try {
+      wasm.edgesystem_init_edges(ptr, fromWasmPtr, toWasmPtr, edgeData.length, flagsWasmPtr);
+
+      // Read cylinder data back
+      const cylPtr = wasm.edgesystem_cylinder_data_ptr(ptr);
+      const cylStride = wasm.edgesystem_cylinder_stride(ptr);
+      const cylData = new Float32Array(wasm.memory.buffer, cylPtr, edgeData.length * cylStride);
+
+      const cylPositions: [number, number, number][] = [];
+      const cylQuats: THREE.Quaternion[] = [];
+      const cylLengths: number[] = [];
+
+      for (let i = 0; i < edgeData.length; i++) {
+        const base = i * cylStride;
+        cylPositions.push([cylData[base], cylData[base + 1], cylData[base + 2]]);
+        cylLengths.push(cylData[base + 3]);
+        cylQuats.push(new THREE.Quaternion(cylData[base + 4], cylData[base + 5], cylData[base + 6], cylData[base + 7]));
+      }
+
+      cylinderDataRef.current = { positions: cylPositions, quaternions: cylQuats, lengths: cylLengths };
+      fromPositionsRef.current = fromArr;
+      toPositionsRef.current = toArr;
+      fromWasmPtrRef.current = fromWasmPtr;
+      toWasmPtrRef.current = toWasmPtr;
+    } catch (err) {
+      console.warn("[edges] WASM init failed, using JS fallback:", err);
+      edgePtr.current = 0;
+      freeWasmPtr(wasm, fromWasmPtr, fromArr.length * 4);
+      freeWasmPtr(wasm, toWasmPtr, toArr.length * 4);
+    } finally {
+      freeWasmPtr(wasm, flagsWasmPtr, flagsByteLen);
+    }
   }, [edgeData]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      // WASM path disabled -- nothing to clean up
+      const wasm = getCortexWasm();
+      if (!wasm) return;
+      if (fromWasmPtrRef.current && fromPositionsRef.current) {
+        freeWasmPtr(wasm, fromWasmPtrRef.current, fromPositionsRef.current.length * 4);
+      }
+      if (toWasmPtrRef.current && toPositionsRef.current) {
+        freeWasmPtr(wasm, toWasmPtrRef.current, toPositionsRef.current.length * 4);
+      }
+      if (edgePtr.current) { try { wasm.__wbg_edgesystem_free(edgePtr.current, 0); } catch {} }
+      edgePtr.current = 0;
+      fromWasmPtrRef.current = 0;
+      toWasmPtrRef.current = 0;
     };
   }, []);
 
@@ -261,10 +252,9 @@ export const NetworkEdges = React.memo(function NetworkEdges({
 
   // WASM per-frame pulse update (uses persistent from/to pointers, no malloc per frame)
   useFrame((state) => {
-    if (!edgeWasmReady || !edgeWasm || !edgePtr.current) return;
-    if (!fromWasmPtrRef.current || !toWasmPtrRef.current) return;
-
-    const wasm = edgeWasm;
+    if (!edgePtr.current || !fromWasmPtrRef.current || !toWasmPtrRef.current) return;
+    const wasm = getCortexWasm();
+    if (!wasm) return;
     try {
       wasm.edgesystem_update_pulses(
         edgePtr.current,
@@ -278,7 +268,7 @@ export const NetworkEdges = React.memo(function NetworkEdges({
   });
 
   // ── Render ──
-  const useWasm = false && edgePtr.current && cylinderDataRef.current;
+  const useWasm = edgePtr.current > 0 && cylinderDataRef.current !== null;
   const cylData = useWasm ? cylinderDataRef.current! : null;
 
   return (
@@ -337,11 +327,11 @@ export const NetworkEdges = React.memo(function NetworkEdges({
               />
             )}
             {/* Travelling pulse */}
-            {useWasm && edgeWasm ? (
+            {useWasm && getCortexWasm() ? (
               <WasmEnergyPulse
                 edgeIndex={i}
                 edgePtr={edgePtr.current}
-                wasm={edgeWasm}
+                wasm={getCortexWasm()!}
                 color={ed.color}
                 opacity={pulseOpacity}
                 pulseSize={0.05}

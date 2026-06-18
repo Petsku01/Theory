@@ -5,74 +5,15 @@ import { useFrame } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import * as THREE from "three";
-
-// ── WASM camera loader ──
-// Loads wasm_cortex_bg.wasm for camera lerp + shake computation.
-
-interface CameraWasmExports {
-  memory: WebAssembly.Memory;
-  camerasystem_new(): number;
-  camerasystem_set_position(ptr: number, cx: number, cy: number, cz: number, tx: number, ty: number, tz: number): void;
-  camerasystem_set_target(ptr: number, tx: number, ty: number, tz: number): void;
-  camerasystem_clear_target(ptr: number): void;
-  camerasystem_user_controlled(ptr: number): void;
-  camerasystem_trigger_shake(ptr: number, dx: number, dy: number, dz: number, t: number): void;
-  camerasystem_update(ptr: number, delta: number, current_time: number): number;
-  camerasystem_is_lerping(ptr: number): number;
-  camerasystem_has_target(ptr: number): number;
-  camerasystem_data_ptr(ptr: number): number;
-  __wbg_camerasystem_free(ptr: number, del: number): void;
-  __wbindgen_start(): void;
-  __wbindgen_externrefs: WebAssembly.Table;
-}
-
-let camWasm: CameraWasmExports | null = null;
-let camWasmPromise: Promise<boolean> | null = null;
-let camWasmReady = false;
-let camWasmFailed = false;
-
-async function loadCamWasm(): Promise<boolean> {
-  const response = await fetch("/wasm/wasm_cortex_bg.wasm");
-  if (!response.ok) {
-    throw new Error(`WASM fetch failed: ${response.status}`);
-  }
-  const { instance } = await WebAssembly.instantiateStreaming(response, {
-    "./wasm_cortex_bg.js": {
-      __wbg___wbindgen_throw_ea4887a5f8f9a9db: function (arg0: number, arg1: number) {
-        throw new Error(`WASM throw at offset ${arg0}, len ${arg1}`);
-      },
-      __wbindgen_init_externref_table: function () {},
-    },
-  });
-  const exports = instance.exports as unknown as CameraWasmExports;
-  if (typeof exports.camerasystem_new !== "function") {
-    throw new Error("Missing required WASM export: camerasystem_new");
-  }
-  if (exports.__wbindgen_start) {
-    exports.__wbindgen_start();
-  }
-  camWasm = exports;
-  camWasmReady = true;
-  return true;
-}
-
-function ensureCamWasm(): Promise<boolean> {
-  if (camWasm) return Promise.resolve(true);
-  if (camWasmFailed) return Promise.resolve(false);
-  camWasmPromise ??= loadCamWasm().catch((err) => {
-    console.warn("[camera] WASM load failed, using JS fallback:", err);
-    camWasmPromise = null;
-    camWasmFailed = true;
-    return false;
-  });
-  return camWasmPromise;
-}
-
-if (typeof window !== "undefined") {
-  ensureCamWasm();
-}
+import {
+  ensureCortexWasm,
+  isCortexWasmReady,
+  getCortexWasm,
+} from "@/components/neural-cortex/utils";
 
 // ── Camera controller with WASM lerp + shake, JS fallback ──
+// WASM computes desired camera position + target. OrbitControls handles user input.
+// When user interacts (zoom/pan/rotate), WASM lerp is suspended until target changes.
 export function CameraController({
   target,
   controlsRef,
@@ -82,7 +23,7 @@ export function CameraController({
   controlsRef: React.RefObject<OrbitControlsImpl | null>;
   shakeTimestamp: number;
 }) {
-  // JS fallback state
+  // Shared state
   const shakeStartTime = useRef<number>(0);
   const shakeDirection = useRef<THREE.Vector3>(new THREE.Vector3());
   const isUserControlled = useRef(false);
@@ -92,13 +33,42 @@ export function CameraController({
 
   // WASM state
   const camPtr = useRef<number>(0);
-  // Track whether WASM became ready (triggers re-init)
   const [, setWasmReadyFlag] = useState(false);
 
   // Initialize WASM camera system when WASM is ready
   useEffect(() => {
-    // WASM path disabled: overrides OrbitControls, breaks zoom/pan
-    void controlsRef;
+    if (!isCortexWasmReady() || !getCortexWasm()) {
+      if (!isCortexWasmReady()) {
+        ensureCortexWasm().then((ok) => {
+          if (ok) setWasmReadyFlag(true);
+        });
+      }
+      return;
+    }
+
+    const wasm = getCortexWasm()!;
+    camPtr.current = wasm.camerasystem_new();
+
+    // Sync current camera state into WASM to prevent snapping
+    const controls = controlsRef.current;
+    if (controls) {
+      const camPos = controls.object.position;
+      const tgt = controls.target;
+      wasm.camerasystem_set_position(
+        camPtr.current, camPos.x, camPos.y, camPos.z,
+        tgt.x, tgt.y, tgt.z
+      );
+      if (target) {
+        wasm.camerasystem_set_target(camPtr.current, target.x, target.y, target.z);
+      }
+    }
+
+    return () => {
+      if (camPtr.current && getCortexWasm()) {
+        try { getCortexWasm()!.__wbg_camerasystem_free(camPtr.current, 0); } catch {}
+        camPtr.current = 0;
+      }
+    };
   }, [controlsRef]);
 
   // Reset auto-lerp when target changes
@@ -110,13 +80,25 @@ export function CameraController({
     const controls = controlsRef.current;
     if (!controls) return;
 
-    // JS fallback
+    const wasm = getCortexWasm();
+    if (wasm && camPtr.current) {
+      if (target) {
+        wasm.camerasystem_set_target(camPtr.current, target.x, target.y, target.z);
+      } else {
+        wasm.camerasystem_clear_target(camPtr.current);
+      }
+    }
+
+    // JS fallback state
     isUserControlled.current = false;
     isLerping.current = true;
 
     const onStart = () => {
       isUserControlled.current = true;
       isLerping.current = false;
+      if (wasm && camPtr.current) {
+        wasm.camerasystem_user_controlled(camPtr.current);
+      }
     };
 
     controls.addEventListener("start", onStart);
@@ -134,7 +116,15 @@ export function CameraController({
         Math.random() - 0.5
       ).normalize();
 
-      // JS fallback
+      const wasm = getCortexWasm();
+      if (wasm && camPtr.current) {
+        wasm.camerasystem_trigger_shake(
+          camPtr.current, dir.x, dir.y, dir.z,
+          performance.now() / 1000
+        );
+      }
+
+      // JS fallback (also used as backup)
       shakeStartTime.current = performance.now();
       shakeDirection.current.copy(dir);
     }
@@ -145,7 +135,47 @@ export function CameraController({
     if (!controls) return;
 
     const now = performance.now() / 1000;
-    void now;
+    const wasm = getCortexWasm();
+
+    // WASM path: compute desired position, but let OrbitControls apply it
+    if (wasm && camPtr.current && !isUserControlled.current) {
+      wasm.camerasystem_update(camPtr.current, delta, now);
+
+      // Check if WASM is actively lerping
+      const lerping = wasm.camerasystem_is_lerping(camPtr.current) !== 0;
+      const hasTarget = wasm.camerasystem_has_target(camPtr.current) !== 0;
+
+      if (lerping && hasTarget && target) {
+        const dataPtr = wasm.camerasystem_data_ptr(camPtr.current);
+        const data = new Float32Array(wasm.memory.buffer, dataPtr, 6);
+
+        // Apply WASM-computed lerp -- but only position, not target rotation
+        // This lets OrbitControls keep its rotation state
+        controls.object.position.lerp(
+          new THREE.Vector3(data[0], data[1], data[2]),
+          delta * 2.0
+        );
+        controls.target.lerp(
+          new THREE.Vector3(data[3], data[4], data[5]),
+          delta * 2.0
+        );
+      }
+
+      // Apply shake on top (additive, doesn't break OrbitControls)
+      const shakeElapsed = (performance.now() - shakeStartTime.current) / 1000;
+      if (shakeElapsed < 0.3 && shakeTimestamp > 0) {
+        const frequency = 30;
+        const decay = 10;
+        const amplitude = 0.03;
+        const magnitude =
+          amplitude * Math.sin(frequency * shakeElapsed) * Math.exp(-decay * shakeElapsed);
+        const offset = shakeDirection.current.clone().multiplyScalar(magnitude);
+        controls.object.position.add(offset);
+      }
+
+      controls.update();
+      return;
+    }
 
     // JS fallback: lerp toward target
     if (target && isLerping.current) {

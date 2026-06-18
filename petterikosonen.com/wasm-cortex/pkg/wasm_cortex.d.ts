@@ -251,6 +251,18 @@ export class ScrambleSystem {
     tick(): number;
 }
 
+/**
+ * Exported allocator: JS calls this to allocate WASM memory for array transfer.
+ * Returns a pointer (as usize) to the allocated block.
+ * JS writes data via TypedArray view into wasm.memory.buffer at this offset.
+ */
+export function wasm_alloc(size: number): number;
+
+/**
+ * Exported deallocator: JS calls this to free WASM memory allocated by wasm_alloc.
+ */
+export function wasm_free(ptr: number, size: number): void;
+
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
@@ -297,6 +309,8 @@ export interface InitOutput {
     readonly layoutsystem_data_ptr: (a: number) => number;
     readonly layoutsystem_len: (a: number) => number;
     readonly layoutsystem_new: () => number;
+    readonly wasm_alloc: (a: number) => number;
+    readonly wasm_free: (a: number, b: number) => void;
     readonly __wbg_nodeanimationsystem_free: (a: number, b: number) => void;
     readonly nodeanimationsystem_data_ptr: (a: number) => number;
     readonly nodeanimationsystem_init: (a: number, b: number, c: number, d: number) => void;

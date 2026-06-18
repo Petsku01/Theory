@@ -1,73 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-
-// ── WASM scramble loader ──
-// Loads wasm_cortex_bg.wasm for scramble char generation.
-
-interface ScrambleWasmExports {
-  memory: WebAssembly.Memory;
-  scramblesystem_new(): number;
-  scramblesystem_init(ptr: number, char_codes_ptr: number, len: number): void;
-  scramblesystem_tick(ptr: number): number;
-  scramblesystem_reveal_next(ptr: number): void;
-  scramblesystem_is_complete(ptr: number): number;
-  scramblesystem_reset(ptr: number): void;
-  scramblesystem_len(ptr: number): number;
-  scramblesystem_data_ptr(ptr: number): number;
-  scramblesystem_target_char(ptr: number, index: number): number;
-  __wbg_scramblesystem_free(ptr: number, del: number): void;
-  __wbindgen_malloc(size: number, align: number): number;
-  __wbindgen_free(ptr: number, len: number, align: number): void;
-  __wbindgen_start(): void;
-  __wbindgen_externrefs: WebAssembly.Table;
-}
-
-let scrambleWasm: ScrambleWasmExports | null = null;
-let scrambleWasmPromise: Promise<boolean> | null = null;
-let scrambleWasmReady = false;
-let scrambleWasmFailed = false;
-
-async function loadScrambleWasm(): Promise<boolean> {
-  const response = await fetch("/wasm/wasm_cortex_bg.wasm");
-  if (!response.ok) {
-    throw new Error(`WASM fetch failed: ${response.status}`);
-  }
-  const { instance } = await WebAssembly.instantiateStreaming(response, {
-    "./wasm_cortex_bg.js": {
-      __wbg___wbindgen_throw_ea4887a5f8f9a9db: function (arg0: number, arg1: number) {
-        throw new Error(`WASM throw at offset ${arg0}, len ${arg1}`);
-      },
-      __wbindgen_init_externref_table: function () {},
-    },
-  });
-  const exports = instance.exports as unknown as ScrambleWasmExports;
-  if (typeof exports.scramblesystem_new !== "function") {
-    throw new Error("Missing required WASM export: scramblesystem_new");
-  }
-  if (exports.__wbindgen_start) {
-    exports.__wbindgen_start();
-  }
-  scrambleWasm = exports;
-  scrambleWasmReady = true;
-  return true;
-}
-
-function ensureScrambleWasm(): Promise<boolean> {
-  if (scrambleWasm) return Promise.resolve(true);
-  if (scrambleWasmFailed) return Promise.resolve(false);
-  scrambleWasmPromise ??= loadScrambleWasm().catch((err) => {
-    console.warn("[scramble] WASM load failed, using JS fallback:", err);
-    scrambleWasmPromise = null;
-    scrambleWasmFailed = true;
-    return false;
-  });
-  return scrambleWasmPromise;
-}
-
-if (typeof window !== "undefined") {
-  ensureScrambleWasm();
-}
+import {
+  ensureCortexWasm,
+  isCortexWasmReady,
+  getCortexWasm,
+  writeU8ToWasm,
+  freeWasmPtr,
+} from "@/components/neural-cortex/utils";
 
 // ── JS fallback chars ──
 const JS_CHARS = "0123456789ABCDEF<>/\\";
@@ -93,8 +33,9 @@ export function useScramble(text: string, isHovered: boolean): string {
   useEffect(() => {
     return () => {
       clearAll();
-      if (scramblePtr.current && scrambleWasm) {
-        try { scrambleWasm.__wbg_scramblesystem_free(scramblePtr.current, 0); } catch {}
+      const wasm = getCortexWasm();
+      if (scramblePtr.current && wasm) {
+        try { wasm.__wbg_scramblesystem_free(scramblePtr.current, 0); } catch {}
         scramblePtr.current = 0;
       }
     };
@@ -102,24 +43,27 @@ export function useScramble(text: string, isHovered: boolean): string {
 
   // Init/re-init WASM scramble system when WASM becomes ready
   useEffect(() => {
-    if (!scrambleWasmReady || !scrambleWasm || scramblePtr.current) {
-      if (!scrambleWasmReady && !scrambleWasmFailed) {
-        ensureScrambleWasm().then((ok) => {
+    if (!isCortexWasmReady() || !getCortexWasm()) {
+      if (!isCortexWasmReady()) {
+        ensureCortexWasm().then((ok) => {
           if (ok) setWasmReadyFlag(true);
         });
       }
       return;
     }
 
-    scramblePtr.current = scrambleWasm.scramblesystem_new();
+    const wasm = getCortexWasm()!;
+    if (!scramblePtr.current) {
+      scramblePtr.current = wasm.scramblesystem_new();
+    }
 
     return () => {
-      if (scramblePtr.current && scrambleWasm) {
-        try { scrambleWasm.__wbg_scramblesystem_free(scramblePtr.current, 0); } catch {}
+      if (scramblePtr.current && wasm) {
+        try { wasm.__wbg_scramblesystem_free(scramblePtr.current, 0); } catch {}
         scramblePtr.current = 0;
       }
     };
-  }, [scrambleWasmReady]);
+  }, [scramblePtr.current]);
 
   useEffect(() => {
     if (isHovered) {
@@ -127,7 +71,60 @@ export function useScramble(text: string, isHovered: boolean): string {
       const finalText = text;
       const length = finalText.length;
 
-      // WASM path disabled: __wbindgen_malloc/free not exported by wasm-bindgen
+      // WASM path
+      const wasm = getCortexWasm();
+      if (isCortexWasmReady() && wasm && scramblePtr.current && length > 0) {
+        // Write char codes to WASM memory
+        const charCodes = new Uint8Array(length);
+        for (let i = 0; i < length; i++) {
+          charCodes[i] = finalText.charCodeAt(i);
+        }
+
+        const codesPtr = writeU8ToWasm(wasm, charCodes);
+        const byteLen = charCodes.length;
+
+        wasm.scramblesystem_init(scramblePtr.current, codesPtr, length);
+        freeWasmPtr(wasm, codesPtr, byteLen);
+
+        // Scramble interval: generate scrambled text via WASM
+        scrambleIntervalRef.current = setInterval(() => {
+          if (!scramblePtr.current || !getCortexWasm()) return;
+          const w = getCortexWasm()!;
+          w.scramblesystem_tick(scramblePtr.current);
+          const dataPtr = w.scramblesystem_data_ptr(scramblePtr.current);
+          const data = new Uint8Array(w.memory.buffer, dataPtr, length);
+          setDisplay(String.fromCharCode(...data));
+        }, 60);
+
+        // Reveal one char at a time
+        let revealIdx = 0;
+        const revealNext = () => {
+          if (revealIdx < length) {
+            const w = getCortexWasm();
+            if (!w || !scramblePtr.current) return;
+            w.scramblesystem_reveal_next(scramblePtr.current);
+            revealIdx++;
+
+            if (w.scramblesystem_is_complete(scramblePtr.current)) {
+              if (scrambleIntervalRef.current) {
+                clearInterval(scrambleIntervalRef.current);
+                scrambleIntervalRef.current = null;
+              }
+              setDisplay(finalText);
+            } else {
+              const timer = setTimeout(revealNext, 30);
+              resolveTimersRef.current.push(timer);
+            }
+          }
+        };
+        const startTimer = setTimeout(revealNext, 120);
+        resolveTimersRef.current.push(startTimer);
+
+        return () => {
+          clearAll();
+          setDisplay(finalText);
+        };
+      }
 
       // JS fallback (original implementation)
       const revealed = new Array<boolean>(length).fill(false);

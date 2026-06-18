@@ -5,72 +5,16 @@ import { useFrame } from "@react-three/fiber";
 import { Html } from "@react-three/drei";
 import * as THREE from "three";
 import { type CortexNode } from "@/lib/cortex-data";
-import { CLUSTER_COLORS } from "@/components/neural-cortex/utils";
+import {
+  CLUSTER_COLORS,
+  ensureCortexWasm,
+  isCortexWasmReady,
+  getCortexWasm,
+  writeF32ToWasm,
+  writeU32ToWasm,
+  freeWasmPtr,
+} from "@/components/neural-cortex/utils";
 import { useScramble } from "@/components/neural-cortex/hooks/useScramble";
-
-// ── WASM node animation loader ──
-// Loads wasm_cortex_bg.wasm for node animation computation.
-
-interface NodeAnimWasmExports {
-  memory: WebAssembly.Memory;
-  nodeanimationsystem_new(): number;
-  nodeanimationsystem_init(ptr: number, phases_ptr: number, tilts_ptr: number, count: number): void;
-  nodeanimationsystem_update(ptr: number, elapsed: number, delta: number, flags_ptr: number): number;
-  nodeanimationsystem_data_ptr(ptr: number): number;
-  nodeanimationsystem_len(ptr: number): number;
-  nodeanimationsystem_stride(ptr: number): number;
-  __wbg_nodeanimationsystem_free(ptr: number, del: number): void;
-  __wbindgen_malloc(size: number, align: number): number;
-  __wbindgen_free(ptr: number, len: number, align: number): void;
-  __wbindgen_start(): void;
-  __wbindgen_externrefs: WebAssembly.Table;
-}
-
-let nodeAnimWasm: NodeAnimWasmExports | null = null;
-let nodeAnimWasmPromise: Promise<boolean> | null = null;
-let nodeAnimWasmReady = false;
-let nodeAnimWasmFailed = false;
-
-async function loadNodeAnimWasm(): Promise<boolean> {
-  const response = await fetch("/wasm/wasm_cortex_bg.wasm");
-  if (!response.ok) {
-    throw new Error(`WASM fetch failed: ${response.status}`);
-  }
-  const { instance } = await WebAssembly.instantiateStreaming(response, {
-    "./wasm_cortex_bg.js": {
-      __wbg___wbindgen_throw_ea4887a5f8f9a9db: function (arg0: number, arg1: number) {
-        throw new Error(`WASM throw at offset ${arg0}, len ${arg1}`);
-      },
-      __wbindgen_init_externref_table: function () {},
-    },
-  });
-  const exports = instance.exports as unknown as NodeAnimWasmExports;
-  if (typeof exports.nodeanimationsystem_new !== "function") {
-    throw new Error("Missing required WASM export: nodeanimationsystem_new");
-  }
-  if (exports.__wbindgen_start) {
-    exports.__wbindgen_start();
-  }
-  nodeAnimWasm = exports;
-  nodeAnimWasmReady = true;
-  return true;
-}
-
-function ensureNodeAnimWasm(): Promise<boolean> {
-  if (nodeAnimWasm) return Promise.resolve(true);
-  if (nodeAnimWasmFailed) return Promise.resolve(false);
-  nodeAnimWasmPromise ??= loadNodeAnimWasm().catch((err) => {
-    console.warn("[node-anim] WASM load failed, using JS fallback:", err);
-    nodeAnimWasmPromise = null;
-    nodeAnimWasmFailed = true;
-    return false;
-  });
-  return nodeAnimWasmPromise;
-}
-
-if (typeof window !== "undefined") {
-  ensureNodeAnimWasm();
-}
 
 // ── Deterministic phase offset from node id ──
 function hashPhase(id: string): number {
@@ -146,14 +90,97 @@ export const NetworkNode = React.memo(function NetworkNode({
 
   // Initialize WASM animation system (single node, count=1)
   useEffect(() => {
-    // WASM path disabled: __wbindgen_malloc/free not exported by wasm-bindgen
-    void phase; void tilt1; void tilt2;
+    if (!isCortexWasmReady() || !getCortexWasm()) {
+      if (!isCortexWasmReady()) {
+        ensureCortexWasm().then((ok) => {
+          if (ok) setWasmFlag(true);
+        });
+      }
+      return;
+    }
+
+    const wasm = getCortexWasm()!;
+    const ptr = wasm.nodeanimationsystem_new();
+    animPtr.current = ptr;
+
+    // Write phase and tilts to WASM memory
+    const phases = new Float32Array([phase]);
+    const tilts = new Float32Array([tilt1[0], tilt1[1], tilt2[0], tilt2[1], tilt2[2]]);
+
+    const phasesWasmPtr = writeF32ToWasm(wasm, phases);
+    const tiltsWasmPtr = writeF32ToWasm(wasm, tilts);
+    const flagsWasmPtr = writeU32ToWasm(wasm, new Uint32Array(1));
+
+    phasesPtr.current = phasesWasmPtr;
+    tiltsPtr.current = tiltsWasmPtr;
+    flagsPtr.current = flagsWasmPtr;
+
+    wasm.nodeanimationsystem_init(ptr, phasesWasmPtr, tiltsWasmPtr, 1);
+    wasmReady.current = true;
+
+    return () => {
+      const w = getCortexWasm();
+      if (animPtr.current && w) {
+        try { w.__wbg_nodeanimationsystem_free(animPtr.current, 0); } catch {}
+        animPtr.current = 0;
+      }
+      if (phasesPtr.current && w) { freeWasmPtr(w, phasesPtr.current, 4); }
+      if (tiltsPtr.current && w) { freeWasmPtr(w, tiltsPtr.current, 20); }
+      if (flagsPtr.current && w) { freeWasmPtr(w, flagsPtr.current, 4); }
+      phasesPtr.current = 0;
+      tiltsPtr.current = 0;
+      flagsPtr.current = 0;
+      wasmReady.current = false;
+    };
   }, [phase, tilt1, tilt2]);
 
   useFrame((state, delta) => {
     if (!groupRef.current) return;
     const t = state.clock.elapsedTime;
     const active = isHovered || isSelected;
+
+    // ── WASM path ──
+    const wasm = getCortexWasm();
+    if (wasmReady.current && wasm && animPtr.current && flagsPtr.current) {
+      // Write active flag
+      new Uint32Array(wasm.memory.buffer, flagsPtr.current, 1)[0] = active ? 1 : 0;
+
+      // Update
+      wasm.nodeanimationsystem_update(animPtr.current, t, delta, flagsPtr.current);
+
+      // Read output (16 f32s for 1 node)
+      const dataPtr = wasm.nodeanimationsystem_data_ptr(animPtr.current);
+      const data = new Float32Array(wasm.memory.buffer, dataPtr, 16);
+
+      // Apply to Three.js objects
+      groupRef.current.scale.setScalar(data[0]);
+      groupRef.current.position.y = data[1];
+
+      if (outerRef.current) {
+        const mat = outerRef.current.material as THREE.MeshStandardMaterial;
+        mat.emissiveIntensity = data[2];
+      }
+      if (coreRef.current) {
+        const mat = coreRef.current.material as THREE.MeshStandardMaterial;
+        mat.emissiveIntensity = data[3];
+        mat.opacity = data[4];
+      }
+      if (ring1Ref.current) {
+        ring1Ref.current.rotation.x = data[5];
+        ring1Ref.current.rotation.y = data[6];
+        ring1Ref.current.rotation.z = data[7];
+        const mat1 = ring1Ref.current.material as THREE.MeshBasicMaterial;
+        mat1.opacity = data[8];
+      }
+      if (ring2Ref.current) {
+        ring2Ref.current.rotation.x = data[9];
+        ring2Ref.current.rotation.y = data[10];
+        ring2Ref.current.rotation.z = data[11];
+        const mat2 = ring2Ref.current.material as THREE.MeshBasicMaterial;
+        mat2.opacity = data[12];
+      }
+      return;
+    }
 
     // ── JS fallback (original implementation) ──
     const breathSpeed = active ? 4.5 : 2.0;

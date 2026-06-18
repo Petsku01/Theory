@@ -650,6 +650,27 @@ export class ScrambleSystem {
     }
 }
 if (Symbol.dispose) ScrambleSystem.prototype[Symbol.dispose] = ScrambleSystem.prototype.free;
+
+/**
+ * Exported allocator: JS calls this to allocate WASM memory for array transfer.
+ * Returns a pointer (as usize) to the allocated block.
+ * JS writes data via TypedArray view into wasm.memory.buffer at this offset.
+ * @param {number} size
+ * @returns {number}
+ */
+export function wasm_alloc(size) {
+    const ret = wasm.wasm_alloc(size);
+    return ret >>> 0;
+}
+
+/**
+ * Exported deallocator: JS calls this to free WASM memory allocated by wasm_alloc.
+ * @param {number} ptr
+ * @param {number} size
+ */
+export function wasm_free(ptr, size) {
+    wasm.wasm_free(ptr, size);
+}
 function __wbg_get_imports() {
     const import0 = {
         __proto__: null,

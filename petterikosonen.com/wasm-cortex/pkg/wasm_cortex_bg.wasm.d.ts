@@ -43,6 +43,8 @@ export const layoutsystem_compute_cluster: (a: number, b: number, c: number, d: 
 export const layoutsystem_data_ptr: (a: number) => number;
 export const layoutsystem_len: (a: number) => number;
 export const layoutsystem_new: () => number;
+export const wasm_alloc: (a: number) => number;
+export const wasm_free: (a: number, b: number) => void;
 export const __wbg_nodeanimationsystem_free: (a: number, b: number) => void;
 export const nodeanimationsystem_data_ptr: (a: number) => number;
 export const nodeanimationsystem_init: (a: number, b: number, c: number, d: number) => void;

@@ -19,13 +19,15 @@ export function seededRandom(seed: number) {
   };
 }
 
-// ── WASM layout loader ──
-// Loads wasm_cortex_bg.wasm directly via fetch + WebAssembly.instantiateStreaming.
-// No JS glue import (Next.js bundler fails with wasm-bindgen JS glue).
-// Falls back to pure JS if WASM fails to load.
+// ── Shared WASM loader for wasm_cortex ──
+// All neural-cortex components share the same WASM instance.
 
-interface LayoutWasmExports {
+export interface CortexWasmExports {
   memory: WebAssembly.Memory;
+  // Allocator (our custom exports)
+  wasm_alloc(size: number): number;
+  wasm_free(ptr: number, size: number): void;
+  // Layout
   layoutsystem_new(): number;
   layoutsystem_compute_cluster(
     ptr: number, seeds_ptr: number, seeds_len: number,
@@ -34,19 +36,77 @@ interface LayoutWasmExports {
   layoutsystem_len(ptr: number): number;
   layoutsystem_data_ptr(ptr: number): number;
   __wbg_layoutsystem_free(ptr: number, del: number): void;
-  __wbindgen_malloc(size: number, align: number): number;
-  __wbindgen_realloc(ptr: number, old_size: number, new_size: number, align: number): number;
-  __wbindgen_free(ptr: number, len: number, align: number): void;
-  __wbindgen_start(): void;
-  __wbindgen_externrefs: WebAssembly.Table;
+  // Edge
+  edgesystem_new(): number;
+  edgesystem_init_edges(
+    ptr: number, from_ptr: number, to_ptr: number,
+    edge_count: number, flags_ptr: number
+  ): number;
+  edgesystem_update_pulses(
+    ptr: number, from_ptr: number, to_ptr: number, elapsed: number
+  ): number;
+  edgesystem_update_highlights(ptr: number, flags_ptr: number): void;
+  edgesystem_cylinder_data_ptr(ptr: number): number;
+  edgesystem_pulse_data_ptr(ptr: number): number;
+  edgesystem_len(ptr: number): number;
+  edgesystem_cylinder_stride(ptr: number): number;
+  edgesystem_pulse_stride(ptr: number): number;
+  edgesystem_is_highlighted(ptr: number, index: number): number;
+  __wbg_edgesystem_free(ptr: number, del: number): void;
+  // Camera
+  camerasystem_new(): number;
+  camerasystem_set_position(ptr: number, cx: number, cy: number, cz: number, tx: number, ty: number, tz: number): void;
+  camerasystem_set_target(ptr: number, tx: number, ty: number, tz: number): void;
+  camerasystem_clear_target(ptr: number): void;
+  camerasystem_user_controlled(ptr: number): void;
+  camerasystem_trigger_shake(ptr: number, dx: number, dy: number, dz: number, t: number): void;
+  camerasystem_update(ptr: number, delta: number, current_time: number): number;
+  camerasystem_is_lerping(ptr: number): number;
+  camerasystem_has_target(ptr: number): number;
+  camerasystem_data_ptr(ptr: number): number;
+  __wbg_camerasystem_free(ptr: number, del: number): void;
+  // Scramble
+  scramblesystem_new(): number;
+  scramblesystem_init(ptr: number, char_codes_ptr: number, len: number): void;
+  scramblesystem_tick(ptr: number): number;
+  scramblesystem_reveal_next(ptr: number): void;
+  scramblesystem_is_complete(ptr: number): number;
+  scramblesystem_reset(ptr: number): void;
+  scramblesystem_len(ptr: number): number;
+  scramblesystem_data_ptr(ptr: number): number;
+  scramblesystem_target_char(ptr: number, index: number): number;
+  __wbg_scramblesystem_free(ptr: number, del: number): void;
+  // Grid
+  gridgenerator_new(): number;
+  gridgenerator_generate(
+    ptr: number, size: number, spacing: number,
+    line_r: number, line_g: number, line_b: number, line_a: number,
+    edge_r: number, edge_g: number, edge_b: number, edge_a: number
+  ): number;
+  gridgenerator_data_ptr(ptr: number): number;
+  gridgenerator_width(ptr: number): number;
+  gridgenerator_height(ptr: number): number;
+  __wbg_gridgenerator_free(ptr: number, del: number): void;
+  // Node animation
+  nodeanimationsystem_new(): number;
+  nodeanimationsystem_init(ptr: number, phases_ptr: number, tilts_ptr: number, count: number): void;
+  nodeanimationsystem_update(ptr: number, elapsed: number, delta: number, flags_ptr: number): number;
+  nodeanimationsystem_data_ptr(ptr: number): number;
+  nodeanimationsystem_len(ptr: number): number;
+  nodeanimationsystem_stride(ptr: number): number;
+  __wbg_nodeanimationsystem_free(ptr: number, del: number): void;
+  // Particle / burst already handled by their own components
+  // WASM init
+  __wbindgen_start?(): void;
+  __wbindgen_externrefs?: WebAssembly.Table;
 }
 
-let layoutWasm: LayoutWasmExports | null = null;
-let layoutWasmPromise: Promise<boolean> | null = null;
-let layoutWasmReady = false;
-let layoutWasmFailed = false;
+let cortexWasm: CortexWasmExports | null = null;
+let cortexWasmPromise: Promise<boolean> | null = null;
+let cortexWasmReady = false;
+let cortexWasmFailed = false;
 
-async function loadLayoutWasm(): Promise<boolean> {
+async function loadCortexWasm(): Promise<boolean> {
   const response = await fetch("/wasm/wasm_cortex_bg.wasm");
   if (!response.ok) {
     throw new Error(`WASM fetch failed: ${response.status}`);
@@ -59,43 +119,78 @@ async function loadLayoutWasm(): Promise<boolean> {
       __wbindgen_init_externref_table: function () {},
     },
   });
-  const exports = instance.exports as unknown as LayoutWasmExports;
-  if (typeof exports.layoutsystem_new !== "function") {
-    throw new Error("Missing required WASM export: layoutsystem_new");
+  const exports = instance.exports as unknown as CortexWasmExports;
+  if (typeof exports.wasm_alloc !== "function") {
+    throw new Error("Missing required WASM export: wasm_alloc");
   }
   if (exports.__wbindgen_start) {
     exports.__wbindgen_start();
   }
-  layoutWasm = exports;
-  layoutWasmReady = true;
+  cortexWasm = exports;
+  cortexWasmReady = true;
   return true;
 }
 
-function ensureLayoutWasm(): Promise<boolean> {
-  if (layoutWasm) return Promise.resolve(true);
-  if (layoutWasmFailed) return Promise.resolve(false);
-  layoutWasmPromise ??= loadLayoutWasm().catch((err) => {
-    console.warn("[layout] WASM load failed, using JS fallback:", err);
-    layoutWasmPromise = null;
-    layoutWasmFailed = true;
+export function ensureCortexWasm(): Promise<boolean> {
+  if (cortexWasm) return Promise.resolve(true);
+  if (cortexWasmFailed) return Promise.resolve(false);
+  cortexWasmPromise ??= loadCortexWasm().catch((err) => {
+    console.warn("[cortex] WASM load failed, using JS fallback:", err);
+    cortexWasmPromise = null;
+    cortexWasmFailed = true;
     return false;
   });
-  return layoutWasmPromise;
+  return cortexWasmPromise;
+}
+
+export function isCortexWasmReady(): boolean {
+  return cortexWasmReady;
+}
+
+export function getCortexWasm(): CortexWasmExports | null {
+  return cortexWasm;
 }
 
 // Kick off WASM load immediately on client
 if (typeof window !== "undefined") {
-  ensureLayoutWasm();
+  ensureCortexWasm();
 }
 
-// ── Write Uint32Array seeds into WASM memory ──
-function writeSeedsToWasm(wasm: LayoutWasmExports, seeds: Uint32Array): number {
-  const byteLen = seeds.length * 4; // u32 = 4 bytes
-  const ptr = 0; // disabled: __wbindgen_malloc not exported
-  if (ptr === 0) throw new Error("WASM malloc failed");
-  const view = new Uint32Array(wasm.memory.buffer, ptr, seeds.length);
-  view.set(seeds);
+// ── Write Uint32Array into WASM memory via wasm_alloc ──
+export function writeU32ToWasm(wasm: CortexWasmExports, data: Uint32Array): number {
+  const byteLen = data.length * 4;
+  const ptr = wasm.wasm_alloc(byteLen);
+  if (ptr === 0) throw new Error("wasm_alloc failed for U32 array");
+  const view = new Uint32Array(wasm.memory.buffer, ptr, data.length);
+  view.set(data);
   return ptr;
+}
+
+// ── Write Float32Array into WASM memory via wasm_alloc ──
+export function writeF32ToWasm(wasm: CortexWasmExports, data: Float32Array): number {
+  const byteLen = data.length * 4;
+  const ptr = wasm.wasm_alloc(byteLen);
+  if (ptr === 0) throw new Error("wasm_alloc failed for F32 array");
+  const view = new Float32Array(wasm.memory.buffer, ptr, data.length);
+  view.set(data);
+  return ptr;
+}
+
+// ── Write Uint8Array into WASM memory via wasm_alloc ──
+export function writeU8ToWasm(wasm: CortexWasmExports, data: Uint8Array): number {
+  const byteLen = data.length;
+  const ptr = wasm.wasm_alloc(byteLen);
+  if (ptr === 0) throw new Error("wasm_alloc failed for U8 array");
+  const view = new Uint8Array(wasm.memory.buffer, ptr, data.length);
+  view.set(data);
+  return ptr;
+}
+
+// ── Free WASM memory ──
+export function freeWasmPtr(wasm: CortexWasmExports, ptr: number, byteLen: number): void {
+  if (ptr !== 0) {
+    try { wasm.wasm_free(ptr, byteLen); } catch {}
+  }
 }
 
 // ── computePositions: WASM-accelerated with JS fallback ──
@@ -110,7 +205,68 @@ export function computePositions(nodeList: CortexNode[]): Map<string, THREE.Vect
 
   const goldenAngle = Math.PI * (3 - Math.sqrt(5));
 
-  // WASM path disabled: __wbindgen_malloc/free not exported by wasm-bindgen
+  // WASM path
+  if (cortexWasmReady && cortexWasm) {
+    const wasm = cortexWasm;
+    const layoutPtr = wasm.layoutsystem_new();
+    try {
+      for (const [cluster, clusterList] of clusterNodes) {
+        const center = new THREE.Vector3(
+          ...(clusterPositions[cluster] ?? [0, 0, 0])
+        );
+        const count = clusterList.length;
+
+        if (count === 1) {
+          pos.set(clusterList[0].id, center.clone());
+          continue;
+        }
+
+        // Build per-node seeds matching JS: node.id.length * 127 + i * 31
+        const seeds = new Uint32Array(count);
+        clusterList.forEach((node, i) => {
+          seeds[i] = node.id.length * 127 + i * 31;
+        });
+
+        // Write seeds to WASM memory
+        const seedsPtr = writeU32ToWasm(wasm, seeds);
+        const seedsByteLen = seeds.length * 4;
+
+        try {
+          wasm.layoutsystem_compute_cluster(
+            layoutPtr, seedsPtr, count,
+            center.x, center.y, center.z
+          );
+
+          // Read results
+          const len = wasm.layoutsystem_len(layoutPtr);
+          const dataPtr = wasm.layoutsystem_data_ptr(layoutPtr);
+          const positions = new Float32Array(wasm.memory.buffer, dataPtr, len * 3);
+
+          clusterList.forEach((node, i) => {
+            pos.set(node.id, new THREE.Vector3(
+              positions[i * 3],
+              positions[i * 3 + 1],
+              positions[i * 3 + 2]
+            ));
+          });
+        } finally {
+          freeWasmPtr(wasm, seedsPtr, seedsByteLen);
+        }
+      }
+
+      // If WASM filled all positions, return early
+      if (pos.size === nodeList.length) {
+        return pos;
+      }
+      // Otherwise fall through to JS and fill missing
+      pos.clear();
+    } catch (err) {
+      console.warn("[layout] WASM compute failed, falling back to JS:", err);
+      pos.clear();
+    } finally {
+      try { wasm.__wbg_layoutsystem_free(layoutPtr, 0); } catch {}
+    }
+  }
 
   // JS fallback
   for (const [cluster, clusterList] of clusterNodes) {
