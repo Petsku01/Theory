@@ -11,7 +11,7 @@ import { CLUSTER_COLORS, computePositions } from "@/components/neural-cortex/uti
 import { NetworkNode } from "@/components/neural-cortex/NetworkNode";
 import { NetworkEdges } from "@/components/neural-cortex/NetworkEdges";
 import { WasmSoftParticles } from "@/components/neural-cortex/WasmSoftParticles";
-import { BurstParticles } from "@/components/neural-cortex/BurstParticles";
+import { WasmBurstParticles } from "@/components/neural-cortex/WasmBurstParticles";
 import { CameraController } from "@/components/neural-cortex/CameraController";
 
 
@@ -73,7 +73,7 @@ export function CortexScene({
       <pointLight position={[-10, -5, -10]} intensity={0.3} color="#22d3ee" />
 
       <WasmSoftParticles count={3600} targetPos={attractionTarget} color="#00f0ff" />
-      <BurstParticles
+      <WasmBurstParticles
         origin={targetPosition}
         color={
           selectedId

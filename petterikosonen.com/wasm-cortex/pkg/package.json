@@ -1,0 +1,15 @@
+{
+  "name": "wasm-cortex",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "wasm_cortex_bg.wasm",
+    "wasm_cortex.js",
+    "wasm_cortex.d.ts"
+  ],
+  "main": "wasm_cortex.js",
+  "types": "wasm_cortex.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
