@@ -97,39 +97,8 @@ export function CameraController({
 
   // Initialize WASM camera system when WASM is ready
   useEffect(() => {
-    if (!camWasmReady || !camWasm || camPtr.current) {
-      // If WASM not ready yet, poll until it is
-      if (!camWasmReady && !camWasmFailed) {
-        ensureCamWasm().then((ok) => {
-          if (ok) setWasmReadyFlag(true); // trigger re-render -> re-init
-        });
-      }
-      return;
-    }
-
-    camPtr.current = camWasm.camerasystem_new();
-
-    // Sync current camera state into WASM to prevent snapping
-    const controls = controlsRef.current;
-    if (controls) {
-      const camPos = controls.object.position;
-      const tgt = controls.target;
-      camWasm.camerasystem_set_position(
-        camPtr.current, camPos.x, camPos.y, camPos.z,
-        tgt.x, tgt.y, tgt.z
-      );
-      // Re-apply current target if one is set
-      if (target) {
-        camWasm.camerasystem_set_target(camPtr.current, target.x, target.y, target.z);
-      }
-    }
-
-    return () => {
-      if (camPtr.current && camWasm) {
-        try { camWasm.__wbg_camerasystem_free(camPtr.current, 0); } catch {}
-        camPtr.current = 0;
-      }
-    };
+    // WASM path disabled: overrides OrbitControls, breaks zoom/pan
+    void controlsRef;
   }, [controlsRef]);
 
   // Reset auto-lerp when target changes
@@ -141,15 +110,6 @@ export function CameraController({
     const controls = controlsRef.current;
     if (!controls) return;
 
-    // WASM: set or clear target
-    if (camWasmReady && camWasm && camPtr.current) {
-      if (target) {
-        camWasm.camerasystem_set_target(camPtr.current, target.x, target.y, target.z);
-      } else {
-        camWasm.camerasystem_clear_target(camPtr.current);
-      }
-    }
-
     // JS fallback
     isUserControlled.current = false;
     isLerping.current = true;
@@ -157,9 +117,6 @@ export function CameraController({
     const onStart = () => {
       isUserControlled.current = true;
       isLerping.current = false;
-      if (camWasmReady && camWasm && camPtr.current) {
-        camWasm.camerasystem_user_controlled(camPtr.current);
-      }
     };
 
     controls.addEventListener("start", onStart);
@@ -177,13 +134,6 @@ export function CameraController({
         Math.random() - 0.5
       ).normalize();
 
-      if (camWasmReady && camWasm && camPtr.current) {
-        camWasm.camerasystem_trigger_shake(
-          camPtr.current, dir.x, dir.y, dir.z,
-          performance.now() / 1000
-        );
-      }
-
       // JS fallback
       shakeStartTime.current = performance.now();
       shakeDirection.current.copy(dir);
@@ -195,19 +145,7 @@ export function CameraController({
     if (!controls) return;
 
     const now = performance.now() / 1000;
-
-    // WASM path
-    if (camWasmReady && camWasm && camPtr.current) {
-      camWasm.camerasystem_update(camPtr.current, delta, now);
-      const dataPtr = camWasm.camerasystem_data_ptr(camPtr.current);
-      const data = new Float32Array(camWasm.memory.buffer, dataPtr, 6);
-
-      // Apply WASM-computed camera position
-      controls.object.position.set(data[0], data[1], data[2]);
-      controls.target.set(data[3], data[4], data[5]);
-      controls.update();
-      return;
-    }
+    void now;
 
     // JS fallback: lerp toward target
     if (target && isLerping.current) {
