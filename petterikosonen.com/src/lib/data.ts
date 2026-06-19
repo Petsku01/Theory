@@ -80,6 +80,12 @@ export const blogPosts: BlogPost[] = [
     desc: "Adoption plateau, overconfidence as a model failure mode, the security arms race accelerating on the open web, and why the market is bifurcating into invisible convenience AI versus transparent controllable AI",
     link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-06-16.md",
   },
+  {
+    title: "The Trust Bifurcation: AI's Split into Overt and Covert Tracks, and the Rise of Geometric Physical Agents",
+    date: "2026-06-19",
+    desc: "Only 16% of Americans believe AI will have a positive impact; overt AI faces collapsing trust while covert on-device agents surge; Lie-group attention for physical reasoning, Execution-State Capsules for low-latency serving, and Sovereign Execution Brokers for auditable agent authority",
+    link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-06-19.md",
+  },
 ];
 
 // Research entries -- papers, studies, analyses, guides
