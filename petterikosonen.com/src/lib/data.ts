@@ -234,6 +234,12 @@ export const researchPosts: BlogPost[] = [
     desc: "Tools and techniques for network security",
     link: "https://github.com/Petsku01/Theory/tree/main/Analyses"
   },
+  {
+    title: "The Deep Reliability Shift: Why the Next AI Crisis Won't Be About Capability",
+    date: "2026-06-25",
+    desc: "Vertical integration from custom silicon to safety kernels, hidden training instabilities, and the perceptual blind spot threatening AI deployment",
+    link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-06-25.md"
+  },
 ];
 
 export const projects: Project[] = [
