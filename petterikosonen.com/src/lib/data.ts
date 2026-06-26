@@ -240,12 +240,6 @@ export const researchPosts: BlogPost[] = [
     desc: "Vertical integration from custom silicon to safety kernels, hidden training instabilities, and the perceptual blind spot threatening AI deployment",
     link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-06-25.md"
   },
-  {
-    title: "The Sovereign Modular Stack: How Open Models, Specialized Encoders, and Structural Certification Are Redefining AI Deployment",
-    date: "2026-06-24",
-    desc: "Open reasoning cores, specialized perception modules, and structural evaluation frameworks replacing monolithic cloud-bound models",
-    link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-06-24.md"
-  },
 ];
 
 export const projects: Project[] = [
