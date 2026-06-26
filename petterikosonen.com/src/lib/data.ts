@@ -240,6 +240,12 @@ export const researchPosts: BlogPost[] = [
     desc: "Vertical integration from custom silicon to safety kernels, hidden training instabilities, and the perceptual blind spot threatening AI deployment",
     link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-06-25.md"
   },
+  {
+    title: "From Scaling to Trust: How Physical-World Failures, Model Theft, and Specialized Silicon Are Reshaping AI",
+    date: "2026-06-26",
+    desc: "Physical-world AI failures, model extraction attacks, and specialized silicon signaling the shift from scale-at-all-costs to trust-grounded deployment",
+    link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-06-26.md"
+  },
 ];
 
 export const projects: Project[] = [
