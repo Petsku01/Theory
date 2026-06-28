@@ -6,6 +6,8 @@ mod camera_system;
 mod scramble;
 mod grid_generator;
 mod node_animation;
+mod spring_cursor;
+mod particle_field_2d;
 
 pub use particle_system::ParticleSystem;
 pub use burst_system::BurstSystem;
@@ -15,6 +17,8 @@ pub use camera_system::CameraSystem;
 pub use scramble::ScrambleSystem;
 pub use grid_generator::GridGenerator;
 pub use node_animation::NodeAnimationSystem;
+pub use spring_cursor::SpringCursor;
+pub use particle_field_2d::ParticleField2D;
 
 use wasm_bindgen::prelude::*;
 

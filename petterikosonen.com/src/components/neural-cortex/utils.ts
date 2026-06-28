@@ -96,6 +96,13 @@ export interface CortexWasmExports {
   nodeanimationsystem_stride(ptr: number): number;
   __wbg_nodeanimationsystem_free(ptr: number, del: number): void;
   // Particle / burst already handled by their own components
+  // Particle system (3D soft particles for NeuralCortex)
+  particlesystem_new(count: number, xb: number, yb: number, zb: number): number;
+  particlesystem_update(ptr: number, tx: number, ty: number, tz: number, hasTarget: number): number;
+  particlesystem_data_ptr(ptr: number): number;
+  particlesystem_len(ptr: number): number;
+  particlesystem_stride(ptr: number): number;
+  __wbg_particlesystem_free(ptr: number, del: number): void;
   // Burst
   burstsystem_new(count: number): number;
   burstsystem_update(ptr: number, is_active: number, delta: number): number;
@@ -106,6 +113,23 @@ export interface CortexWasmExports {
   burstsystem_stride(ptr: number): number;
   burstsystem_has_spawned(ptr: number): number;
   __wbg_burstsystem_free(ptr: number, del: number): void;
+  // Spring cursor
+  springcursor_new(): number;
+  springcursor_set_target(ptr: number, x: number, y: number): void;
+  springcursor_hide(ptr: number): void;
+  springcursor_update(ptr: number, dt: number): void;
+  springcursor_get_x(ptr: number): number;
+  springcursor_get_y(ptr: number): number;
+  springcursor_get_opacity(ptr: number): number;
+  __wbg_springcursor_free(ptr: number, del: number): void;
+  // 2D particle field
+  particlefield2d_new(): number;
+  particlefield2d_init(ptr: number, n: number, w: number, h: number, seed: number): void;
+  particlefield2d_update(ptr: number, w: number, h: number, mx: number, my: number, mouse_active: number, time: number): void;
+  particlefield2d_count(ptr: number): number;
+  particlefield2d_data_ptr(ptr: number): number;
+  particlefield2d_stride(ptr: number): number;
+  __wbg_particlefield2d_free(ptr: number, del: number): void;
   // WASM init
   __wbindgen_start?(): void;
   __wbindgen_externrefs?: WebAssembly.Table;

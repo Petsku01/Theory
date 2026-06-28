@@ -3,63 +3,16 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { createSoftCircleTexture, setParticleWasmStatus } from "@/components/neural-cortex/utils";
+import {
+  createSoftCircleTexture,
+  setParticleWasmStatus,
+  ensureCortexWasm,
+  isCortexWasmReady,
+  getCortexWasm,
+} from "@/components/neural-cortex/utils";
 
-// WASM-powered soft particles.
-// Loads wasm_particles_bg.wasm directly via fetch + WebAssembly.instantiateStreaming.
+// WASM-powered soft particles using the unified cortex WASM instance.
 // Falls back to pure JS if WASM fails to load.
-
-interface WasmExports {
-  memory: WebAssembly.Memory;
-  particlesystem_new(count: number, xb: number, yb: number, zb: number): number;
-  particlesystem_update(ptr: number, tx: number, ty: number, tz: number, hasTarget: number): number;
-  particlesystem_data_ptr(ptr: number): number;
-  particlesystem_len(ptr: number): number;
-  particlesystem_stride(ptr: number): number;
-  particlesystem_free(ptr: number, del: number): void;
-  __wbindgen_start(): void;
-  __wbindgen_externrefs: WebAssembly.Table;
-  __wbg_particlesystem_free(ptr: number, del: number): void;
-}
-
-let wasmExports: WasmExports | null = null;
-let wasmPromise: Promise<boolean> | null = null;
-
-async function loadWasm(): Promise<boolean> {
-  const response = await fetch("/wasm/wasm_particles_bg.wasm");
-  if (!response.ok) {
-    throw new Error(`WASM fetch failed: ${response.status}`);
-  }
-  const { instance } = await WebAssembly.instantiateStreaming(response, {
-    "./wasm_particles_bg.js": {
-      __wbg___wbindgen_throw_ea4887a5f8f9a9db: function(arg0: number, arg1: number) {
-        throw new Error(`WASM throw at offset ${arg0}, len ${arg1}`);
-      },
-      __wbindgen_init_externref_table: function() {},
-    },
-  });
-  const exports = instance.exports as unknown as WasmExports;
-  if (typeof exports.particlesystem_new !== "function") {
-    throw new Error("Missing required WASM export: particlesystem_new");
-  }
-  if (exports.__wbindgen_start) {
-    exports.__wbindgen_start();
-  }
-  wasmExports = exports;
-  setParticleWasmStatus("wasm");
-  return true;
-}
-
-async function ensureWasm(): Promise<boolean> {
-  if (wasmExports) return true;
-  wasmPromise ??= loadWasm().catch((err) => {
-    console.warn("[WasmSoftParticles] WASM load failed, using JS fallback:", err);
-    wasmPromise = null;
-    setParticleWasmStatus("js");
-    return false;
-  });
-  return wasmPromise;
-}
 
 export function WasmSoftParticles({
   count = 3600,
@@ -134,16 +87,28 @@ export function WasmSoftParticles({
 
   useEffect(() => {
     let cancelled = false;
-    ensureWasm().then((ok) => {
-      if (cancelled || !ok || !wasmExports) return;
-      const ptr = wasmExports.particlesystem_new(count, bounds[0], bounds[1], bounds[2]);
+
+    const init = () => {
+      if (cancelled) return;
+      const wasm = getCortexWasm();
+      if (!wasm) return;
+      const ptr = wasm.particlesystem_new(count, bounds[0], bounds[1], bounds[2]);
       particlePtr.current = ptr;
       wasmReady.current = true;
-    });
+    };
+
+    if (isCortexWasmReady()) {
+      init();
+    } else {
+      ensureCortexWasm().then((ok) => {
+        if (ok) init();
+      });
+    }
+
     return () => {
       cancelled = true;
-      if (particlePtr.current && wasmExports) {
-        try { wasmExports.particlesystem_free(particlePtr.current, 0); } catch {}
+      if (particlePtr.current) {
+        try { getCortexWasm()?.__wbg_particlesystem_free(particlePtr.current, 0); } catch {}
         particlePtr.current = 0;
       }
     };
@@ -172,20 +137,21 @@ export function WasmSoftParticles({
     const sizeAttr = geo.getAttribute("size") as THREE.BufferAttribute;
     const alphaAttr = geo.getAttribute("alpha") as THREE.BufferAttribute;
 
-    if (wasmReady.current && wasmExports && particlePtr.current) {
+    const wasm = getCortexWasm();
+    if (wasmReady.current && wasm && particlePtr.current) {
       const ptr = particlePtr.current;
       const hasTarget = targetPos !== null && targetPos !== undefined;
       const tx = hasTarget ? targetPos!.x : 0;
       const ty = hasTarget ? targetPos!.y : 0;
       const tz = hasTarget ? targetPos!.z : 0;
 
-      wasmExports.particlesystem_update(ptr, tx, ty, tz, hasTarget ? 1 : 0);
+      wasm.particlesystem_update(ptr, tx, ty, tz, hasTarget ? 1 : 0);
 
-      const dataPtr = wasmExports.particlesystem_data_ptr(ptr);
-      const len = wasmExports.particlesystem_len(ptr);
-      const stride = wasmExports.particlesystem_stride(ptr);
+      const dataPtr = wasm.particlesystem_data_ptr(ptr);
+      const len = wasm.particlesystem_len(ptr);
+      const stride = wasm.particlesystem_stride(ptr);
 
-      const wasmData = new Float32Array(wasmExports.memory.buffer, dataPtr, len * stride);
+      const wasmData = new Float32Array(wasm.memory.buffer, dataPtr, len * stride);
 
       const pos = posAttr.array as Float32Array;
       const sz = sizeAttr.array as Float32Array;
@@ -194,7 +160,7 @@ export function WasmSoftParticles({
       for (let i = 0; i < len; i++) {
         const src = i * stride;
         const dst = i * 3;
-        pos[dst]     = wasmData[src];
+        pos[dst] = wasmData[src];
         pos[dst + 1] = wasmData[src + 1];
         pos[dst + 2] = wasmData[src + 2];
         sz[i] = wasmData[src + 6];
@@ -230,7 +196,6 @@ export function WasmSoftParticles({
           vel[idx + 1] += (dy / dist) * 0.0003;
           vel[idx + 2] += (dz / dist) * 0.0003;
         }
-        // Damping (matches WASM DAMPING = 0.998)
         vel[idx] *= 0.998;
         vel[idx + 1] *= 0.998;
         vel[idx + 2] *= 0.998;
@@ -239,13 +204,11 @@ export function WasmSoftParticles({
           if (Math.abs(vel[idx + j]) > maxVel) vel[idx + j] = maxVel * Math.sign(vel[idx + j]);
         }
 
-        // Fade alpha over time, then respawn opacity
         al[i] -= delta * 0.15;
         if (al[i] <= 0.05) {
           al[i] = 0.3 + Math.random() * 0.4;
         }
 
-        // Vary size smoothly using stored base size
         sz[i] = baseSizes[i] * (1.0 + 0.5 * Math.sin(time * 1.5 + i));
       }
 

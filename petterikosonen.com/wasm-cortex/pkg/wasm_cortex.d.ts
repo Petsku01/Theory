@@ -184,6 +184,17 @@ export class NodeAnimationSystem {
     update(elapsed: number, delta: number, active_flags_ptr: number): number;
 }
 
+export class ParticleField2D {
+    free(): void;
+    [Symbol.dispose](): void;
+    count(): number;
+    data_ptr(): number;
+    init(n: number, width: number, height: number, rng_seed: number): void;
+    constructor();
+    stride(): number;
+    update(width: number, height: number, mouse_x: number, mouse_y: number, mouse_active: boolean, time: number): void;
+}
+
 export class ParticleSystem {
     free(): void;
     [Symbol.dispose](): void;
@@ -251,6 +262,18 @@ export class ScrambleSystem {
     tick(): number;
 }
 
+export class SpringCursor {
+    free(): void;
+    [Symbol.dispose](): void;
+    get_opacity(): number;
+    get_x(): number;
+    get_y(): number;
+    hide(): void;
+    constructor();
+    set_target(x: number, y: number): void;
+    update(dt: number): void;
+}
+
 /**
  * Exported allocator: JS calls this to allocate WASM memory for array transfer.
  * Returns a pointer (as usize) to the allocated block.
@@ -267,6 +290,24 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
+    readonly __wbg_scramblesystem_free: (a: number, b: number) => void;
+    readonly __wbg_springcursor_free: (a: number, b: number) => void;
+    readonly scramblesystem_data_ptr: (a: number) => number;
+    readonly scramblesystem_init: (a: number, b: number, c: number) => void;
+    readonly scramblesystem_is_complete: (a: number) => number;
+    readonly scramblesystem_len: (a: number) => number;
+    readonly scramblesystem_new: () => number;
+    readonly scramblesystem_reset: (a: number) => void;
+    readonly scramblesystem_reveal_next: (a: number) => void;
+    readonly scramblesystem_target_char: (a: number, b: number) => number;
+    readonly scramblesystem_tick: (a: number) => number;
+    readonly springcursor_get_opacity: (a: number) => number;
+    readonly springcursor_get_x: (a: number) => number;
+    readonly springcursor_get_y: (a: number) => number;
+    readonly springcursor_hide: (a: number) => void;
+    readonly springcursor_new: () => number;
+    readonly springcursor_set_target: (a: number, b: number, c: number) => void;
+    readonly springcursor_update: (a: number, b: number) => void;
     readonly __wbg_burstsystem_free: (a: number, b: number) => void;
     readonly burstsystem_data_ptr: (a: number) => number;
     readonly burstsystem_has_spawned: (a: number) => number;
@@ -277,23 +318,14 @@ export interface InitOutput {
     readonly burstsystem_stride: (a: number) => number;
     readonly burstsystem_update: (a: number, b: number, c: number) => number;
     readonly __wbg_gridgenerator_free: (a: number, b: number) => void;
-    readonly __wbg_scramblesystem_free: (a: number, b: number) => void;
     readonly gridgenerator_data_ptr: (a: number) => number;
     readonly gridgenerator_generate: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number) => number;
     readonly gridgenerator_height: (a: number) => number;
     readonly gridgenerator_len: (a: number) => number;
     readonly gridgenerator_new: () => number;
     readonly gridgenerator_width: (a: number) => number;
-    readonly scramblesystem_data_ptr: (a: number) => number;
-    readonly scramblesystem_init: (a: number, b: number, c: number) => void;
-    readonly scramblesystem_is_complete: (a: number) => number;
-    readonly scramblesystem_new: () => number;
-    readonly scramblesystem_reset: (a: number) => void;
-    readonly scramblesystem_reveal_next: (a: number) => void;
-    readonly scramblesystem_target_char: (a: number, b: number) => number;
-    readonly scramblesystem_tick: (a: number) => number;
-    readonly scramblesystem_len: (a: number) => number;
     readonly __wbg_camerasystem_free: (a: number, b: number) => void;
+    readonly __wbg_layoutsystem_free: (a: number, b: number) => void;
     readonly camerasystem_clear_target: (a: number) => void;
     readonly camerasystem_data_ptr: (a: number) => number;
     readonly camerasystem_has_target: (a: number) => number;
@@ -304,13 +336,19 @@ export interface InitOutput {
     readonly camerasystem_trigger_shake: (a: number, b: number, c: number, d: number, e: number) => void;
     readonly camerasystem_update: (a: number, b: number, c: number) => number;
     readonly camerasystem_user_controlled: (a: number) => void;
-    readonly __wbg_layoutsystem_free: (a: number, b: number) => void;
     readonly layoutsystem_compute_cluster: (a: number, b: number, c: number, d: number, e: number, f: number) => number;
-    readonly layoutsystem_data_ptr: (a: number) => number;
     readonly layoutsystem_len: (a: number) => number;
     readonly layoutsystem_new: () => number;
     readonly wasm_alloc: (a: number) => number;
     readonly wasm_free: (a: number, b: number) => void;
+    readonly layoutsystem_data_ptr: (a: number) => number;
+    readonly __wbg_particlefield2d_free: (a: number, b: number) => void;
+    readonly particlefield2d_count: (a: number) => number;
+    readonly particlefield2d_data_ptr: (a: number) => number;
+    readonly particlefield2d_init: (a: number, b: number, c: number, d: number, e: number) => void;
+    readonly particlefield2d_new: () => number;
+    readonly particlefield2d_stride: (a: number) => number;
+    readonly particlefield2d_update: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => void;
     readonly __wbg_nodeanimationsystem_free: (a: number, b: number) => void;
     readonly nodeanimationsystem_data_ptr: (a: number) => number;
     readonly nodeanimationsystem_init: (a: number, b: number, c: number, d: number) => void;

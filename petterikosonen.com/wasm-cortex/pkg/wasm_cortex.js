@@ -495,6 +495,67 @@ export class NodeAnimationSystem {
 }
 if (Symbol.dispose) NodeAnimationSystem.prototype[Symbol.dispose] = NodeAnimationSystem.prototype.free;
 
+export class ParticleField2D {
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        ParticleField2DFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_particlefield2d_free(ptr, 0);
+    }
+    /**
+     * @returns {number}
+     */
+    count() {
+        const ret = wasm.particlefield2d_count(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @returns {number}
+     */
+    data_ptr() {
+        const ret = wasm.particlefield2d_data_ptr(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @param {number} n
+     * @param {number} width
+     * @param {number} height
+     * @param {number} rng_seed
+     */
+    init(n, width, height, rng_seed) {
+        wasm.particlefield2d_init(this.__wbg_ptr, n, width, height, rng_seed);
+    }
+    constructor() {
+        const ret = wasm.particlefield2d_new();
+        this.__wbg_ptr = ret;
+        ParticleField2DFinalization.register(this, this.__wbg_ptr, this);
+        return this;
+    }
+    /**
+     * @returns {number}
+     */
+    stride() {
+        const ret = wasm.particlefield2d_stride(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @param {number} width
+     * @param {number} height
+     * @param {number} mouse_x
+     * @param {number} mouse_y
+     * @param {boolean} mouse_active
+     * @param {number} time
+     */
+    update(width, height, mouse_x, mouse_y, mouse_active, time) {
+        wasm.particlefield2d_update(this.__wbg_ptr, width, height, mouse_x, mouse_y, mouse_active, time);
+    }
+}
+if (Symbol.dispose) ParticleField2D.prototype[Symbol.dispose] = ParticleField2D.prototype.free;
+
 export class ParticleSystem {
     __destroy_into_raw() {
         const ptr = this.__wbg_ptr;
@@ -651,6 +712,63 @@ export class ScrambleSystem {
 }
 if (Symbol.dispose) ScrambleSystem.prototype[Symbol.dispose] = ScrambleSystem.prototype.free;
 
+export class SpringCursor {
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        SpringCursorFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_springcursor_free(ptr, 0);
+    }
+    /**
+     * @returns {number}
+     */
+    get_opacity() {
+        const ret = wasm.springcursor_get_opacity(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * @returns {number}
+     */
+    get_x() {
+        const ret = wasm.springcursor_get_x(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * @returns {number}
+     */
+    get_y() {
+        const ret = wasm.springcursor_get_y(this.__wbg_ptr);
+        return ret;
+    }
+    hide() {
+        wasm.springcursor_hide(this.__wbg_ptr);
+    }
+    constructor() {
+        const ret = wasm.springcursor_new();
+        this.__wbg_ptr = ret;
+        SpringCursorFinalization.register(this, this.__wbg_ptr, this);
+        return this;
+    }
+    /**
+     * @param {number} x
+     * @param {number} y
+     */
+    set_target(x, y) {
+        wasm.springcursor_set_target(this.__wbg_ptr, x, y);
+    }
+    /**
+     * @param {number} dt
+     */
+    update(dt) {
+        wasm.springcursor_update(this.__wbg_ptr, dt);
+    }
+}
+if (Symbol.dispose) SpringCursor.prototype[Symbol.dispose] = SpringCursor.prototype.free;
+
 /**
  * Exported allocator: JS calls this to allocate WASM memory for array transfer.
  * Returns a pointer (as usize) to the allocated block.
@@ -711,12 +829,18 @@ const LayoutSystemFinalization = (typeof FinalizationRegistry === 'undefined')
 const NodeAnimationSystemFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_nodeanimationsystem_free(ptr, 1));
+const ParticleField2DFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_particlefield2d_free(ptr, 1));
 const ParticleSystemFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_particlesystem_free(ptr, 1));
 const ScrambleSystemFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_scramblesystem_free(ptr, 1));
+const SpringCursorFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_springcursor_free(ptr, 1));
 
 function getStringFromWasm0(ptr, len) {
     return decodeText(ptr >>> 0, len);

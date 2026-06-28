@@ -2,28 +2,30 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
-import { verifyWasmIntegrity } from "@/lib/wasm-integrity";
+import {
+  ensureCortexWasm,
+  isCortexWasmReady,
+  getCortexWasm,
+  type CortexWasmExports,
+} from "@/components/neural-cortex/utils";
 
-const SPRING_CURSOR_HASH =
-  "4c76dc0ff626a208ce6aec77d3bbf28769f675f1d98053be0c95d0da4ce100a03f5ccbcee429841ba09a1ccdeb04a6fa";
+// Spring-physics spotlight cursor, now using the unified cortex WASM instance.
+// Replaces the old standalone spring_cursor.wasm.
 
-/**
- * WASM-powered spotlight cursor with spring physics.
- * Direct import (no next/dynamic) to avoid BAILOUT_TO_CLIENT_SIDE_RENDERING.
- */
-
-interface WasmExports {
-  setTarget: (x: number, y: number) => void;
-  hide: () => void;
-  update: (dt: number) => void;
-  getX: () => number;
-  getY: () => number;
-  getOpacity: () => number;
+interface SpringCursorExports {
+  springcursor_new(): number;
+  springcursor_set_target(ptr: number, x: number, y: number): void;
+  springcursor_hide(ptr: number): void;
+  springcursor_update(ptr: number, dt: number): void;
+  springcursor_get_x(ptr: number): number;
+  springcursor_get_y(ptr: number): number;
+  springcursor_get_opacity(ptr: number): number;
+  __wbg_springcursor_free(ptr: number, del: number): void;
 }
 
 export default function WasmSpotlightCursor() {
   const divRef = useRef<HTMLDivElement>(null);
-  const wasmRef = useRef<WasmExports | null>(null);
+  const cursorPtr = useRef<number>(0);
   const rafRef = useRef(0);
   const lastTimeRef = useRef(0);
   const [ready, setReady] = useState(false);
@@ -35,42 +37,37 @@ export default function WasmSpotlightCursor() {
 
     let cancelled = false;
 
-    async function loadWasm() {
-      try {
-        const resp = await fetch("/spring_cursor.wasm");
-        const bytes = await resp.arrayBuffer();
-        if (!(await verifyWasmIntegrity(bytes, SPRING_CURSOR_HASH))) {
-          throw new Error("WASM integrity check failed for spring_cursor.wasm");
-        }
-        const { instance } = await WebAssembly.instantiate(bytes, {
-          env: { abort: () => {} },
-        });
+    const init = () => {
+      if (cancelled) return;
+      const wasm = getCortexWasm() as unknown as SpringCursorExports;
+      if (!wasm) return;
+      cursorPtr.current = wasm.springcursor_new();
+      lastTimeRef.current = performance.now();
+      setReady(true);
+      rafRef.current = requestAnimationFrame(tick);
+    };
 
-        if (cancelled) return;
-
-        const exports = instance.exports as unknown as WasmExports;
-        wasmRef.current = exports;
-        lastTimeRef.current = performance.now();
-        setReady(true);
-        rafRef.current = requestAnimationFrame(tick);
-      } catch (err) {
-        console.warn("[WASM] Failed to load spring cursor:", err);
-      }
+    if (isCortexWasmReady()) {
+      init();
+    } else {
+      ensureCortexWasm().then((ok) => {
+        if (ok) init();
+      });
     }
 
     function tick(timestamp: number) {
-      const wasm = wasmRef.current;
+      const wasm = getCortexWasm() as unknown as SpringCursorExports | null;
       const el = divRef.current;
-      if (!wasm || !el) return;
+      if (!wasm || !el || !cursorPtr.current) return;
 
       const dt = Math.min((timestamp - lastTimeRef.current) / 1000, 0.05);
       lastTimeRef.current = timestamp;
 
-      wasm.update(dt);
+      wasm.springcursor_update(cursorPtr.current, dt);
 
-      const x = wasm.getX();
-      const y = wasm.getY();
-      const opacity = wasm.getOpacity();
+      const x = wasm.springcursor_get_x(cursorPtr.current);
+      const y = wasm.springcursor_get_y(cursorPtr.current);
+      const opacity = wasm.springcursor_get_opacity(cursorPtr.current);
 
       el.style.transform = `translate3d(${x}px, ${y}px, 0)`;
       el.style.opacity = String(opacity);
@@ -78,14 +75,18 @@ export default function WasmSpotlightCursor() {
       rafRef.current = requestAnimationFrame(tick);
     }
 
-    loadWasm();
-
     const onMove = (e: MouseEvent) => {
-      wasmRef.current?.setTarget(e.clientX, e.clientY);
+      const wasm = getCortexWasm() as unknown as SpringCursorExports | null;
+      if (wasm && cursorPtr.current) {
+        wasm.springcursor_set_target(cursorPtr.current, e.clientX, e.clientY);
+      }
     };
 
     const onLeave = () => {
-      wasmRef.current?.hide();
+      const wasm = getCortexWasm() as unknown as SpringCursorExports | null;
+      if (wasm && cursorPtr.current) {
+        wasm.springcursor_hide(cursorPtr.current);
+      }
     };
 
     window.addEventListener("mousemove", onMove, { passive: true });
@@ -96,6 +97,11 @@ export default function WasmSpotlightCursor() {
       cancelAnimationFrame(rafRef.current);
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseleave", onLeave);
+      const wasm = getCortexWasm() as unknown as SpringCursorExports | null;
+      if (wasm && cursorPtr.current) {
+        try { wasm.__wbg_springcursor_free(cursorPtr.current, 0); } catch {}
+        cursorPtr.current = 0;
+      }
     };
   }, [reduced]);
 

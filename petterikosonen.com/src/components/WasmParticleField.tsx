@@ -2,24 +2,35 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+import {
+  ensureCortexWasm,
+  isCortexWasmReady,
+  getCortexWasm,
+} from "@/components/neural-cortex/utils";
 
-/**
- * WASM-powered particle field.
- * Direct import (no next/dynamic) to avoid BAILOUT_TO_CLIENT_SIDE_RENDERING.
- * Always renders canvas; WASM loads in useEffect (client-only).
- * Opacity controlled by `ready` state.
- */
+// 2D particle field for canvas background, now using the unified cortex WASM.
+// Replaces the old standalone particles.wasm.
 
-interface ParticleExports {
-  memory: WebAssembly.Memory;
-  init: (n: number, w: number, h: number, seed: number) => void;
-  update: (w: number, h: number, mx: number, my: number, mouseActive: number, time: number) => void;
-  count: WebAssembly.Global;
-  getDataPointer: () => number;
-}
-
-const STRIDE = 48;
+const STRIDE = 12; // f32s per particle in ParticleField2D
 const F32 = 4;
+
+interface ParticleField2DExports {
+  particlefield2d_new(): number;
+  particlefield2d_init(ptr: number, n: number, w: number, h: number, seed: number): void;
+  particlefield2d_update(
+    ptr: number,
+    w: number,
+    h: number,
+    mx: number,
+    my: number,
+    mouse_active: number,
+    time: number,
+  ): void;
+  particlefield2d_count(ptr: number): number;
+  particlefield2d_data_ptr(ptr: number): number;
+  particlefield2d_stride(ptr: number): number;
+  __wbg_particlefield2d_free(ptr: number, del: number): void;
+}
 
 interface Props {
   particleCount?: number;
@@ -29,33 +40,43 @@ interface Props {
 export default function WasmParticleField({ particleCount = 1200, className = "" }: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const reducedMotion = usePrefersReducedMotion();
-  const wasmRef = useRef<ParticleExports | null>(null);
+  const fieldPtr = useRef<number>(0);
   const rafRef = useRef<number>(0);
   const mouseRef = useRef({ x: 0, y: 0, active: false });
   const sizeRef = useRef({ w: 0, h: 0 });
   const [ready, setReady] = useState(false);
 
   const render = useCallback(() => {
-    const wasm = wasmRef.current;
+    const wasm = getCortexWasm() as unknown as ParticleField2DExports | null;
     const canvas = canvasRef.current;
-    if (!wasm || !canvas) return;
+    if (!wasm || !canvas || !fieldPtr.current) return;
 
     const ctx = canvas.getContext("2d", { alpha: true });
     if (!ctx) return;
 
     const { w, h } = sizeRef.current;
-
     const mouse = mouseRef.current;
-    wasm.update(w, h, mouse.x, mouse.y, mouse.active ? 1 : 0, performance.now());
+
+    wasm.particlefield2d_update(
+      fieldPtr.current,
+      w, h,
+      mouse.x, mouse.y,
+      mouse.active ? 1 : 0,
+      performance.now(),
+    );
 
     ctx.clearRect(0, 0, w, h);
 
-    const count = wasm.count.value as number;
-    const ptr = wasm.getDataPointer();
-    const data = new Float32Array(wasm.memory.buffer, ptr, count * (STRIDE / F32));
+    const count = wasm.particlefield2d_count(fieldPtr.current);
+    const ptr = wasm.particlefield2d_data_ptr(fieldPtr.current);
+    const data = new Float32Array(
+      (getCortexWasm()!).memory.buffer,
+      ptr,
+      count * STRIDE,
+    );
 
     for (let i = 0; i < count; i++) {
-      const base = i * (STRIDE / F32);
+      const base = i * STRIDE;
       const x = data[base];
       const y = data[base + 1];
       const size = data[base + 6];
@@ -78,52 +99,48 @@ export default function WasmParticleField({ particleCount = 1200, className = ""
     }
 
     rafRef.current = requestAnimationFrame(() => render());
-  }, [particleCount]);
+  }, []);
 
   useEffect(() => {
     if (reducedMotion) return;
 
     let cancelled = false;
 
-    async function loadWasm() {
-      try {
-        const response = await fetch("/particles.wasm");
-        const bytes = await response.arrayBuffer();
-        const { instance } = await WebAssembly.instantiate(bytes, {
-          env: {
-            abort: () => {},
-            "Math.sqrt": Math.sqrt,
-            "Math.sin": Math.sin,
-            "Math.cos": Math.cos,
-          },
-        });
+    const init = () => {
+      if (cancelled) return;
+      const wasm = getCortexWasm() as unknown as ParticleField2DExports;
+      if (!wasm) return;
 
-        if (cancelled) return;
+      fieldPtr.current = wasm.particlefield2d_new();
 
-        const exports = instance.exports as unknown as ParticleExports;
-        wasmRef.current = exports;
-
-        const canvas = canvasRef.current;
-        if (canvas) {
-          const dpr = Math.min(window.devicePixelRatio, 2);
-          const w = canvas.clientWidth;
-          const h = canvas.clientHeight;
-          canvas.width = w * dpr;
-          canvas.height = h * dpr;
-          const ctx = canvas.getContext("2d", { alpha: true });
-          if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-          sizeRef.current = { w, h };
-          exports.init(particleCount, w, h, (Date.now() & 0xFFFFFFFF) >>> 0);
-        }
-
-        setReady(true);
-        rafRef.current = requestAnimationFrame(() => render());
-      } catch (err) {
-        console.warn("[WASM] Failed to load particle engine:", err);
+      const canvas = canvasRef.current;
+      if (canvas) {
+        const dpr = Math.min(window.devicePixelRatio, 2);
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+        canvas.width = w * dpr;
+        canvas.height = h * dpr;
+        const ctx = canvas.getContext("2d", { alpha: true });
+        if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        sizeRef.current = { w, h };
+        wasm.particlefield2d_init(
+          fieldPtr.current,
+          particleCount, w, h,
+          (Date.now() & 0xFFFFFFFF) >>> 0,
+        );
       }
-    }
 
-    loadWasm();
+      setReady(true);
+      rafRef.current = requestAnimationFrame(() => render());
+    };
+
+    if (isCortexWasmReady()) {
+      init();
+    } else {
+      ensureCortexWasm().then((ok) => {
+        if (ok) init();
+      });
+    }
 
     const onMouseMove = (e: MouseEvent) => {
       const canvas = canvasRef.current;
@@ -141,11 +158,10 @@ export default function WasmParticleField({ particleCount = 1200, className = ""
     window.addEventListener("mousemove", onMouseMove, { passive: true });
     window.addEventListener("mouseleave", onMouseLeave);
 
-    // ResizeObserver for canvas sizing
     const onResize = () => {
       const canvas = canvasRef.current;
-      const wasm = wasmRef.current;
-      if (!canvas || !wasm) return;
+      const wasm = getCortexWasm() as unknown as ParticleField2DExports | null;
+      if (!canvas || !wasm || !fieldPtr.current) return;
       const dpr = Math.min(window.devicePixelRatio, 2);
       const w = canvas.clientWidth;
       const h = canvas.clientHeight;
@@ -154,7 +170,7 @@ export default function WasmParticleField({ particleCount = 1200, className = ""
       const ctx = canvas.getContext("2d", { alpha: true });
       if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       sizeRef.current = { w, h };
-      wasm.update(w, h, 0, 0, 0, performance.now());
+      wasm.particlefield2d_update(fieldPtr.current, w, h, 0, 0, 0, performance.now());
     };
 
     const resizeObserver = new ResizeObserver(onResize);
@@ -166,6 +182,11 @@ export default function WasmParticleField({ particleCount = 1200, className = ""
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseleave", onMouseLeave);
       resizeObserver.disconnect();
+      const wasm = getCortexWasm() as unknown as ParticleField2DExports | null;
+      if (wasm && fieldPtr.current) {
+        try { wasm.__wbg_particlefield2d_free(fieldPtr.current, 0); } catch {}
+        fieldPtr.current = 0;
+      }
     };
   }, [reducedMotion, particleCount, render]);
 
