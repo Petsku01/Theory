@@ -5,8 +5,8 @@
   "packageManager": "pnpm@11.4.0",
   "scripts": {
     "dev": "next dev",
-    "build": "pnpm run build:wasm && next build",
-    "build:wasm": "asc assembly/index.ts --outFile public/particles.wasm --optimize --runtime stub --memoryBase 0 --initialMemory 16 --maximumMemory 64 --noAssert && asc assembly/renderer3d.ts --outFile public/renderer3d.wasm --optimize --runtime stub --memoryBase 0 --initialMemory 16 --maximumMemory 64 --noAssert && asc assembly/matrix_rain.ts --outFile public/matrix_rain.wasm --optimize --runtime stub --memoryBase 0 --initialMemory 4 --maximumMemory 16 --noAssert && asc assembly/mouse_trail.ts --outFile public/mouse_trail.wasm --optimize --runtime stub --memoryBase 0 --initialMemory 4 --maximumMemory 16 --noAssert && asc assembly/spring_cursor.ts --outFile public/spring_cursor.wasm --optimize --runtime stub --memoryBase 0 --initialMemory 1 --maximumMemory 1 --noAssert",
+    "build": "next build",
+    "build:wasm": "cd wasm-cortex && wasm-pack build --target web --out-dir pkg && cp pkg/wasm_cortex_bg.wasm ../public/wasm/",
     "start": "next start",
     "lint": "eslint"
   },
@@ -27,7 +27,6 @@
     "@types/node": "25.5.0",
     "@types/react": "^19",
     "@types/three": "^0.184.1",
-    "assemblyscript": "^0.28.13",
     "eslint": "^9",
     "eslint-config-next": "^16.2.1",
     "tailwindcss": "^4",

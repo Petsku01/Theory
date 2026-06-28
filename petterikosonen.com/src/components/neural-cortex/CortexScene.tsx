@@ -19,12 +19,10 @@ import { CameraController } from "@/components/neural-cortex/CameraController";
 export function CortexScene({
   selectedId,
   onNodeSelect,
-  onNodeHover,
   shakeTimestamp,
 }: {
   selectedId: string | null;
   onNodeSelect: (id: string | null) => void;
-  onNodeHover: (id: string | null) => void;
   shakeTimestamp: number;
 }) {
   const positions = useMemo(() => computePositions(nodes), []);
@@ -43,10 +41,9 @@ export function CortexScene({
   const handleHover = useCallback(
     (id: string | null) => {
       setHoveredId(id);
-      onNodeHover(id);
       document.body.style.cursor = id ? "pointer" : "default";
     },
-    [onNodeHover]
+    []
   );
 
   useEffect(() => {

@@ -4,13 +4,13 @@ import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } fr
 import { Canvas } from "@react-three/fiber";
 import { nodes, type CortexNode } from "@/lib/cortex-data";
 import { CortexScene } from "@/components/neural-cortex/CortexScene";
-import { getWasmStatus } from "@/components/neural-cortex/WasmSoftParticles";
 import { DetailPanel } from "@/components/neural-cortex/DetailPanel";
 
 import { Scanlines, Vignette, CortexLoader } from "@/components/neural-cortex/Overlays";
 import { AccessibleNav } from "@/components/neural-cortex/AccessibleNav";
 
 import { SplashScreen } from "@/components/neural-cortex/SplashScreen";
+import { getUnifiedWasmStatus } from "@/components/neural-cortex/utils";
 
 // ── Global keyframes ──
 function GlobalStyles() {
@@ -66,8 +66,6 @@ export default function NeuralCortex() {
     []
   );
 
-  const handleNodeHover = useCallback((_id: string | null) => {}, []);
-
   const handlePanelClose = useCallback(() => {
     setSelectedId(null);
   }, []);
@@ -103,7 +101,6 @@ export default function NeuralCortex() {
               <CortexScene
                 selectedId={selectedId}
                 onNodeSelect={handleNodeSelect}
-                onNodeHover={handleNodeHover}
                 shakeTimestamp={shakeTimestamp}
               />
             </Canvas>
@@ -165,9 +162,9 @@ export default function NeuralCortex() {
 }
 
 function WasmBadge() {
-  const [status, setStatus] = useState(getWasmStatus());
+  const [status, setStatus] = useState(getUnifiedWasmStatus());
   useEffect(() => {
-    const id = setInterval(() => setStatus(getWasmStatus()), 1000);
+    const id = setInterval(() => setStatus(getUnifiedWasmStatus()), 2000);
     return () => clearInterval(id);
   }, []);
   const label = status === "wasm" ? "WASM" : status === "js" ? "JS" : "...";

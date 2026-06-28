@@ -96,7 +96,7 @@ export const NetworkEdges = React.memo(function NetworkEdges({
     return map;
   }, []);
 
-  // Compute edge data (colors, highlights, from/to positions)
+  // Compute edge data (colors, from/to positions -- NOT highlights)
   const edgeData = useMemo(() => {
     return edges
       .filter((e) => positions.has(e.from) && positions.has(e.to))
@@ -111,7 +111,6 @@ export const NetworkEdges = React.memo(function NetworkEdges({
           clusterFrom === clusterTo
             ? colorFrom
             : blendColors(colorFrom, colorTo, 0.5);
-        const highlight = selectedId === e.from || selectedId === e.to;
 
         return {
           key: `${e.from}-${e.to}`,
@@ -119,10 +118,19 @@ export const NetworkEdges = React.memo(function NetworkEdges({
           to: toPos,
           strength: e.strength,
           color: edgeColor,
-          highlight,
         };
       });
-  }, [positions, selectedId, nodeClusterMap]);
+  }, [positions, nodeClusterMap]);
+
+  // Compute highlight flags separately -- updates without re-creating WASM system
+  const highlightFlags = useMemo(() => {
+    const flags = new Uint32Array(edgeData.length);
+    edgeData.forEach((ed, i) => {
+      const e = edges.find((e) => `${e.from}-${e.to}` === ed.key);
+      flags[i] = (e && (selectedId === e.from || selectedId === e.to)) ? 1 : 0;
+    });
+    return flags;
+  }, [edgeData, selectedId]);
 
   // ── WASM path ──
   const edgePtr = useRef<number>(0);
@@ -168,7 +176,7 @@ export const NetworkEdges = React.memo(function NetworkEdges({
       toArr[i * 3] = ed.to.x;
       toArr[i * 3 + 1] = ed.to.y;
       toArr[i * 3 + 2] = ed.to.z;
-      flags[i] = ed.highlight ? 1 : 0;
+      flags[i] = highlightFlags[i] ?? 0;
     });
 
     const ptr = wasm.edgesystem_new();
@@ -250,6 +258,21 @@ export const NetworkEdges = React.memo(function NetworkEdges({
     });
   }, [edgeData]);
 
+  // Update WASM highlights without re-creating the system
+  useEffect(() => {
+    if (!edgePtr.current) return;
+    const wasm = getCortexWasm();
+    if (!wasm) return;
+    const flagsPtr = writeU32ToWasm(wasm, highlightFlags);
+    try {
+      wasm.edgesystem_update_highlights(edgePtr.current, flagsPtr);
+    } catch {
+      // Silent fail, highlights just won't update
+    } finally {
+      freeWasmPtr(wasm, flagsPtr, highlightFlags.length * 4);
+    }
+  }, [highlightFlags]);
+
   // WASM per-frame pulse update (uses persistent from/to pointers, no malloc per frame)
   useFrame((state) => {
     if (!edgePtr.current || !fromWasmPtrRef.current || !toWasmPtrRef.current) return;
@@ -274,8 +297,9 @@ export const NetworkEdges = React.memo(function NetworkEdges({
   return (
     <>
       {edgeData.map((ed, i) => {
-        const wireOpacity = ed.highlight ? 0.5 : 0.2;
-        const pulseOpacity = ed.highlight ? 1 : 0.5;
+        const isHighlighted = highlightFlags[i] === 1;
+        const wireOpacity = isHighlighted ? 0.5 : 0.2;
+        const pulseOpacity = isHighlighted ? 1 : 0.5;
 
         // Cylinder position/rotation
         let position: [number, number, number];
@@ -316,7 +340,7 @@ export const NetworkEdges = React.memo(function NetworkEdges({
               thickness={0.02}
             />
             {/* Glow cylinder only when highlighted */}
-            {ed.highlight && (
+            {isHighlighted && (
               <EdgeCylinder
                 position={position}
                 quaternion={quaternion}
@@ -341,7 +365,7 @@ export const NetworkEdges = React.memo(function NetworkEdges({
                 from={ed.from}
                 to={ed.to}
                 color={ed.color}
-                speed={ed.highlight ? 1.2 : 2.0}
+                speed={isHighlighted ? 1.2 : 2.0}
                 opacity={pulseOpacity}
                 pulseSize={0.05}
               />

@@ -3,12 +3,11 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { createSoftCircleTexture } from "@/components/neural-cortex/utils";
+import { createSoftCircleTexture, setParticleWasmStatus } from "@/components/neural-cortex/utils";
 
-// WASM-powered soft particles -- replaces pure-JS SoftParticles
-// Loads .wasm directly via fetch + WebAssembly.instantiateStreaming
-// No JS glue code needed -- calls WASM exports directly
-// Falls back to pure JS if WASM fails to load
+// WASM-powered soft particles.
+// Loads wasm_particles_bg.wasm directly via fetch + WebAssembly.instantiateStreaming.
+// Falls back to pure JS if WASM fails to load.
 
 interface WasmExports {
   memory: WebAssembly.Memory;
@@ -25,11 +24,6 @@ interface WasmExports {
 
 let wasmExports: WasmExports | null = null;
 let wasmPromise: Promise<boolean> | null = null;
-let wasmStatus: "loading" | "wasm" | "js" = "loading";
-
-export function getWasmStatus() {
-  return wasmStatus;
-}
 
 async function loadWasm(): Promise<boolean> {
   const response = await fetch("/wasm/wasm_particles_bg.wasm");
@@ -41,9 +35,7 @@ async function loadWasm(): Promise<boolean> {
       __wbg___wbindgen_throw_ea4887a5f8f9a9db: function(arg0: number, arg1: number) {
         throw new Error(`WASM throw at offset ${arg0}, len ${arg1}`);
       },
-      __wbindgen_init_externref_table: function() {
-        // Required by wasm-bindgen externref table initialization
-      },
+      __wbindgen_init_externref_table: function() {},
     },
   });
   const exports = instance.exports as unknown as WasmExports;
@@ -54,7 +46,7 @@ async function loadWasm(): Promise<boolean> {
     exports.__wbindgen_start();
   }
   wasmExports = exports;
-  wasmStatus = "wasm";
+  setParticleWasmStatus("wasm");
   return true;
 }
 
@@ -62,8 +54,8 @@ async function ensureWasm(): Promise<boolean> {
   if (wasmExports) return true;
   wasmPromise ??= loadWasm().catch((err) => {
     console.warn("[WasmSoftParticles] WASM load failed, using JS fallback:", err);
-    wasmPromise = null; // Allow retry on next mount
-    wasmStatus = "js";
+    wasmPromise = null;
+    setParticleWasmStatus("js");
     return false;
   });
   return wasmPromise;
@@ -84,7 +76,6 @@ export function WasmSoftParticles({
   const wasmReady = useRef(false);
   const particlePtr = useRef<number>(0);
 
-  // JS fallback state (identical to original SoftParticles)
   const { positions, sizes, alphas, velocities, baseSizes } = useMemo(() => {
     const pos = new Float32Array(count * 3);
     const s = new Float32Array(count);
@@ -141,19 +132,6 @@ export function WasmSoftParticles({
     });
   }, [color, texture]);
 
-  const posRef = useRef(positions);
-  const velRef = useRef(velocities);
-  const alphasRef = useRef(alphas);
-  const baseSizesRef = useRef(baseSizes);
-
-  // FIX 1: Reset fallback refs when count changes so they stay in sync with the geometry
-  useEffect(() => {
-    posRef.current = positions;
-    velRef.current = velocities;
-    alphasRef.current = alphas;
-    baseSizesRef.current = baseSizes;
-  }, [count, positions, velocities, alphas, baseSizes]);
-
   useEffect(() => {
     let cancelled = false;
     ensureWasm().then((ok) => {
@@ -171,7 +149,6 @@ export function WasmSoftParticles({
     };
   }, [count, bounds]);
 
-  // FIX 3: Dispose ShaderMaterial and texture when no longer needed
   useEffect(() => {
     return () => {
       material.dispose();
@@ -186,7 +163,6 @@ export function WasmSoftParticles({
   }, []);
 
   useFrame((state, delta) => {
-    // FIX 4: Skip updates when the page/tab is hidden
     if (typeof document !== "undefined" && document.hidden) return;
 
     const mesh = meshRef.current;
@@ -229,12 +205,11 @@ export function WasmSoftParticles({
       sizeAttr.needsUpdate = true;
       alphaAttr.needsUpdate = true;
     } else {
-      // FIX 2: JS fallback must also update sizes and alphas
-      const pos = posRef.current;
-      const vel = velRef.current;
+      // JS fallback -- uses useMemo arrays directly, no refs needed
+      const pos = positions;
+      const vel = velocities;
       const al = alphaAttr.array as Float32Array;
       const sz = sizeAttr.array as Float32Array;
-      const baseSizes = baseSizesRef.current;
       const time = state.clock.elapsedTime;
 
       for (let i = 0; i < count; i++) {
@@ -264,13 +239,13 @@ export function WasmSoftParticles({
           if (Math.abs(vel[idx + j]) > maxVel) vel[idx + j] = maxVel * Math.sign(vel[idx + j]);
         }
 
-        // Fade alpha over time, then respawn the particle's opacity
+        // Fade alpha over time, then respawn opacity
         al[i] -= delta * 0.15;
         if (al[i] <= 0.05) {
           al[i] = 0.3 + Math.random() * 0.4;
         }
 
-        // Vary size smoothly using a stored base size
+        // Vary size smoothly using stored base size
         sz[i] = baseSizes[i] * (1.0 + 0.5 * Math.sin(time * 1.5 + i));
       }
 

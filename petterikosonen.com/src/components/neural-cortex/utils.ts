@@ -96,9 +96,41 @@ export interface CortexWasmExports {
   nodeanimationsystem_stride(ptr: number): number;
   __wbg_nodeanimationsystem_free(ptr: number, del: number): void;
   // Particle / burst already handled by their own components
+  // Burst
+  burstsystem_new(count: number): number;
+  burstsystem_update(ptr: number, is_active: number, delta: number): number;
+  burstsystem_set_origin(ptr: number, x: number, y: number, z: number): void;
+  burstsystem_set_color(ptr: number, r: number, g: number, b: number): void;
+  burstsystem_data_ptr(ptr: number): number;
+  burstsystem_len(ptr: number): number;
+  burstsystem_stride(ptr: number): number;
+  burstsystem_has_spawned(ptr: number): number;
+  __wbg_burstsystem_free(ptr: number, del: number): void;
   // WASM init
   __wbindgen_start?(): void;
   __wbindgen_externrefs?: WebAssembly.Table;
+}
+
+// ── Unified WASM status tracking ──
+// Both wasm_cortex and wasm_particles report their status here.
+// WasmBadge reads the unified status.
+type WasmStatus = "loading" | "wasm" | "js";
+
+let _cortexWasmStatus: WasmStatus = "loading";
+let _particleWasmStatus: WasmStatus = "loading";
+
+export function setCortexWasmStatus(status: WasmStatus) {
+  _cortexWasmStatus = status;
+}
+
+export function setParticleWasmStatus(status: WasmStatus) {
+  _particleWasmStatus = status;
+}
+
+export function getUnifiedWasmStatus(): WasmStatus {
+  if (_cortexWasmStatus === "wasm" || _particleWasmStatus === "wasm") return "wasm";
+  if (_cortexWasmStatus === "loading" || _particleWasmStatus === "loading") return "loading";
+  return "js";
 }
 
 let cortexWasm: CortexWasmExports | null = null;
@@ -128,6 +160,7 @@ async function loadCortexWasm(): Promise<boolean> {
   }
   cortexWasm = exports;
   cortexWasmReady = true;
+  setCortexWasmStatus("wasm");
   return true;
 }
 
@@ -138,6 +171,7 @@ export function ensureCortexWasm(): Promise<boolean> {
     console.warn("[cortex] WASM load failed, using JS fallback:", err);
     cortexWasmPromise = null;
     cortexWasmFailed = true;
+    setCortexWasmStatus("js");
     return false;
   });
   return cortexWasmPromise;

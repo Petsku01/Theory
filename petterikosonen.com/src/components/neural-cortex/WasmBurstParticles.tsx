@@ -4,75 +4,18 @@ import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { createSoftCircleTexture } from "@/components/neural-cortex/utils";
+import {
+  ensureCortexWasm,
+  isCortexWasmReady,
+  getCortexWasm,
+} from "@/components/neural-cortex/utils";
 
-// WASM-powered burst particles -- replaces pure-JS BurstParticles.
-// Loads .wasm directly via fetch + WebAssembly.instantiateStreaming.
+// WASM-powered burst particles -- uses shared cortex WASM instance from utils.ts.
 // Falls back to pure JS if WASM fails to load.
 
 // Data layout per particle (12 f32s):
 // [px, py, pz, vx, vy, vz, size, alpha, life, color_r, color_g, color_b]
 const BURST_STRIDE = 12;
-
-interface CortexWasmExports {
-  memory: WebAssembly.Memory;
-  burstsystem_new(count: number): number;
-  burstsystem_update(ptr: number, is_active: number, delta: number): number;
-  burstsystem_set_origin(ptr: number, x: number, y: number, z: number): void;
-  burstsystem_set_color(ptr: number, r: number, g: number, b: number): void;
-  burstsystem_data_ptr(ptr: number): number;
-  burstsystem_len(ptr: number): number;
-  burstsystem_stride(ptr: number): number;
-  burstsystem_has_spawned(ptr: number): number;
-  __wbg_burstsystem_free(ptr: number, del: number): void;
-  __wbindgen_start(): void;
-  __wbindgen_externrefs: WebAssembly.Table;
-}
-
-let cortexWasm: CortexWasmExports | null = null;
-let cortexWasmPromise: Promise<boolean> | null = null;
-let cortexWasmStatus: "loading" | "wasm" | "js" = "loading";
-
-export function getCortexWasmStatus() {
-  return cortexWasmStatus;
-}
-
-async function loadCortexWasm(): Promise<boolean> {
-  const response = await fetch("/wasm/wasm_cortex_bg.wasm");
-  if (!response.ok) {
-    throw new Error(`WASM fetch failed: ${response.status}`);
-  }
-  const { instance } = await WebAssembly.instantiateStreaming(response, {
-    "./wasm_cortex_bg.js": {
-      __wbg___wbindgen_throw_ea4887a5f8f9a9db: function (arg0: number, arg1: number) {
-        throw new Error(`WASM throw at offset ${arg0}, len ${arg1}`);
-      },
-      __wbindgen_init_externref_table: function () {
-        // Required by wasm-bindgen externref table initialization
-      },
-    },
-  });
-  const exports = instance.exports as unknown as CortexWasmExports;
-  if (typeof exports.burstsystem_new !== "function") {
-    throw new Error("Missing required WASM export: burstsystem_new");
-  }
-  if (exports.__wbindgen_start) {
-    exports.__wbindgen_start();
-  }
-  cortexWasm = exports;
-  cortexWasmStatus = "wasm";
-  return true;
-}
-
-async function ensureCortexWasm(): Promise<boolean> {
-  if (cortexWasm) return true;
-  cortexWasmPromise ??= loadCortexWasm().catch((err) => {
-    console.warn("[WasmBurstParticles] WASM load failed, using JS fallback:", err);
-    cortexWasmPromise = null;
-    cortexWasmStatus = "js";
-    return false;
-  });
-  return cortexWasmPromise;
-}
 
 export function WasmBurstParticles({
   origin,
@@ -98,7 +41,6 @@ export function WasmBurstParticles({
     const vel = new Float32Array(count * 3);
     const life = new Float32Array(count);
     const fr = new Uint8Array(count);
-    // Initialize as free-floating ambient particles
     for (let i = 0; i < count; i++) {
       pos[i * 3] = (Math.random() - 0.5) * 20;
       pos[i * 3 + 1] = (Math.random() - 0.5) * 14;
@@ -146,14 +88,6 @@ export function WasmBurstParticles({
     });
   }, [texture]);
 
-  // JS fallback refs
-  const posRef = useRef(positions);
-  const velRef = useRef(velocities);
-  const alphaRef = useRef(alphas);
-  const lifeRef = useRef(lifetimes);
-  const freeRef = useRef(free);
-  const colorRef = useRef(particleColors);
-
   useEffect(() => {
     return () => {
       material.dispose();
@@ -163,16 +97,27 @@ export function WasmBurstParticles({
 
   useEffect(() => {
     let cancelled = false;
-    ensureCortexWasm().then((ok) => {
-      if (cancelled || !ok || !cortexWasm) return;
-      const ptr = cortexWasm.burstsystem_new(count);
+    const init = () => {
+      if (cancelled) return;
+      const wasm = getCortexWasm();
+      if (!wasm) return;
+      const ptr = wasm.burstsystem_new(count);
       burstPtr.current = ptr;
       wasmReady.current = true;
-    });
+    };
+
+    if (isCortexWasmReady()) {
+      init();
+    } else {
+      ensureCortexWasm().then((ok) => {
+        if (ok) init();
+      });
+    }
+
     return () => {
       cancelled = true;
-      if (burstPtr.current && cortexWasm) {
-        try { cortexWasm.__wbg_burstsystem_free(burstPtr.current, 0); } catch {}
+      if (burstPtr.current) {
+        try { getCortexWasm()?.__wbg_burstsystem_free(burstPtr.current, 0); } catch {}
         burstPtr.current = 0;
       }
     };
@@ -194,23 +139,23 @@ export function WasmBurstParticles({
       hasSpawned.current = true;
     }
 
-    if (wasmReady.current && cortexWasm && burstPtr.current) {
+    const wasm = getCortexWasm();
+    if (wasmReady.current && wasm && burstPtr.current) {
       const ptr = burstPtr.current;
 
-      // Update origin and color in WASM
       if (isActive) {
-        cortexWasm.burstsystem_set_origin(ptr, origin!.x, origin!.y, origin!.z);
+        wasm.burstsystem_set_origin(ptr, origin!.x, origin!.y, origin!.z);
         const c = new THREE.Color(color);
-        cortexWasm.burstsystem_set_color(ptr, c.r, c.g, c.b);
+        wasm.burstsystem_set_color(ptr, c.r, c.g, c.b);
       }
 
-      cortexWasm.burstsystem_update(ptr, isActive ? 1 : 0, delta);
+      wasm.burstsystem_update(ptr, isActive ? 1 : 0, delta);
 
-      const dataPtr = cortexWasm.burstsystem_data_ptr(ptr);
-      const len = cortexWasm.burstsystem_len(ptr);
-      const stride = cortexWasm.burstsystem_stride(ptr);
+      const dataPtr = wasm.burstsystem_data_ptr(ptr);
+      const len = wasm.burstsystem_len(ptr);
+      const stride = wasm.burstsystem_stride(ptr);
 
-      const wasmData = new Float32Array(cortexWasm.memory.buffer, dataPtr, len * stride);
+      const wasmData = new Float32Array(wasm.memory.buffer, dataPtr, len * stride);
 
       const pos = posAttr.array as Float32Array;
       const al = alphaAttr.array as Float32Array;
@@ -234,13 +179,13 @@ export function WasmBurstParticles({
       alphaAttr.needsUpdate = true;
       colorAttr.needsUpdate = true;
     } else {
-      // JS fallback -- identical physics to original BurstParticles.tsx
-      const pos = posRef.current;
-      const vel = velRef.current;
-      const al = alphaRef.current;
-      const life = lifeRef.current;
-      const fr = freeRef.current;
-      const colors = colorRef.current;
+      // JS fallback -- identical physics
+      const pos = positions;
+      const vel = velocities;
+      const al = alphas;
+      const life = lifetimes;
+      const fr = free;
+      const colors = particleColors;
 
       for (let i = 0; i < count; i++) {
         const idx = i * 3;
