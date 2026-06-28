@@ -84,6 +84,7 @@ export interface CortexWasmExports {
     edge_r: number, edge_g: number, edge_b: number, edge_a: number
   ): number;
   gridgenerator_data_ptr(ptr: number): number;
+  gridgenerator_len(ptr: number): number;
   gridgenerator_width(ptr: number): number;
   gridgenerator_height(ptr: number): number;
   __wbg_gridgenerator_free(ptr: number, del: number): void;
