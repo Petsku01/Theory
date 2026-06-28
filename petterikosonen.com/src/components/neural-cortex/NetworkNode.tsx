@@ -30,6 +30,7 @@ export const NetworkNode = React.memo(function NetworkNode({
   position,
   isSelected,
   isHovered,
+  isDimmed = false,
   onSelect,
   onHover,
 }: {
@@ -37,6 +38,7 @@ export const NetworkNode = React.memo(function NetworkNode({
   position: THREE.Vector3;
   isSelected: boolean;
   isHovered: boolean;
+  isDimmed?: boolean;
   onSelect: (id: string) => void;
   onHover: (id: string | null) => void;
 }) {
@@ -246,7 +248,7 @@ export const NetworkNode = React.memo(function NetworkNode({
 
   return (
     <group position={[position.x, position.y, position.z]}>
-      <group ref={groupRef}>
+      <group ref={groupRef} visible={!isDimmed}>
         {/* Inner glowing core -- semi-transparent emissive sphere */}
         <mesh ref={coreRef}>
           <icosahedronGeometry args={[coreRadius, 1]} />

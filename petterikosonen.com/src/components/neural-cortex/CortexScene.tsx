@@ -7,6 +7,7 @@ import { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import * as THREE from "three";
 import { nodes, edges } from "@/lib/cortex-data";
+import { type CortexNode } from "@/lib/cortex-data";
 import { CLUSTER_COLORS, computePositions } from "@/components/neural-cortex/utils";
 import { NetworkNode } from "@/components/neural-cortex/NetworkNode";
 import { NetworkEdges } from "@/components/neural-cortex/NetworkEdges";
@@ -20,10 +21,14 @@ export function CortexScene({
   selectedId,
   onNodeSelect,
   shakeTimestamp,
+  activeCluster,
+  onHoverChange,
 }: {
   selectedId: string | null;
   onNodeSelect: (id: string | null) => void;
   shakeTimestamp: number;
+  activeCluster: string | null;
+  onHoverChange: (node: CortexNode | null) => void;
 }) {
   const positions = useMemo(() => computePositions(nodes), []);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -42,8 +47,10 @@ export function CortexScene({
     (id: string | null) => {
       setHoveredId(id);
       document.body.style.cursor = id ? "pointer" : "default";
+      const node = id ? nodes.find((n) => n.id === id) ?? null : null;
+      onHoverChange(node);
     },
-    []
+    [onHoverChange]
   );
 
   useEffect(() => {
@@ -80,17 +87,21 @@ export function CortexScene({
       />
       <NetworkEdges positions={positions} selectedId={selectedId} />
 
-      {nodes.map((node) => (
+      {nodes.map((node) => {
+        const isDimmed = activeCluster !== null && node.cluster !== activeCluster;
+        return (
         <NetworkNode
           key={node.id}
           node={node}
           position={positions.get(node.id) ?? new THREE.Vector3()}
           isSelected={selectedId === node.id}
           isHovered={hoveredId === node.id}
+          isDimmed={isDimmed}
           onSelect={handleSelect}
           onHover={handleHover}
         />
-      ))}
+        );
+      })}
 
       <CameraController
         target={targetPosition}

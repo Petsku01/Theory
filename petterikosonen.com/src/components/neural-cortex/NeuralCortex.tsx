@@ -29,6 +29,8 @@ export default function NeuralCortex() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [entered, setEntered] = useState(false);
   const [shakeTimestamp, setShakeTimestamp] = useState(0);
+  const [activeCluster, setActiveCluster] = useState<string | null>(null);
+  const [hoveredNode, setHoveredNode] = useState<CortexNode | null>(null);
 
   const [panelNode, setPanelNode] = useState<CortexNode | null>(null);
   const [panelStage, setPanelStage] = useState<"show" | "hiding" | "hidden">(
@@ -80,11 +82,20 @@ export default function NeuralCortex() {
       {/* Main 3D scene -- only renders after entering */}
       {entered && (
         <>
-          {/* Name overlay */}
-          <div className="pointer-events-none absolute left-6 top-5 z-30 select-none">
+          {/* Name + CTA overlay */}
+          <div className="pointer-events-none absolute left-6 top-5 z-30 select-none flex flex-col gap-3">
             <span className="text-sm font-bold tracking-wide text-slate-100 font-mono">
               Petteri Kosonen
             </span>
+            <a
+              href="/contact"
+              className="pointer-events-auto inline-flex w-fit items-center gap-2 rounded-lg border border-cyan-500/40 bg-[#0a0a0f]/80 px-4 py-2 font-mono text-xs text-cyan-400 backdrop-blur-sm transition-colors hover:border-cyan-500/60 hover:bg-cyan-500/10"
+            >
+              Work With Me
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </a>
           </div>
 
           <Suspense fallback={<CortexLoader />}>
@@ -102,6 +113,8 @@ export default function NeuralCortex() {
                 selectedId={selectedId}
                 onNodeSelect={handleNodeSelect}
                 shakeTimestamp={shakeTimestamp}
+                activeCluster={activeCluster}
+                onHoverChange={setHoveredNode}
               />
             </Canvas>
           </Suspense>
@@ -120,18 +133,30 @@ export default function NeuralCortex() {
 
           <nav
             className="pointer-events-auto absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 gap-2"
-            aria-label="Cluster navigation"
+            aria-label="Cluster filter"
           >
+            <button
+              onClick={() => setActiveCluster(null)}
+              className={`rounded-lg border px-3 py-1.5 font-mono text-xs backdrop-blur-sm transition-colors ${
+                activeCluster === null
+                  ? "border-cyan-500/60 bg-cyan-500/15 text-cyan-400"
+                  : "border-slate-700/50 bg-[#0a0a0f]/80 text-slate-400 hover:border-cyan-500/40 hover:text-cyan-500"
+              }`}
+            >
+              all
+            </button>
             {(
               ["core", "projects", "skills", "experience", "research"] as const
             ).map((cluster) => {
-              const isActive = selectedNode?.cluster === cluster;
+              const isActive = activeCluster === cluster;
               return (
                 <button
                   key={cluster}
                   onClick={() => {
+                    setActiveCluster(isActive ? null : cluster);
                     const node = nodes.find((n) => n.cluster === cluster);
-                    if (node) handleNodeSelect(node.id);
+                    if (node && !isActive) handleNodeSelect(node.id);
+                    if (isActive) handleNodeSelect(null);
                   }}
                   className={`rounded-lg border px-3 py-1.5 font-mono text-xs backdrop-blur-sm transition-colors ${
                     isActive
@@ -144,6 +169,16 @@ export default function NeuralCortex() {
               );
             })}
           </nav>
+
+          {/* Hover tooltip */}
+          {hoveredNode && !selectedId && (
+            <div className="pointer-events-none absolute left-1/2 top-20 z-20 -translate-x-1/2 rounded-lg border border-slate-700/60 bg-[#0a0a0f]/90 px-4 py-2 backdrop-blur-sm">
+              <span className="font-mono text-xs text-slate-200">{hoveredNode.label}</span>
+              {hoveredNode.shortDesc && (
+                <p className="mt-1 max-w-xs text-[0.7rem] text-slate-400">{hoveredNode.shortDesc}</p>
+              )}
+            </div>
+          )}
 
           <DetailPanel
             node={panelNode}
