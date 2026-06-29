@@ -246,6 +246,12 @@ export const researchPosts: BlogPost[] = [
     desc: "Physical-world AI failures, model extraction attacks, and specialized silicon signaling the shift from scale-at-all-costs to trust-grounded deployment",
     link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-06-26.md"
   },
+  {
+    title: "The Agent Ecosystem Era: Why the Next AI Frontier Is Orchestration, Not Models",
+    date: "2026-06-29",
+    desc: "Open-weight models closing the capability gap, agentic systems entering high-stakes domains without oversight, and why the real challenge is building trustworthy ecosystems, not smarter models",
+    link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-06-29.md"
+  },
 ];
 
 export const projects: Project[] = [
