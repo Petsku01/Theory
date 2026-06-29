@@ -55,3 +55,6 @@ next-env.d.ts
 /DEVELOPMENT_LOG.md
 /src/
 /public/
+
+# Blog drafts (unpublished -- only published posts go to Analyses/Blog/)
+Analyses/Blog/drafts/
