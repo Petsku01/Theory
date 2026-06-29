@@ -86,6 +86,24 @@ export const blogPosts: BlogPost[] = [
     desc: "Only 16% of Americans believe AI will have a positive impact; overt AI faces collapsing trust while covert on-device agents surge; Lie-group attention for physical reasoning, Execution-State Capsules for low-latency serving, and Sovereign Execution Brokers for auditable agent authority",
     link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-06-19.md",
   },
+  {
+    title: "The Deep Reliability Shift: Why the Next AI Crisis Won't Be About Capability",
+    date: "2026-06-25",
+    desc: "Vertical integration from custom silicon to safety kernels, hidden training instabilities, and the perceptual blind spot threatening AI deployment",
+    link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-06-25.md"
+  },
+  {
+    title: "From Scaling to Trust: How Physical-World Failures, Model Theft, and Specialized Silicon Are Reshaping AI",
+    date: "2026-06-26",
+    desc: "Physical-world AI failures, model extraction attacks, and specialized silicon signaling the shift from scale-at-all-costs to trust-grounded deployment",
+    link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-06-26.md"
+  },
+  {
+    title: "The Agent Ecosystem Era: Why the Next AI Frontier Is Orchestration, Not Models",
+    date: "2026-06-29",
+    desc: "Open-weight models closing the capability gap, agentic systems entering high-stakes domains without oversight, and why the real challenge is building trustworthy ecosystems, not smarter models",
+    link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-06-29.md"
+  },
 ];
 
 // Research entries -- papers, studies, analyses, guides
@@ -233,24 +251,6 @@ export const researchPosts: BlogPost[] = [
     date: "2024-07-01",
     desc: "Tools and techniques for network security",
     link: "https://github.com/Petsku01/Theory/tree/main/Analyses"
-  },
-  {
-    title: "The Deep Reliability Shift: Why the Next AI Crisis Won't Be About Capability",
-    date: "2026-06-25",
-    desc: "Vertical integration from custom silicon to safety kernels, hidden training instabilities, and the perceptual blind spot threatening AI deployment",
-    link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-06-25.md"
-  },
-  {
-    title: "From Scaling to Trust: How Physical-World Failures, Model Theft, and Specialized Silicon Are Reshaping AI",
-    date: "2026-06-26",
-    desc: "Physical-world AI failures, model extraction attacks, and specialized silicon signaling the shift from scale-at-all-costs to trust-grounded deployment",
-    link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-06-26.md"
-  },
-  {
-    title: "The Agent Ecosystem Era: Why the Next AI Frontier Is Orchestration, Not Models",
-    date: "2026-06-29",
-    desc: "Open-weight models closing the capability gap, agentic systems entering high-stakes domains without oversight, and why the real challenge is building trustworthy ecosystems, not smarter models",
-    link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-06-29.md"
   },
 ];
 
