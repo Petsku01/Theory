@@ -104,6 +104,12 @@ export const blogPosts: BlogPost[] = [
     desc: "Open-weight models closing the capability gap, agentic systems entering high-stakes domains without oversight, and why the real challenge is building trustworthy ecosystems, not smarter models",
     link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-06-29.md"
   },
+  {
+    title: "The Bifurcated Agent Economy: Browsers, Robots, and the Coming Transparency Standard",
+    date: "2026-07-01",
+    desc: "Browser-based agent runtimes maturing via WASM orchestration, trillion-dollar state-backed physical AI investments, and open-weight surrogate fidelity as a potential audit layer for closed systems",
+    link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-07-01.md"
+  },
 ];
 
 // Research entries -- papers, studies, analyses, guides
