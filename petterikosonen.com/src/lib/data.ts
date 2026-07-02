@@ -110,6 +110,12 @@ export const blogPosts: BlogPost[] = [
     desc: "Browser-based agent runtimes maturing via WASM orchestration, trillion-dollar state-backed physical AI investments, and open-weight surrogate fidelity as a potential audit layer for closed systems",
     link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-07-01.md"
   },
+  {
+    title: "The Trust-Capability Compact: Auditable Reasoning and Targeted Updates",
+    date: "2026-07-02",
+    desc: "Single-layer RL training, learned memory modules, and the Godot ban on AI-authored code signal a bifurcation between auditable and opaque AI systems",
+    link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-07-02.md"
+  },
 ];
 
 // Research entries -- papers, studies, analyses, guides
