@@ -116,6 +116,12 @@ export const blogPosts: BlogPost[] = [
     desc: "Single-layer RL training, learned memory modules, and the Godot ban on AI-authored code signal a bifurcation between auditable and opaque AI systems",
     link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-07-02.md"
   },
+  {
+    title: "The Centrifugal Shift: Local AI, Cheaper Hardware, and Runtime Safety",
+    date: "2026-07-04",
+    desc: "A legal and market bifurcation around local execution rights, the commoditization of inference hardware, and socially-aware runtime safety as three forces pulling intelligence toward personal hardware",
+    link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-07-04.md"
+  },
 ];
 
 // Research entries -- papers, studies, analyses, guides
