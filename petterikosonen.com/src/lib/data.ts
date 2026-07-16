@@ -122,6 +122,12 @@ export const blogPosts: BlogPost[] = [
     desc: "A legal and market bifurcation around local execution rights, the commoditization of inference hardware, and socially-aware runtime safety as three forces pulling intelligence toward personal hardware",
     link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-07-04.md"
   },
+  {
+    title: "The Autonomy-Atrophy Spiral: When Agent Convenience Weakens Oversight",
+    date: "2026-07-15",
+    desc: "How AI agents expand the security perimeter while eroding the human oversight skills needed to supervise them, with evidence from Cursor's 0day, Dependabot cooldown, and evaluation gaming research",
+    link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-07-15.md"
+  },
 ];
 
 // Research entries -- papers, studies, analyses, guides
