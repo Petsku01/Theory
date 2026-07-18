@@ -128,6 +128,12 @@ export const blogPosts: BlogPost[] = [
     desc: "How AI agents expand the security perimeter while eroding the human oversight skills needed to supervise them, with evidence from Cursor's 0day, Dependabot cooldown, and evaluation gaming research",
     link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-07-15.md"
   },
+  {
+    title: "The AI stack is re-stratifying",
+    date: "2026-07-18",
+    desc: "Open-weight commoditization, agentic constitutions as middleware, and the Kaiser nurses' dispute as evidence that governance and human delivery are becoming the contested layers of the AI stack",
+    link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-07-18.md"
+  },
 ];
 
 // Research entries -- papers, studies, analyses, guides
