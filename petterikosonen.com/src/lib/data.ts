@@ -134,6 +134,12 @@ export const blogPosts: BlogPost[] = [
     desc: "Open-weight commoditization, agentic constitutions as middleware, and the Kaiser nurses' dispute as evidence that governance and human delivery are becoming the contested layers of the AI stack",
     link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-07-18.md"
   },
+  {
+    title: "The Trust Bottleneck: Why Cheaper Models Make Cognitive Interfaces More Important",
+    date: "2026-07-21",
+    desc: "Model commoditization, the epistemic atrophy loop, and why trust orchestration—not raw inference—is becoming the scarce resource in AI systems",
+    link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-07-21.md"
+  },
 ];
 
 // Research entries -- papers, studies, analyses, guides
