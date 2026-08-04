@@ -140,6 +140,12 @@ export const blogPosts: BlogPost[] = [
     desc: "Model commoditization, the epistemic atrophy loop, and why trust orchestration—not raw inference—is becoming the scarce resource in AI systems",
     link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-07-21.md"
   },
+  {
+    title: "The Latent-Trust Transition: Continuous Models, a Split Web, and the Return of Expertise",
+    date: "2026-08-04",
+    desc: "Continuous latent representations, synthetic CVE contamination, and why provenance and expert judgment are becoming more valuable as model output becomes harder to distinguish from human work",
+    link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-08-04.md"
+  },
 ];
 
 // Research entries -- papers, studies, analyses, guides
