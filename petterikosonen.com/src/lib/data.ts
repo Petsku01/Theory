@@ -15,6 +15,12 @@ export interface Project {
 // Daily blog posts -- commentary, analysis, opinion pieces
 export const blogPosts: BlogPost[] = [
   {
+    title: "The blind spot in AI evaluation: why we need an ethology of multi-agent systems",
+    date: "2026-08-10",
+    desc: "Multi-agent systems produce interaction effects that single-agent tests miss. As agent infrastructure matures, evaluation must move from isolated model behavior toward interaction behavior.",
+    link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-08-10.md"
+  },
+  {
     title: "The Structural OS Turn: How AI's Memory Fabric and Transparency Wars Are Reshaping the Stack",
     date: "2026-06-03",
     desc: "Model commoditization, persistent agent memory as the new OS kernel, and the collision between corporate lawfare and adversarial transparency",
