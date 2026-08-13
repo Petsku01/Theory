@@ -96,20 +96,20 @@ export interface CortexWasmExports {
   nodeanimationsystem_len(ptr: number): number;
   nodeanimationsystem_stride(ptr: number): number;
   __wbg_nodeanimationsystem_free(ptr: number, del: number): void;
-  // Particle / burst already handled by their own components
-  // Particle system (3D soft particles for NeuralCortex)
+  // Particle system (3D flow-field particles for NeuralCortex)
   particlesystem_new(count: number, xb: number, yb: number, zb: number): number;
-  particlesystem_update(ptr: number, tx: number, ty: number, tz: number, hasTarget: number): number;
-  particlesystem_update_with_flow(ptr: number, time: number, noiseScale: number, noiseStrength: number): number;
-  particlesystem_update_colors(
+  particlesystem_update_clusters(
     ptr: number,
-    nodePositionsPtr: number,
-    nodePositionsLen: number,
-    nodeCount: number,
-    clusterColorsPtr: number,
-    clusterColorsLen: number,
-    blendRadius: number,
-  ): void;
+    time: number,
+    attractors_ptr: number,
+    attractors_len: number,
+    attractor_count: number,
+    active_cluster: number,
+    hover_x: number,
+    hover_y: number,
+    hover_z: number,
+    has_hover: number,
+  ): number;
   particlesystem_data_ptr(ptr: number): number;
   particlesystem_len(ptr: number): number;
   particlesystem_stride(ptr: number): number;

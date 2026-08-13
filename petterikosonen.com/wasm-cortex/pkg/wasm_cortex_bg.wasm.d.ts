@@ -7,6 +7,7 @@ export const particlesystem_len: (a: number) => number;
 export const particlesystem_new: (a: number, b: number, c: number, d: number) => number;
 export const particlesystem_stride: (a: number) => number;
 export const particlesystem_update: (a: number, b: number, c: number, d: number, e: number) => number;
+export const particlesystem_update_clusters: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number) => number;
 export const particlesystem_update_colors: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => void;
 export const particlesystem_update_with_flow: (a: number, b: number, c: number, d: number) => number;
 export const __wbg_scramblesystem_free: (a: number, b: number) => void;

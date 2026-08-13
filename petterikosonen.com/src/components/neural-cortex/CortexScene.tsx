@@ -6,60 +6,56 @@ import { OrbitControls } from "@react-three/drei";
 import { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import * as THREE from "three";
-import { nodes, edges } from "@/lib/cortex-data";
-import { type CortexNode } from "@/lib/cortex-data";
-import { CLUSTER_COLORS, computePositions } from "@/components/neural-cortex/utils";
-import { NetworkNode } from "@/components/neural-cortex/NetworkNode";
-import { NetworkEdges } from "@/components/neural-cortex/NetworkEdges";
-import { WasmSoftParticles } from "@/components/neural-cortex/WasmSoftParticles";
-import { WasmBurstParticles } from "@/components/neural-cortex/WasmBurstParticles";
+import { clusterPositions } from "@/lib/cortex-data";
 import { CameraController } from "@/components/neural-cortex/CameraController";
+import { FlowFieldParticles } from "@/components/neural-cortex/FlowFieldParticles";
+import { ClusterLabels } from "@/components/neural-cortex/ClusterLabels";
+import { ClusterPickTarget } from "@/components/neural-cortex/ClusterPickTarget";
 
 
-// ── Main 3D scene ──
+// ── Main 3D scene — radical redesign: particle flow replaces nodes+edges ──
 export function CortexScene({
-  selectedId,
-  onNodeSelect,
-  shakeTimestamp,
   activeCluster,
-  onHoverChange,
-  particleCount = 3600,
+  onClusterSelect,
+  shakeTimestamp,
+  particleCount = 5000,
   bloomIntensity = 2.2,
   isMobile = false,
   reducedMotion = false,
 }: {
-  selectedId: string | null;
-  onNodeSelect: (id: string | null) => void;
-  shakeTimestamp: number;
   activeCluster: string | null;
-  onHoverChange: (node: CortexNode | null) => void;
+  onClusterSelect: (cluster: string | null) => void;
+  shakeTimestamp: number;
   particleCount?: number;
   bloomIntensity?: number;
   isMobile?: boolean;
   reducedMotion?: boolean;
 }) {
-  const positions = useMemo(() => computePositions(nodes), []);
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
-  const selectedIdRef = useRef(selectedId);
-  selectedIdRef.current = selectedId;
+  const [hoveredCluster, setHoveredCluster] = useState<string | null>(null);
+  const hoverTargetRef = useRef<THREE.Vector3 | null>(null);
 
-  const handleSelect = useCallback(
-    (id: string) => {
-      onNodeSelect(selectedIdRef.current === id ? null : id);
-    },
-    [onNodeSelect]
-  );
+  // Compute hover target from hovered cluster
+  const hoverTarget = useMemo(() => {
+    if (!hoveredCluster) return null;
+    const pos = clusterPositions[hoveredCluster];
+    if (!pos) return null;
+    return new THREE.Vector3(pos[0], pos[1], pos[2]);
+  }, [hoveredCluster]);
 
-  const handleHover = useCallback(
-    (id: string | null) => {
-      setHoveredId(id);
-      document.body.style.cursor = id ? "pointer" : "default";
-      const node = id ? nodes.find((n) => n.id === id) ?? null : null;
-      onHoverChange(node);
-    },
-    [onHoverChange]
-  );
+  hoverTargetRef.current = hoverTarget;
+
+  // Cluster center for camera target
+  const targetPosition = useMemo(() => {
+    if (!activeCluster) return null;
+    const pos = clusterPositions[activeCluster];
+    if (!pos) return null;
+    return new THREE.Vector3(pos[0], pos[1], pos[2]);
+  }, [activeCluster]);
+
+  const handleClusterHover = useCallback((cluster: string | null) => {
+    setHoveredCluster(cluster);
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -67,61 +63,29 @@ export function CortexScene({
     };
   }, []);
 
-  const targetPosition = useMemo(() => {
-    if (!selectedId) return null;
-    return positions.get(selectedId) ?? null;
-  }, [selectedId, positions]);
-
-  const attractionTarget = useMemo(() => {
-    const id = hoveredId ?? selectedId;
-    if (!id) return null;
-    return positions.get(id) ?? null;
-  }, [hoveredId, selectedId, positions]);
-
   return (
     <>
       <ambientLight intensity={0.1} />
       <pointLight position={[10, 10, 10]} intensity={0.4} color="#00f0ff" />
       <pointLight position={[-10, -5, -10]} intensity={0.3} color="#22d3ee" />
 
-      <WasmSoftParticles
+      <FlowFieldParticles
         count={particleCount}
-        targetPos={attractionTarget}
-        color="#00f0ff"
-        reducedMotion={reducedMotion}
-      />
-      <WasmBurstParticles
-        origin={targetPosition}
-        color={
-          selectedId
-            ? CLUSTER_COLORS[nodes.find((n) => n.id === selectedId)?.cluster ?? "core"] ?? "#00f0ff"
-            : "#00f0ff"
-        }
-      />
-      <NetworkEdges
-        positions={positions}
-        selectedId={selectedId}
-        isMobile={isMobile}
+        activeCluster={activeCluster}
+        hoverTarget={hoverTarget}
         reducedMotion={reducedMotion}
       />
 
-      {nodes.map((node) => {
-        const isDimmed = activeCluster !== null && node.cluster !== activeCluster;
-        return (
-        <NetworkNode
-          key={node.id}
-          node={node}
-          position={positions.get(node.id) ?? new THREE.Vector3()}
-          isSelected={selectedId === node.id}
-          isHovered={hoveredId === node.id}
-          isDimmed={isDimmed}
-          isMobile={isMobile}
-          reducedMotion={reducedMotion}
-          onSelect={handleSelect}
-          onHover={handleHover}
-        />
-        );
-      })}
+      <ClusterLabels
+        activeCluster={activeCluster}
+        hoveredCluster={hoveredCluster}
+      />
+
+      <ClusterPickTarget
+        activeCluster={activeCluster}
+        onClusterSelect={onClusterSelect}
+        onClusterHover={handleClusterHover}
+      />
 
       <CameraController
         target={targetPosition}
@@ -135,7 +99,7 @@ export function CortexScene({
         minDistance={3}
         maxDistance={25}
         enablePan
-        autoRotate={!selectedId && !reducedMotion}
+        autoRotate={!activeCluster && !reducedMotion}
         autoRotateSpeed={0.3}
       />
 
@@ -147,8 +111,6 @@ export function CortexScene({
           intensity={bloomIntensity}
           mipmapBlur
         />
-
-
       </EffectComposer>
     </>
   );

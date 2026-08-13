@@ -615,6 +615,32 @@ export class ParticleSystem {
         return ret >>> 0;
     }
     /**
+     * Update particles with cluster attractors, curl-noise flow, and color blending.
+     * All-in-one: positions, velocities, colors, and pulsing alpha in a single pass.
+     *
+     * `attractors` — flat f32 array, `attractor_count × 12`:
+     *   [pos_x, pos_y, pos_z, color_r, color_g, color_b, strength, pulse_phase, pulse_amp, active, boost, _pad]
+     * `active_cluster` — -1 = no selection, 0..N = selected cluster index
+     * `hover_x/y/z` + `has_hover` — optional hover attractor
+     *
+     * Returns pointer to the full data buffer (count × PARTICLE_STRIDE f32s).
+     * @param {number} time
+     * @param {Float32Array} attractors
+     * @param {number} attractor_count
+     * @param {number} active_cluster
+     * @param {number} hover_x
+     * @param {number} hover_y
+     * @param {number} hover_z
+     * @param {boolean} has_hover
+     * @returns {number}
+     */
+    update_clusters(time, attractors, attractor_count, active_cluster, hover_x, hover_y, hover_z, has_hover) {
+        const ptr0 = passArrayF32ToWasm0(attractors, wasm.__wbindgen_malloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.particlesystem_update_clusters(this.__wbg_ptr, time, ptr0, len0, attractor_count, active_cluster, hover_x, hover_y, hover_z, has_hover);
+        return ret >>> 0;
+    }
+    /**
      * Update particle colors based on nearest node and its cluster color.
      * node_positions: flat [x,y,z, x,y,z, ...] for each node
      * cluster_colors: flat [r,g,b, r,g,b, ...] per node (already mapped from cluster)

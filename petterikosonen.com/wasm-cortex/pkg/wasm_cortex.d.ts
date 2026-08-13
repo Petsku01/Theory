@@ -209,6 +209,18 @@ export class ParticleSystem {
      */
     update(target_x: number, target_y: number, target_z: number, has_target: boolean): number;
     /**
+     * Update particles with cluster attractors, curl-noise flow, and color blending.
+     * All-in-one: positions, velocities, colors, and pulsing alpha in a single pass.
+     *
+     * `attractors` — flat f32 array, `attractor_count × 12`:
+     *   [pos_x, pos_y, pos_z, color_r, color_g, color_b, strength, pulse_phase, pulse_amp, active, boost, _pad]
+     * `active_cluster` — -1 = no selection, 0..N = selected cluster index
+     * `hover_x/y/z` + `has_hover` — optional hover attractor
+     *
+     * Returns pointer to the full data buffer (count × PARTICLE_STRIDE f32s).
+     */
+    update_clusters(time: number, attractors: Float32Array, attractor_count: number, active_cluster: number, hover_x: number, hover_y: number, hover_z: number, has_hover: boolean): number;
+    /**
      * Update particle colors based on nearest node and its cluster color.
      * node_positions: flat [x,y,z, x,y,z, ...] for each node
      * cluster_colors: flat [r,g,b, r,g,b, ...] per node (already mapped from cluster)
@@ -310,6 +322,7 @@ export interface InitOutput {
     readonly particlesystem_new: (a: number, b: number, c: number, d: number) => number;
     readonly particlesystem_stride: (a: number) => number;
     readonly particlesystem_update: (a: number, b: number, c: number, d: number, e: number) => number;
+    readonly particlesystem_update_clusters: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number) => number;
     readonly particlesystem_update_colors: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => void;
     readonly particlesystem_update_with_flow: (a: number, b: number, c: number, d: number) => number;
     readonly __wbg_scramblesystem_free: (a: number, b: number) => void;

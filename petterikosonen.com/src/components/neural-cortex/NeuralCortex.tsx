@@ -2,7 +2,6 @@
 
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas } from "@react-three/fiber";
-import { nodes, type CortexNode } from "@/lib/cortex-data";
 import { CortexScene } from "@/components/neural-cortex/CortexScene";
 import { DetailPanel } from "@/components/neural-cortex/DetailPanel";
 
@@ -12,6 +11,7 @@ import { AccessibleNav } from "@/components/neural-cortex/AccessibleNav";
 import { SplashScreen } from "@/components/neural-cortex/SplashScreen";
 import { getUnifiedWasmStatus } from "@/components/neural-cortex/utils";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+import { nodes, type CortexNode } from "@/lib/cortex-data";
 
 // ── Global keyframes ──
 function GlobalStyles() {
@@ -25,13 +25,45 @@ function GlobalStyles() {
   );
 }
 
+// ── Cluster descriptions for detail panel ──
+const CLUSTER_INFO: Record<string, { label: string; shortDesc: string; fullDesc: string }> = {
+  core: {
+    label: "Core",
+    shortDesc: "Petteri Kosonen — Application Specialist + AI Researcher",
+    fullDesc:
+      "Application Specialist at 2M-IT by day, AI researcher by night. Building tools for prompt security, fine-tuning, and trustworthy automation.",
+  },
+  projects: {
+    label: "Projects",
+    shortDesc: "LLM fine-tuning, security testing, and prompt engineering tools",
+    fullDesc:
+      "Prompt Optimizer, Prompt Security Guide, PromptKit, VET Pilot, HetuGuard, and Injection Scanner — a collection of AI-focused projects.",
+  },
+  skills: {
+    label: "Skills",
+    shortDesc: "Security, Cloud, Automation, AI/Prompting, Python, Linux, Web Dev",
+    fullDesc:
+      "From operational security and Microsoft cloud administration to Python automation and full-stack web development.",
+  },
+  experience: {
+    label: "Experience",
+    shortDesc: "2M-IT Application Specialist + Turku AMK Cybersecurity",
+    fullDesc:
+      "Application Specialist at 2M-IT (2022-), B.Eng. Cybersecurity at Turku AMK (2020-). Applied research in LLM security and prompt engineering.",
+  },
+  research: {
+    label: "Research",
+    shortDesc: "Reframing attacks, LLM research daily, automated analysis",
+    fullDesc:
+      "Reframing attack preprint (9 models, 10 categories, 222 tests), daily LLM research pipeline, and automated multi-model analysis.",
+  },
+};
+
 // ── Exported wrapper ──
 export default function NeuralCortex() {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [entered, setEntered] = useState(false);
   const [shakeTimestamp, setShakeTimestamp] = useState(0);
   const [activeCluster, setActiveCluster] = useState<string | null>(null);
-  const [hoveredNode, setHoveredNode] = useState<CortexNode | null>(null);
   const [isMobile, setIsMobile] = useState(false);
 
   const reducedMotion = usePrefersReducedMotion();
@@ -47,39 +79,34 @@ export default function NeuralCortex() {
   }, []);
 
   // Mobile: fewer particles, lower bloom. Desktop defaults.
-  const particleCount = isMobile ? 1200 : 3600;
+  const particleCount = isMobile ? 2000 : 5000;
   const bloomIntensity = isMobile ? 1.2 : 2.2;
 
-  const [panelNode, setPanelNode] = useState<CortexNode | null>(null);
+  const [panelCluster, setPanelCluster] = useState<string | null>(null);
   const [panelStage, setPanelStage] = useState<"show" | "hiding" | "hidden">(
     "hidden"
   );
   const panelTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const selectedNode = useMemo(
-    () => (selectedId ? nodes.find((n) => n.id === selectedId) ?? null : null),
-    [selectedId]
-  );
-
   useEffect(() => {
-    if (selectedNode) {
+    if (activeCluster) {
       clearTimeout(panelTimeout.current!);
-      setPanelNode(selectedNode);
+      setPanelCluster(activeCluster);
       setPanelStage("show");
-    } else if (panelNode) {
+    } else if (panelCluster) {
       setPanelStage("hiding");
       panelTimeout.current = setTimeout(() => {
-        setPanelNode(null);
+        setPanelCluster(null);
         setPanelStage("hidden");
       }, 300);
     }
     return () => clearTimeout(panelTimeout.current!);
-  }, [selectedNode, panelNode]);
+  }, [activeCluster, panelCluster]);
 
-  const handleNodeSelect = useCallback(
-    (id: string | null) => {
-      setSelectedId(id);
-      if (id !== null) {
+  const handleClusterSelect = useCallback(
+    (cluster: string | null) => {
+      setActiveCluster(cluster);
+      if (cluster !== null) {
         setShakeTimestamp((prev) => prev + 1);
       }
     },
@@ -87,8 +114,28 @@ export default function NeuralCortex() {
   );
 
   const handlePanelClose = useCallback(() => {
-    setSelectedId(null);
+    setActiveCluster(null);
   }, []);
+
+  // Build a pseudo-CortexNode for the DetailPanel from cluster info
+  const panelNode = useMemo<CortexNode | null>(() => {
+    if (!panelCluster) return null;
+    const info = CLUSTER_INFO[panelCluster];
+    if (!info) return null;
+    const firstNode = nodes.find((n) => n.cluster === panelCluster);
+    return {
+      id: panelCluster,
+      label: info.label,
+      type: firstNode?.type ?? "core",
+      shortDesc: info.shortDesc,
+      fullDesc: info.fullDesc,
+      tech: firstNode?.tech,
+      link: firstNode?.link,
+      color: firstNode?.color ?? "#00f0ff",
+      size: 2.0,
+      cluster: panelCluster,
+    };
+  }, [panelCluster]);
 
   return (
     <div className="fixed inset-0 z-[5] overflow-hidden bg-[#05070A]">
@@ -128,11 +175,9 @@ export default function NeuralCortex() {
             >
               <fog attach="fog" args={["#060818", 12, 40]} />
               <CortexScene
-                selectedId={selectedId}
-                onNodeSelect={handleNodeSelect}
-                shakeTimestamp={shakeTimestamp}
                 activeCluster={activeCluster}
-                onHoverChange={setHoveredNode}
+                onClusterSelect={handleClusterSelect}
+                shakeTimestamp={shakeTimestamp}
                 particleCount={particleCount}
                 bloomIntensity={bloomIntensity}
                 isMobile={isMobile}
@@ -144,9 +189,9 @@ export default function NeuralCortex() {
           <Scanlines />
           <Vignette />
 
-          {selectedId && (
+          {activeCluster && (
             <button
-              onClick={() => handleNodeSelect(null)}
+              onClick={() => handleClusterSelect(null)}
               className="pointer-events-auto absolute left-6 top-20 z-20 rounded-lg border border-slate-700/60 bg-[#0a0a0f]/90 px-3 py-1.5 font-mono text-xs text-slate-300 backdrop-blur-sm transition-colors hover:border-cyan-500/50 hover:text-cyan-400"
             >
               Reset View
@@ -158,7 +203,7 @@ export default function NeuralCortex() {
             aria-label="Cluster filter"
           >
             <button
-              onClick={() => setActiveCluster(null)}
+              onClick={() => handleClusterSelect(null)}
               className={`rounded-lg border px-3 py-1.5 font-mono text-xs backdrop-blur-sm transition-colors ${
                 activeCluster === null
                   ? "border-cyan-500/60 bg-cyan-500/15 text-cyan-400"
@@ -175,10 +220,7 @@ export default function NeuralCortex() {
                 <button
                   key={cluster}
                   onClick={() => {
-                    setActiveCluster(isActive ? null : cluster);
-                    const node = nodes.find((n) => n.cluster === cluster);
-                    if (node && !isActive) handleNodeSelect(node.id);
-                    if (isActive) handleNodeSelect(null);
+                    handleClusterSelect(isActive ? null : cluster);
                   }}
                   className={`rounded-lg border px-3 py-1.5 font-mono text-xs backdrop-blur-sm transition-colors ${
                     isActive
@@ -192,23 +234,17 @@ export default function NeuralCortex() {
             })}
           </nav>
 
-          {/* Hover tooltip */}
-          {hoveredNode && !selectedId && (
-            <div className="pointer-events-none absolute left-1/2 top-20 z-20 -translate-x-1/2 rounded-lg border border-slate-700/60 bg-[#0a0a0f]/90 px-4 py-2 backdrop-blur-sm">
-              <span className="font-mono text-xs text-slate-200">{hoveredNode.label}</span>
-              {hoveredNode.shortDesc && (
-                <p className="mt-1 max-w-xs text-[0.7rem] text-slate-400">{hoveredNode.shortDesc}</p>
-              )}
-            </div>
-          )}
-
           <DetailPanel
             node={panelNode}
             stage={panelStage}
             onCloseAction={handlePanelClose}
           />
 
-          <AccessibleNav onSelect={(id) => handleNodeSelect(id)} />
+          <AccessibleNav onSelect={(id) => {
+            // Map node id to its cluster
+            const node = nodes.find((n) => n.id === id);
+            if (node) handleClusterSelect(node.cluster);
+          }} />
 
           {/* WASM status badge */}
           <WasmBadge />

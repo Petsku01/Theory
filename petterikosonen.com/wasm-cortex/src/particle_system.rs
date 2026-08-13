@@ -269,6 +269,196 @@ impl ParticleSystem {
         }
     }
 
+    /// Update particles with cluster attractors, curl-noise flow, and color blending.
+    /// All-in-one: positions, velocities, colors, and pulsing alpha in a single pass.
+    ///
+    /// `attractors` — flat f32 array, `attractor_count × 12`:
+    ///   [pos_x, pos_y, pos_z, color_r, color_g, color_b, strength, pulse_phase, pulse_amp, active, boost, _pad]
+    /// `active_cluster` — -1 = no selection, 0..N = selected cluster index
+    /// `hover_x/y/z` + `has_hover` — optional hover attractor
+    ///
+    /// Returns pointer to the full data buffer (count × PARTICLE_STRIDE f32s).
+    #[wasm_bindgen]
+    pub fn update_clusters(
+        &mut self,
+        time: f32,
+        attractors: &[f32],
+        attractor_count: usize,
+        active_cluster: i32,
+        hover_x: f32,
+        hover_y: f32,
+        hover_z: f32,
+        has_hover: bool,
+    ) -> *const f32 {
+        let count = self.count;
+        let bounds = self.bounds;
+        let data = &mut self.data;
+
+        const BLEND_RADIUS: f32 = 6.0;
+        const BLEND_RADIUS_SQ: f32 = BLEND_RADIUS * BLEND_RADIUS;
+        const SOFTENING: f32 = 0.5;
+        const ACTIVE_BOOST: f32 = 2.5;
+        const INACTIVE_BOOST: f32 = 0.3;
+        const FLOW_SCALE: f32 = 0.0008;
+        const FLOW_STRENGTH: f32 = 0.5;
+
+        // Validate attractor data
+        if attractor_count == 0 || attractors.len() < attractor_count * 12 {
+            // Fallback: just apply curl-noise flow without attractors
+            for i in 0..count {
+                let base = i * PARTICLE_STRIDE;
+                let px = data[base];
+                let py = data[base + 1];
+                let pz = data[base + 2];
+                let (cx, cy, cz) = curl_noise(px * 0.5 + time * 0.1, py * 0.5, pz * 0.5);
+                data[base + 3] += cx * FLOW_STRENGTH * FLOW_SCALE * 60.0;
+                data[base + 4] += cy * FLOW_STRENGTH * FLOW_SCALE * 60.0;
+                data[base + 5] += cz * FLOW_STRENGTH * FLOW_SCALE * 60.0;
+                data[base] += data[base + 3];
+                data[base + 1] += data[base + 4];
+                data[base + 2] += data[base + 5];
+                data[base + 3] *= DAMPING;
+                data[base + 4] *= DAMPING;
+                data[base + 5] *= DAMPING;
+            }
+            return data.as_ptr();
+        }
+
+        for i in 0..count {
+            let base = i * PARTICLE_STRIDE;
+
+            let px = data[base];
+            let py = data[base + 1];
+            let pz = data[base + 2];
+            let mut vx = data[base + 3];
+            let mut vy = data[base + 4];
+            let mut vz = data[base + 5];
+
+            // ── 1. Find nearest attractor and compute attraction forces ──
+            let mut nearest_idx = 0usize;
+            let mut nearest_dist_sq = f32::MAX;
+            let mut fx = 0.0f32;
+            let mut fy = 0.0f32;
+            let mut fz = 0.0f32;
+
+            for a in 0..attractor_count {
+                let ao = a * 12;
+                let ax = attractors[ao];
+                let ay = attractors[ao + 1];
+                let az = attractors[ao + 2];
+                let strength = attractors[ao + 6];
+                let active_flag = attractors[ao + 9];
+                let base_boost = attractors[ao + 10];
+
+                let dx = ax - px;
+                let dy = ay - py;
+                let dz = az - pz;
+                let dist_sq = dx * dx + dy * dy + dz * dz;
+                let dist = (dist_sq + 0.001).sqrt();
+
+                if dist_sq < nearest_dist_sq {
+                    nearest_dist_sq = dist_sq;
+                    nearest_idx = a;
+                }
+
+                // Compute boost: if active_cluster matches, boost; otherwise reduce
+                let boost = if active_cluster >= 0 {
+                    if a == active_cluster as usize {
+                        ACTIVE_BOOST
+                    } else {
+                        INACTIVE_BOOST
+                    }
+                } else {
+                    base_boost
+                };
+
+                // Only apply attraction if attractor is active
+                if active_flag > 0.5 {
+                    let inv_dist = 1.0 / (dist_sq + SOFTENING);
+                    let force = strength * boost * inv_dist;
+                    fx += dx * force;
+                    fy += dy * force;
+                    fz += dz * force;
+                }
+            }
+
+            vx += fx * 0.01;
+            vy += fy * 0.01;
+            vz += fz * 0.01;
+
+            // ── 2. Curl-noise flow field ──
+            let (cx, cy, cz) = curl_noise(px * 0.5 + time * 0.1, py * 0.5, pz * 0.5);
+            vx += cx * FLOW_STRENGTH * FLOW_SCALE * 60.0;
+            vy += cy * FLOW_STRENGTH * FLOW_SCALE * 60.0;
+            vz += cz * FLOW_STRENGTH * FLOW_SCALE * 60.0;
+
+            // ── 3. Hover attractor ──
+            if has_hover {
+                let dx = hover_x - px;
+                let dy = hover_y - py;
+                let dz = hover_z - pz;
+                let dist = (dx * dx + dy * dy + dz * dz).sqrt() + 0.001;
+                vx += (dx / dist) * ATTRACTION_FORCE * 2.0;
+                vy += (dy / dist) * ATTRACTION_FORCE * 2.0;
+                vz += (dz / dist) * ATTRACTION_FORCE * 2.0;
+            }
+
+            // ── 4. Damping + clamp ──
+            vx *= DAMPING;
+            vy *= DAMPING;
+            vz *= DAMPING;
+            if vx.abs() > MAX_VEL { vx = MAX_VEL * vx.signum(); }
+            if vy.abs() > MAX_VEL { vy = MAX_VEL * vy.signum(); }
+            if vz.abs() > MAX_VEL { vz = MAX_VEL * vz.signum(); }
+
+            // ── 5. Apply velocity ──
+            let new_px = px + vx;
+            let new_py = py + vy;
+            let new_pz = pz + vz;
+
+            // ── 6. Boundary ──
+            let mut fx2 = new_px;
+            let mut fy2 = new_py;
+            let mut fz2 = new_pz;
+            if fx2.abs() > bounds[0] { fx2 = fx2.clamp(-bounds[0], bounds[0]); vx *= -0.2; }
+            if fy2.abs() > bounds[1] { fy2 = fy2.clamp(-bounds[1], bounds[1]); vy *= -0.2; }
+            if fz2.abs() > bounds[2] { fz2 = fz2.clamp(-bounds[2], bounds[2]); vz *= -0.2; }
+
+            data[base] = fx2;
+            data[base + 1] = fy2;
+            data[base + 2] = fz2;
+            data[base + 3] = vx;
+            data[base + 4] = vy;
+            data[base + 5] = vz;
+
+            // ── 7. Color blend toward nearest attractor ──
+            let ao = nearest_idx * 12;
+            let cr = attractors[ao + 3];
+            let cg = attractors[ao + 4];
+            let cb = attractors[ao + 5];
+
+            let t = if nearest_dist_sq < BLEND_RADIUS_SQ {
+                1.0 - (nearest_dist_sq / BLEND_RADIUS_SQ).sqrt()
+            } else {
+                0.0
+            };
+            let t = t.clamp(0.0, 1.0);
+
+            data[base + 8]  = DEFAULT_R + (cr - DEFAULT_R) * t;
+            data[base + 9]  = DEFAULT_G + (cg - DEFAULT_G) * t;
+            data[base + 10] = DEFAULT_B + (cb - DEFAULT_B) * t;
+
+            // ── 8. Pulsing alpha + brightness based on proximity ──
+            let pulse_phase = attractors[ao + 7];
+            let pulse_amp = attractors[ao + 8];
+            let brightness = 0.3 + t * 0.5; // closer = brighter
+            let pulse = (time * pulse_phase).sin() * pulse_amp;
+            data[base + 7] = (brightness + pulse).clamp(0.05, 1.0);
+        }
+
+        data.as_ptr()
+    }
+
     #[wasm_bindgen]
     pub fn len(&self) -> usize {
         self.count
