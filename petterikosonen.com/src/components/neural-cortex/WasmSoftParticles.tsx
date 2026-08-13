@@ -36,6 +36,7 @@ export function WasmSoftParticles({
   const particlePtr = useRef<number>(0);
   const colorUpdateTimer = useRef<number>(0);
   const flowUpdateCounter = useRef<number>(0);
+  const wasmDataRef = useRef<Float32Array | null>(null);
   const clusterDataRef = useRef<{
     nodePositions: Float32Array;
     clusterColors: Float32Array;
@@ -236,7 +237,12 @@ export function WasmSoftParticles({
       const len = wasm.particlesystem_len(ptr);
       const stride = wasm.particlesystem_stride(ptr);
 
-      const wasmData = new Float32Array(wasm.memory.buffer, dataPtr, len * stride);
+      // Cache Float32Array view — only recreate if WASM memory buffer changed
+      let wasmData = wasmDataRef.current;
+      if (!wasmData || wasmData.buffer !== wasm.memory.buffer) {
+        wasmData = new Float32Array(wasm.memory.buffer, dataPtr, len * stride);
+        wasmDataRef.current = wasmData;
+      }
 
       const pos = posAttr.array as Float32Array;
       const sz = sizeAttr.array as Float32Array;
@@ -292,9 +298,8 @@ export function WasmSoftParticles({
       }
 
       posAttr.needsUpdate = true;
-      sizeAttr.needsUpdate = true;
-      alphaAttr.needsUpdate = true;
-      colorAttr.needsUpdate = true;
+      // size/alpha are static in WASM update/update_with_flow — no per-frame GPU upload
+      // colorAttr.needsUpdate set inside the 0.5s color-update block above
     } else {
       // JS fallback -- uses useMemo arrays directly, no refs needed
       const pos = positions;
