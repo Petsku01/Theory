@@ -135,7 +135,7 @@ export function CortexScene({
       {/* Post-processing: Bloom only */}
       <EffectComposer>
         <Bloom
-          luminanceThreshold={0.15}
+          luminanceThreshold={0.35}
           luminanceSmoothing={0.9}
           intensity={bloomIntensity}
           mipmapBlur

@@ -148,11 +148,16 @@ impl ParticleSystem {
             let mut vy = data[base + 4];
             let mut vz = data[base + 5];
 
-            // Lightweight flow field — hash-based pseudo-noise (no simplex, ~10x cheaper)
+            // Lightweight flow field — hash-based pseudo-noise using particle POSITION
+            // (not just index — gives spatial variation, not uniform push)
             let t = time * 0.1;
-            let h1 = wrapping_hash((i.wrapping_add((t * 100.0) as usize)).wrapping_mul(2654435761));
-            let h2 = wrapping_hash((i.wrapping_add((t * 100.0) as usize).wrapping_add(7919)).wrapping_mul(40503));
-            let h3 = wrapping_hash((i.wrapping_add((t * 100.0) as usize).wrapping_add(104729)).wrapping_mul(2654435761));
+            let pos_hash = ((px * 100.0) as usize)
+                .wrapping_add((py * 97.0) as usize)
+                .wrapping_add((pz * 89.0) as usize)
+                .wrapping_add((t * 50.0) as usize);
+            let h1 = wrapping_hash(pos_hash.wrapping_mul(2654435761));
+            let h2 = wrapping_hash(pos_hash.wrapping_add(7919).wrapping_mul(40503));
+            let h3 = wrapping_hash(pos_hash.wrapping_add(104729).wrapping_mul(2654435761));
             let cx = ((h1 as f32) / (u32::MAX as f32)) * 2.0 - 1.0;
             let cy = ((h2 as f32) / (u32::MAX as f32)) * 2.0 - 1.0;
             let cz = ((h3 as f32) / (u32::MAX as f32)) * 2.0 - 1.0;
