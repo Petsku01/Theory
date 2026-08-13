@@ -4,7 +4,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useFrame } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { OrbitControls as OrbitControlsImpl } from "three-stdlib";
-import { EffectComposer, Bloom } from "@react-three/postprocessing";
+import { EffectComposer, Bloom, ChromaticAberration, Noise } from "@react-three/postprocessing";
+import { BlendFunction } from "postprocessing";
 import * as THREE from "three";
 import { nodes, edges } from "@/lib/cortex-data";
 import { type CortexNode } from "@/lib/cortex-data";
@@ -23,18 +24,31 @@ export function CortexScene({
   shakeTimestamp,
   activeCluster,
   onHoverChange,
+  particleCount = 3600,
+  bloomIntensity = 1.8,
+  isMobile = false,
+  reducedMotion = false,
 }: {
   selectedId: string | null;
   onNodeSelect: (id: string | null) => void;
   shakeTimestamp: number;
   activeCluster: string | null;
   onHoverChange: (node: CortexNode | null) => void;
+  particleCount?: number;
+  bloomIntensity?: number;
+  isMobile?: boolean;
+  reducedMotion?: boolean;
 }) {
   const positions = useMemo(() => computePositions(nodes), []);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const selectedIdRef = useRef(selectedId);
   selectedIdRef.current = selectedId;
+
+  // Chromatic aberration pulse on selection
+  const caRef = useRef<any>(null);
+  const caBaseOffset = useMemo(() => new THREE.Vector2(0.002, 0.002), []);
+  const caPulseTime = useRef<number>(0);
 
   const handleSelect = useCallback(
     (id: string) => {
@@ -70,13 +84,43 @@ export function CortexScene({
     return positions.get(id) ?? null;
   }, [hoveredId, selectedId, positions]);
 
+  // Trigger CA pulse when selection changes
+  useEffect(() => {
+    if (selectedId) {
+      caPulseTime.current = performance.now() / 1000;
+    }
+  }, [selectedId]);
+
+  // Animate CA pulse in useFrame
+  useFrame(() => {
+    if (!caRef.current || caPulseTime.current === 0) return;
+    const elapsed = performance.now() / 1000 - caPulseTime.current;
+    const pulseDuration = 0.5;
+    if (elapsed < pulseDuration) {
+      const t = elapsed / pulseDuration;
+      const pulse = Math.sin(t * Math.PI) * 0.008; // extra offset up to 0.008
+      caRef.current.offset.set(
+        caBaseOffset.x + pulse,
+        caBaseOffset.y + pulse,
+      );
+    } else {
+      caRef.current.offset.copy(isMobile ? new THREE.Vector2(0, 0) : caBaseOffset);
+      caPulseTime.current = 0;
+    }
+  });
+
   return (
     <>
       <ambientLight intensity={0.1} />
       <pointLight position={[10, 10, 10]} intensity={0.4} color="#00f0ff" />
       <pointLight position={[-10, -5, -10]} intensity={0.3} color="#22d3ee" />
 
-      <WasmSoftParticles count={3600} targetPos={attractionTarget} color="#00f0ff" />
+      <WasmSoftParticles
+        count={particleCount}
+        targetPos={attractionTarget}
+        color="#00f0ff"
+        reducedMotion={reducedMotion}
+      />
       <WasmBurstParticles
         origin={targetPosition}
         color={
@@ -106,7 +150,7 @@ export function CortexScene({
       <CameraController
         target={targetPosition}
         controlsRef={controlsRef}
-        shakeTimestamp={shakeTimestamp}
+        shakeTimestamp={reducedMotion ? 0 : shakeTimestamp}
       />
       <OrbitControls
         ref={controlsRef}
@@ -115,17 +159,29 @@ export function CortexScene({
         minDistance={3}
         maxDistance={25}
         enablePan
-        autoRotate={!selectedId}
+        autoRotate={!selectedId && !reducedMotion}
         autoRotateSpeed={0.3}
       />
 
-      {/* Post-processing: Bloom only */}
+      {/* Post-processing: Bloom + ChromaticAberration + Noise */}
       <EffectComposer>
         <Bloom
           luminanceThreshold={0.15}
           luminanceSmoothing={0.9}
-          intensity={1.8}
+          intensity={bloomIntensity}
           mipmapBlur
+        />
+        <ChromaticAberration
+          ref={caRef}
+          blendFunction={BlendFunction.NORMAL}
+          offset={isMobile ? new THREE.Vector2(0, 0) : caBaseOffset}
+          radialModulation={false}
+          modulationOffset={0.15}
+        />
+        <Noise
+          blendFunction={BlendFunction.SCREEN}
+          premultiply
+          opacity={isMobile ? 0 : 0.4}
         />
       </EffectComposer>
     </>

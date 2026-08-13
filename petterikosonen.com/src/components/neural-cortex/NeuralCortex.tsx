@@ -11,6 +11,7 @@ import { AccessibleNav } from "@/components/neural-cortex/AccessibleNav";
 
 import { SplashScreen } from "@/components/neural-cortex/SplashScreen";
 import { getUnifiedWasmStatus } from "@/components/neural-cortex/utils";
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 
 // ── Global keyframes ──
 function GlobalStyles() {
@@ -31,6 +32,23 @@ export default function NeuralCortex() {
   const [shakeTimestamp, setShakeTimestamp] = useState(0);
   const [activeCluster, setActiveCluster] = useState<string | null>(null);
   const [hoveredNode, setHoveredNode] = useState<CortexNode | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  const reducedMotion = usePrefersReducedMotion();
+
+  // Detect mobile via matchMedia
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(max-width: 768px)");
+    setIsMobile(mq.matches);
+    const onChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
+  // Mobile: fewer particles, lower bloom. Desktop defaults.
+  const particleCount = isMobile ? 1200 : 3600;
+  const bloomIntensity = isMobile ? 1.2 : 1.8;
 
   const [panelNode, setPanelNode] = useState<CortexNode | null>(null);
   const [panelStage, setPanelStage] = useState<"show" | "hiding" | "hidden">(
@@ -115,6 +133,10 @@ export default function NeuralCortex() {
                 shakeTimestamp={shakeTimestamp}
                 activeCluster={activeCluster}
                 onHoverChange={setHoveredNode}
+                particleCount={particleCount}
+                bloomIntensity={bloomIntensity}
+                isMobile={isMobile}
+                reducedMotion={reducedMotion}
               />
             </Canvas>
           </Suspense>

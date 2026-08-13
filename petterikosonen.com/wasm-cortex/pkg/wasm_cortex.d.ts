@@ -203,10 +203,24 @@ export class ParticleSystem {
     constructor(count: number, x_bound: number, y_bound: number, z_bound: number);
     stride(): number;
     /**
-     * Update all particles. Returns pointer to position data (count * 3 f32s).
+     * Update all particles with optional attraction target.
+     * Returns pointer to position data (count * stride f32s).
      * target_pos: [x, y, z] of attraction target, or empty for no attraction.
      */
     update(target_x: number, target_y: number, target_z: number, has_target: boolean): number;
+    /**
+     * Update particle colors based on nearest node and its cluster color.
+     * node_positions: flat [x,y,z, x,y,z, ...] for each node
+     * cluster_colors: flat [r,g,b, r,g,b, ...] per node (already mapped from cluster)
+     * blend_radius: distance within which color is fully applied; outside fades to default
+     */
+    update_colors(node_positions: Float32Array, node_count: number, cluster_colors: Float32Array, blend_radius: number): void;
+    /**
+     * Update particles using a curl-noise flow field instead of attraction.
+     * The curl noise creates organic, swirling motion.
+     * JS calls this instead of `update` when there is no hover/selection target.
+     */
+    update_with_flow(time: number, noise_scale: number, noise_strength: number): number;
 }
 
 /**
@@ -290,6 +304,14 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
+    readonly __wbg_particlesystem_free: (a: number, b: number) => void;
+    readonly particlesystem_data_ptr: (a: number) => number;
+    readonly particlesystem_len: (a: number) => number;
+    readonly particlesystem_new: (a: number, b: number, c: number, d: number) => number;
+    readonly particlesystem_stride: (a: number) => number;
+    readonly particlesystem_update: (a: number, b: number, c: number, d: number, e: number) => number;
+    readonly particlesystem_update_colors: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => void;
+    readonly particlesystem_update_with_flow: (a: number, b: number, c: number, d: number) => number;
     readonly __wbg_scramblesystem_free: (a: number, b: number) => void;
     readonly __wbg_springcursor_free: (a: number, b: number) => void;
     readonly scramblesystem_data_ptr: (a: number) => number;
@@ -356,12 +378,6 @@ export interface InitOutput {
     readonly nodeanimationsystem_new: () => number;
     readonly nodeanimationsystem_stride: (a: number) => number;
     readonly nodeanimationsystem_update: (a: number, b: number, c: number, d: number) => number;
-    readonly __wbg_particlesystem_free: (a: number, b: number) => void;
-    readonly particlesystem_data_ptr: (a: number) => number;
-    readonly particlesystem_len: (a: number) => number;
-    readonly particlesystem_new: (a: number, b: number, c: number, d: number) => number;
-    readonly particlesystem_stride: (a: number) => number;
-    readonly particlesystem_update: (a: number, b: number, c: number, d: number, e: number) => number;
     readonly __wbg_edgesystem_free: (a: number, b: number) => void;
     readonly edgesystem_cylinder_data_ptr: (a: number) => number;
     readonly edgesystem_cylinder_stride: (a: number) => number;
@@ -374,6 +390,7 @@ export interface InitOutput {
     readonly edgesystem_update_highlights: (a: number, b: number) => void;
     readonly edgesystem_update_pulses: (a: number, b: number, c: number, d: number) => number;
     readonly __wbindgen_externrefs: WebAssembly.Table;
+    readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_start: () => void;
 }
 
