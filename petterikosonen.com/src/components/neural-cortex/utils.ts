@@ -40,25 +40,17 @@ export interface CortexWasmExports {
   edgesystem_new(): number;
   edgesystem_init_edges(
     ptr: number, from_ptr: number, to_ptr: number,
-    edge_count: number, flags_ptr: number, edge_node_indices_ptr: number
+    edge_count: number, flags_ptr: number
   ): number;
   edgesystem_update_pulses(
     ptr: number, from_ptr: number, to_ptr: number, elapsed: number
   ): number;
   edgesystem_update_highlights(ptr: number, flags_ptr: number): void;
-  edgesystem_trigger_wave(
-    ptr: number, source_node_idx: number, current_time: number,
-    hop_delay: number, node_count: number
-  ): void;
-  edgesystem_update_wave(ptr: number, elapsed: number): number;
-  edgesystem_set_wave_decay(ptr: number, decay: number): void;
   edgesystem_cylinder_data_ptr(ptr: number): number;
   edgesystem_pulse_data_ptr(ptr: number): number;
-  edgesystem_wave_data_ptr(ptr: number): number;
   edgesystem_len(ptr: number): number;
   edgesystem_cylinder_stride(ptr: number): number;
   edgesystem_pulse_stride(ptr: number): number;
-  edgesystem_wave_stride(ptr: number): number;
   edgesystem_is_highlighted(ptr: number, index: number): number;
   __wbg_edgesystem_free(ptr: number, del: number): void;
   // Camera
@@ -108,16 +100,6 @@ export interface CortexWasmExports {
   // Particle system (3D soft particles for NeuralCortex)
   particlesystem_new(count: number, xb: number, yb: number, zb: number): number;
   particlesystem_update(ptr: number, tx: number, ty: number, tz: number, hasTarget: number): number;
-  particlesystem_update_with_flow(ptr: number, time: number, noiseScale: number, noiseStrength: number): number;
-  particlesystem_update_colors(
-    ptr: number,
-    nodePositionsPtr: number,
-    nodePositionsLen: number,
-    nodeCount: number,
-    clusterColorsPtr: number,
-    clusterColorsLen: number,
-    blendRadius: number,
-  ): void;
   particlesystem_data_ptr(ptr: number): number;
   particlesystem_len(ptr: number): number;
   particlesystem_stride(ptr: number): number;
@@ -127,9 +109,6 @@ export interface CortexWasmExports {
   burstsystem_update(ptr: number, is_active: number, delta: number): number;
   burstsystem_set_origin(ptr: number, x: number, y: number, z: number): void;
   burstsystem_set_color(ptr: number, r: number, g: number, b: number): void;
-  burstsystem_apply_shockwave(
-    ptr: number, center_ptr: number, center_len: number, radius: number, force: number
-  ): void;
   burstsystem_data_ptr(ptr: number): number;
   burstsystem_len(ptr: number): number;
   burstsystem_stride(ptr: number): number;
@@ -152,16 +131,6 @@ export interface CortexWasmExports {
   particlefield2d_data_ptr(ptr: number): number;
   particlefield2d_stride(ptr: number): number;
   __wbg_particlefield2d_free(ptr: number, del: number): void;
-  // Shockwave
-  shockwavesystem_new(): number;
-  shockwavesystem_set_max_count(ptr: number, max_count: number): void;
-  shockwavesystem_trigger(ptr: number, cx: number, cy: number, cz: number, max_radius: number, speed: number): void;
-  shockwavesystem_update(ptr: number, delta: number): number;
-  shockwavesystem_data_ptr(ptr: number): number;
-  shockwavesystem_max_slots(ptr: number): number;
-  shockwavesystem_stride(ptr: number): number;
-  shockwavesystem_active_count(ptr: number): number;
-  __wbg_shockwavesystem_free(ptr: number, del: number): void;
   // WASM init
   __wbindgen_start?(): void;
   __wbindgen_externrefs?: WebAssembly.Table;

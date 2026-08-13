@@ -43,32 +43,6 @@ const EdgeCylinder = React.memo(function EdgeCylinder({
   );
 });
 
-// ── Wave-aware glow cylinder ──
-const WaveGlowCylinder = React.memo(function WaveGlowCylinder({
-  position,
-  quaternion,
-  length,
-  color,
-  opacity,
-  thickness,
-  meshRefCallback,
-}: {
-  position: [number, number, number];
-  quaternion: THREE.Quaternion;
-  length: number;
-  color: string;
-  opacity: number;
-  thickness: number;
-  meshRefCallback: (mesh: THREE.Mesh | null) => void;
-}) {
-  return (
-    <mesh ref={meshRefCallback} position={position} quaternion={quaternion} renderOrder={0}>
-      <cylinderGeometry args={[thickness, thickness, length, 6, 1]} />
-      <meshBasicMaterial color={color} transparent opacity={opacity} depthWrite={false} />
-    </mesh>
-  );
-});
-
 // ── Energy Pulse (WASM-computed position) ──
 function WasmEnergyPulse({
   edgeIndex,
@@ -111,26 +85,14 @@ function WasmEnergyPulse({
 export const NetworkEdges = React.memo(function NetworkEdges({
   positions,
   selectedId,
-  isMobile = false,
-  reducedMotion = false,
-  onTriggerShockwave,
 }: {
   positions: Map<string, THREE.Vector3>;
   selectedId: string | null;
-  isMobile?: boolean;
-  reducedMotion?: boolean;
-  onTriggerShockwave?: (nodeId: string) => void;
 }) {
-  // Build id -> cluster map and id -> index map
+  // Build id -> cluster map
   const nodeClusterMap = useMemo(() => {
     const map = new Map<string, string>();
     nodes.forEach((n) => map.set(n.id, n.cluster));
-    return map;
-  }, []);
-
-  const nodeIdToIndex = useMemo(() => {
-    const map = new Map<string, number>();
-    nodes.forEach((n, i) => map.set(n.id, i));
     return map;
   }, []);
 
@@ -154,8 +116,6 @@ export const NetworkEdges = React.memo(function NetworkEdges({
           key: `${e.from}-${e.to}`,
           from: fromPos,
           to: toPos,
-          fromId: e.from,
-          toId: e.to,
           strength: e.strength,
           color: edgeColor,
         };
@@ -172,16 +132,6 @@ export const NetworkEdges = React.memo(function NetworkEdges({
     return flags;
   }, [edgeData, selectedId]);
 
-  // Build edge node indices array for WASM (from_idx, to_idx pairs)
-  const edgeNodeIndices = useMemo(() => {
-    const arr = new Uint32Array(edgeData.length * 2);
-    edgeData.forEach((ed, i) => {
-      arr[i * 2] = nodeIdToIndex.get(ed.fromId) ?? 0;
-      arr[i * 2 + 1] = nodeIdToIndex.get(ed.toId) ?? 0;
-    });
-    return arr;
-  }, [edgeData, nodeIdToIndex]);
-
   // ── WASM path ──
   const edgePtr = useRef<number>(0);
   const fromWasmPtrRef = useRef<number>(0);
@@ -193,8 +143,6 @@ export const NetworkEdges = React.memo(function NetworkEdges({
     quaternions: THREE.Quaternion[];
     lengths: number[];
   } | null>(null);
-  // Glow mesh refs for wave animation
-  const glowMeshRefs = useRef<(THREE.Mesh | null)[]>([]);
   const [, setWasmReadyFlag] = useState(false);
 
   // Initialize WASM edges when edgeData changes or WASM becomes ready
@@ -238,14 +186,9 @@ export const NetworkEdges = React.memo(function NetworkEdges({
     const toWasmPtr = writeF32ToWasm(wasm, toArr);
     const flagsWasmPtr = writeU32ToWasm(wasm, flags);
     const flagsByteLen = flags.length * 4;
-    const nodeIdxWasmPtr = writeU32ToWasm(wasm, edgeNodeIndices);
-    const nodeIdxByteLen = edgeNodeIndices.length * 4;
 
     try {
-      wasm.edgesystem_init_edges(
-        ptr, fromWasmPtr, toWasmPtr, edgeData.length,
-        flagsWasmPtr, nodeIdxWasmPtr
-      );
+      wasm.edgesystem_init_edges(ptr, fromWasmPtr, toWasmPtr, edgeData.length, flagsWasmPtr);
 
       // Read cylinder data back
       const cylPtr = wasm.edgesystem_cylinder_data_ptr(ptr);
@@ -268,9 +211,6 @@ export const NetworkEdges = React.memo(function NetworkEdges({
       toPositionsRef.current = toArr;
       fromWasmPtrRef.current = fromWasmPtr;
       toWasmPtrRef.current = toWasmPtr;
-
-      // Set wave decay based on device
-      wasm.edgesystem_set_wave_decay(ptr, isMobile ? 0.8 : 0.5);
     } catch (err) {
       console.warn("[edges] WASM init failed, using JS fallback:", err);
       edgePtr.current = 0;
@@ -278,9 +218,8 @@ export const NetworkEdges = React.memo(function NetworkEdges({
       freeWasmPtr(wasm, toWasmPtr, toArr.length * 4);
     } finally {
       freeWasmPtr(wasm, flagsWasmPtr, flagsByteLen);
-      freeWasmPtr(wasm, nodeIdxWasmPtr, nodeIdxByteLen);
     }
-  }, [edgeData, edgeNodeIndices, isMobile]);
+  }, [edgeData]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -334,29 +273,7 @@ export const NetworkEdges = React.memo(function NetworkEdges({
     }
   }, [highlightFlags]);
 
-  // Trigger wave when selection changes
-  useEffect(() => {
-    if (!edgePtr.current || !selectedId) return;
-    const wasm = getCortexWasm();
-    if (!wasm) return;
-    const sourceIdx = nodeIdToIndex.get(selectedId);
-    if (sourceIdx === undefined) return;
-    const currentTime = performance.now() / 1000;
-    const hopDelay = isMobile ? 0.15 : 0.08;
-    try {
-      wasm.edgesystem_trigger_wave(
-        edgePtr.current, sourceIdx, currentTime, hopDelay, nodes.length
-      );
-    } catch {
-      // Silent fail, wave just won't trigger
-    }
-    // Also trigger shockwave via callback
-    if (onTriggerShockwave && !reducedMotion) {
-      onTriggerShockwave(selectedId);
-    }
-  }, [selectedId, nodeIdToIndex, isMobile, reducedMotion, onTriggerShockwave]);
-
-  // WASM per-frame: update pulses AND wave intensities, then apply to glow meshes
+  // WASM per-frame pulse update (uses persistent from/to pointers, no malloc per frame)
   useFrame((state) => {
     if (!edgePtr.current || !fromWasmPtrRef.current || !toWasmPtrRef.current) return;
     const wasm = getCortexWasm();
@@ -368,43 +285,6 @@ export const NetworkEdges = React.memo(function NetworkEdges({
         toWasmPtrRef.current,
         state.clock.elapsedTime
       );
-
-      // Update wave intensities
-      wasm.edgesystem_update_wave(edgePtr.current, state.clock.elapsedTime);
-
-      // Read wave data and apply to glow meshes
-      const wavePtr = wasm.edgesystem_wave_data_ptr(edgePtr.current);
-      const waveStride = wasm.edgesystem_wave_stride(edgePtr.current);
-      const waveData = new Float32Array(
-        wasm.memory.buffer, wavePtr, edgeData.length * waveStride
-      );
-
-      for (let i = 0; i < edgeData.length && i < glowMeshRefs.current.length; i++) {
-        const mesh = glowMeshRefs.current[i];
-        if (!mesh) continue;
-        const waveIntensity = waveData[i * waveStride];
-        const isHighlighted = highlightFlags[i] === 1;
-
-        // Base glow opacity from wave: 0.0..0.25
-        // Highlighted edges get extra: 0.1 + wave * 0.4
-        let glowOpacity: number;
-        let glowThickness: number;
-
-        if (isHighlighted) {
-          // Selected edges: bright pulse + wave boost
-          glowOpacity = 0.1 + waveIntensity * 0.4;
-          glowThickness = 0.04 + waveIntensity * 0.02;
-        } else {
-          // Non-selected: subtle wave glow
-          glowOpacity = waveIntensity * 0.25;
-          glowThickness = 0.03 + waveIntensity * 0.02;
-        }
-
-        const mat = mesh.material as THREE.MeshBasicMaterial;
-        mat.opacity = glowOpacity;
-        mesh.scale.x = glowThickness / 0.03;
-        mesh.scale.z = glowThickness / 0.03;
-      }
     } catch {
       // Silent fail, pulses just won't update
     }
@@ -448,9 +328,6 @@ export const NetworkEdges = React.memo(function NetworkEdges({
           length = len;
         }
 
-        // Initial glow opacity (will be updated per-frame by useFrame)
-        const initialGlowOpacity = isHighlighted ? 0.1 : 0;
-
         return (
           <group key={ed.key}>
             {/* Thin wire */}
@@ -462,16 +339,15 @@ export const NetworkEdges = React.memo(function NetworkEdges({
               opacity={wireOpacity}
               thickness={0.02}
             />
-            {/* Wave-reactive glow cylinder (always rendered, opacity driven by wave) */}
-            {!reducedMotion && (
-              <WaveGlowCylinder
+            {/* Glow cylinder only when highlighted */}
+            {isHighlighted && (
+              <EdgeCylinder
                 position={position}
                 quaternion={quaternion}
                 length={length}
                 color={ed.color}
-                opacity={initialGlowOpacity}
-                thickness={0.03}
-                meshRefCallback={(m) => { glowMeshRefs.current[i] = m; }}
+                opacity={0.1}
+                thickness={0.04}
               />
             )}
             {/* Travelling pulse */}
@@ -489,7 +365,7 @@ export const NetworkEdges = React.memo(function NetworkEdges({
                 from={ed.from}
                 to={ed.to}
                 color={ed.color}
-                speed={isHighlighted ? 0.8 : 2.0}
+                speed={isHighlighted ? 1.2 : 2.0}
                 opacity={pulseOpacity}
                 pulseSize={0.05}
               />

@@ -253,53 +253,6 @@ impl BurstSystem {
     pub fn has_spawned(&self) -> bool {
         self.has_spawned
     }
-
-    /// Apply a shockwave push to all particles.
-    /// center: [cx, cy, cz] (3 f32s)
-    /// radius: current shockwave radius
-    /// force: outward push strength
-    /// Applies radial velocity boost to particles within the shockwave ring
-    /// (between radius * 0.8 and radius * 1.2).
-    pub fn apply_shockwave(
-        &mut self,
-        center_ptr: *const f32,
-        center_len: usize,
-        radius: f32,
-        force: f32,
-    ) {
-        if center_len < 3 || self.count == 0 {
-            return;
-        }
-        let center = unsafe { std::slice::from_raw_parts(center_ptr, center_len.min(3)) };
-        let cx = center[0];
-        let cy = center[1];
-        let cz = center[2];
-
-        let inner = radius * 0.8;
-        let outer = radius * 1.2;
-
-        for i in 0..self.count {
-            let base = i * BURST_STRIDE;
-            let px = self.data[base];
-            let py = self.data[base + 1];
-            let pz = self.data[base + 2];
-
-            let dx = px - cx;
-            let dy = py - cy;
-            let dz = pz - cz;
-            let dist = (dx * dx + dy * dy + dz * dz).sqrt();
-
-            // Only push particles in the shockwave ring band
-            if dist >= inner && dist <= outer && dist > 0.001 {
-                let inv_dist = 1.0 / dist;
-                let push = force * (1.0 - (dist - radius).abs() / (radius * 0.2 + 0.001));
-                let push_clamped = if push > 0.0 { push } else { 0.0 };
-                self.data[base + 3] += dx * inv_dist * push_clamped;
-                self.data[base + 4] += dy * inv_dist * push_clamped;
-                self.data[base + 5] += dz * inv_dist * push_clamped;
-            }
-        }
-    }
 }
 
 /// Standalone xorshift64 helper for initialization.
