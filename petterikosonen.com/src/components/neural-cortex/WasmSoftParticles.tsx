@@ -243,21 +243,7 @@ export function WasmSoftParticles({
         wasm.particlesystem_update(ptr, 0, 0, 0, 0);
       }
 
-      // Update colors periodically (every ~0.5s, not every frame)
-      colorUpdateTimer.current += delta;
-      if (colorUpdateTimer.current > 0.5 && clusterDataRef.current) {
-        const cd = clusterDataRef.current;
-        wasm.particlesystem_update_colors(
-          ptr,
-          cd.nodePositionsPtr,
-          cd.nodeCount * 3,
-          cd.nodeCount,
-          cd.clusterColorsPtr,
-          cd.nodeCount * 3,
-          8.0, // blend_radius
-        );
-        colorUpdateTimer.current = 0;
-      }
+      // DISABLED: update_colors for isolation test
 
       const dataPtr = wasm.particlesystem_data_ptr(ptr);
       const len = wasm.particlesystem_len(ptr);
