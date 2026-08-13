@@ -209,13 +209,13 @@ export class ParticleSystem {
      */
     update(target_x: number, target_y: number, target_z: number, has_target: boolean): number;
     /**
-     * Update particles with cluster attractors, curl-noise flow, and color blending.
-     * All-in-one: positions, velocities, colors, and pulsing alpha in a single pass.
+     * SYMBIOOSIS: Update particles with cluster attractors, species behavior, mutualism,
+     * breathing, and pulse. All-in-one: positions, velocities, colors, alpha in a single pass.
      *
      * `attractors` — flat f32 array, `attractor_count × 12`:
-     *   [pos_x, pos_y, pos_z, color_r, color_g, color_b, strength, pulse_phase, pulse_amp, active, boost, _pad]
+     *   [pos_x, pos_y, pos_z, color_r, color_g, color_b, strength, pulse_freq, pulse_amp, active, boost, _pad]
      * `active_cluster` — -1 = no selection, 0..N = selected cluster index
-     * `hover_x/y/z` + `has_hover` — optional hover attractor
+     * `hover_x/y/z` + `has_hover` — optional hover attractor (cursori = käyttäjän "juuret")
      *
      * Returns pointer to the full data buffer (count × PARTICLE_STRIDE f32s).
      */

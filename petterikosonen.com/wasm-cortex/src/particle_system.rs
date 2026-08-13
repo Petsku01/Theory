@@ -1,6 +1,7 @@
 use wasm_bindgen::prelude::*;
 
-/// 3D particle with position, velocity, size, alpha, color.
+/// 3D particle with position, velocity, size, alpha, color, species.
+/// SYMBIOOSIS: three symbiont species — ihminen, kone, luonto.
 /// Matches the SoftParticles JS implementation but runs in WASM.
 const DAMPING: f32 = 0.998;
 const MAX_VEL: f32 = 0.02;
@@ -8,8 +9,27 @@ const ATTRACTION_FORCE: f32 = 0.0003;
 const FLOW_FORCE: f32 = 0.0008;
 
 /// Particle state stored in a flat buffer for cache-friendly access.
-/// Layout per particle: [x, y, z, vx, vy, vz, size, alpha, r, g, b] = 12 f32s
-const PARTICLE_STRIDE: usize = 12;
+/// Layout per particle: [x, y, z, vx, vy, vz, size, alpha, r, g, b, _pad, species] = 13 f32s
+const PARTICLE_STRIDE: usize = 13;
+
+/// Species indices
+const SPECIES_HUMAN: f32 = 0.0;
+const SPECIES_MACHINE: f32 = 1.0;
+const SPECIES_NATURE: f32 = 2.0;
+
+/// Species base colors
+/// Ihminen: #22D3EE → r=0.133, g=0.827, b=0.933
+const HUMAN_R: f32 = 0.133;
+const HUMAN_G: f32 = 0.827;
+const HUMAN_B: f32 = 0.933;
+/// Kone: #FF6B35 → r=1.0, g=0.42, b=0.208
+const MACHINE_R: f32 = 1.0;
+const MACHINE_G: f32 = 0.42;
+const MACHINE_B: f32 = 0.208;
+/// Luonto: #39FF88 → r=0.224, g=1.0, b=0.533
+const NATURE_R: f32 = 0.224;
+const NATURE_G: f32 = 1.0;
+const NATURE_B: f32 = 0.533;
 
 /// Default particle color (cyan) used at init before update_colors is called.
 const DEFAULT_R: f32 = 0.0;
@@ -51,6 +71,8 @@ impl ParticleSystem {
             data[base + 9]  = DEFAULT_G;
             data[base + 10] = DEFAULT_B;
             // base + 11 is padding / reserved
+            // base + 12 is species: 33% ihminen (0), 33% kone (1), 34% luonto (2)
+            data[base + 12] = (i % 3) as f32;
         }
         ParticleSystem {
             data,
@@ -149,7 +171,6 @@ impl ParticleSystem {
             let mut vz = data[base + 5];
 
             // Lightweight flow field — hash-based pseudo-noise using particle POSITION
-            // (not just index — gives spatial variation, not uniform push)
             let t = time * 0.1;
             let pos_hash = ((px * 100.0) as usize)
                 .wrapping_add((py * 97.0) as usize)
@@ -269,13 +290,13 @@ impl ParticleSystem {
         }
     }
 
-    /// Update particles with cluster attractors, curl-noise flow, and color blending.
-    /// All-in-one: positions, velocities, colors, and pulsing alpha in a single pass.
+    /// SYMBIOOSIS: Update particles with cluster attractors, species behavior, mutualism,
+    /// breathing, and pulse. All-in-one: positions, velocities, colors, alpha in a single pass.
     ///
     /// `attractors` — flat f32 array, `attractor_count × 12`:
-    ///   [pos_x, pos_y, pos_z, color_r, color_g, color_b, strength, pulse_phase, pulse_amp, active, boost, _pad]
+    ///   [pos_x, pos_y, pos_z, color_r, color_g, color_b, strength, pulse_freq, pulse_amp, active, boost, _pad]
     /// `active_cluster` — -1 = no selection, 0..N = selected cluster index
-    /// `hover_x/y/z` + `has_hover` — optional hover attractor
+    /// `hover_x/y/z` + `has_hover` — optional hover attractor (cursori = käyttäjän "juuret")
     ///
     /// Returns pointer to the full data buffer (count × PARTICLE_STRIDE f32s).
     #[wasm_bindgen]
@@ -302,6 +323,10 @@ impl ParticleSystem {
         const FLOW_SCALE: f32 = 0.0008;
         const FLOW_STRENGTH: f32 = 0.5;
 
+        // Breathing: global field scaling, 4-6s cycle
+        let breath = (time * 0.15).sin() * 0.05; // ±5% scale
+        let breath_scale = 1.0 + breath;
+
         // Validate attractor data
         if attractor_count == 0 || attractors.len() < attractor_count * 12 {
             // Fallback: just apply curl-noise flow without attractors
@@ -327,16 +352,19 @@ impl ParticleSystem {
         for i in 0..count {
             let base = i * PARTICLE_STRIDE;
 
-            let px = data[base];
-            let py = data[base + 1];
-            let pz = data[base + 2];
+            let mut px = data[base];
+            let mut py = data[base + 1];
+            let mut pz = data[base + 2];
             let mut vx = data[base + 3];
             let mut vy = data[base + 4];
             let mut vz = data[base + 5];
+            let species = data[base + 12];
 
-            // ── 1. Find nearest attractor and compute attraction forces ──
+            // ── 1. Find nearest + second-nearest attractor ──
             let mut nearest_idx = 0usize;
             let mut nearest_dist_sq = f32::MAX;
+            let mut second_idx = 0usize;
+            let mut second_dist_sq = f32::MAX;
             let mut fx = 0.0f32;
             let mut fy = 0.0f32;
             let mut fz = 0.0f32;
@@ -357,8 +385,13 @@ impl ParticleSystem {
                 let dist = (dist_sq + 0.001).sqrt();
 
                 if dist_sq < nearest_dist_sq {
+                    second_dist_sq = nearest_dist_sq;
+                    second_idx = nearest_idx;
                     nearest_dist_sq = dist_sq;
                     nearest_idx = a;
+                } else if dist_sq < second_dist_sq {
+                    second_dist_sq = dist_sq;
+                    second_idx = a;
                 }
 
                 // Compute boost: if active_cluster matches, boost; otherwise reduce
@@ -382,25 +415,110 @@ impl ParticleSystem {
                 }
             }
 
-            vx += fx * 0.01;
-            vy += fy * 0.01;
-            vz += fz * 0.01;
+            // ── 2. Species-specific behavior ──
+            if species == SPECIES_HUMAN {
+                // IHMINEN: follows cursor (if has_hover), cautious soft lerp
+                if has_hover {
+                    let dx = hover_x - px;
+                    let dy = hover_y - py;
+                    let dz = hover_z - pz;
+                    let dist = (dx * dx + dy * dy + dz * dz).sqrt() + 0.001;
+                    // Soft lerp toward cursor — cautious, not aggressive
+                    let human_force = ATTRACTION_FORCE * 3.0;
+                    vx += (dx / dist) * human_force;
+                    vy += (dy / dist) * human_force;
+                    vz += (dz / dist) * human_force;
+                    // Extra damping for cautious movement
+                    vx *= 0.985;
+                    vy *= 0.985;
+                    vz *= 0.985;
+                }
+                // Light curl noise — curious but gentle
+                let (cx, cy, cz) = curl_noise(px * 0.5 + time * 0.1, py * 0.5, pz * 0.5);
+                vx += cx * FLOW_STRENGTH * FLOW_SCALE * 40.0;
+                vy += cy * FLOW_STRENGTH * FLOW_SCALE * 40.0;
+                vz += cz * FLOW_STRENGTH * FLOW_SCALE * 40.0;
+                // Standard cluster attraction (reduced — human explores between clusters)
+                vx += fx * 0.005;
+                vy += fy * 0.005;
+                vz += fz * 0.005;
+            } else if species == SPECIES_MACHINE {
+                // KONE: forms cross-like structures between clusters (grid force)
+                // Pull toward the line connecting nearest and second-nearest attractors
+                let ao0 = nearest_idx * 12;
+                let ao1 = second_idx * 12;
+                let a0x = attractors[ao0];
+                let a0y = attractors[ao0 + 1];
+                let a0z = attractors[ao0 + 2];
+                let a1x = attractors[ao1];
+                let a1y = attractors[ao1 + 1];
+                let a1z = attractors[ao1 + 2];
 
-            // ── 2. Curl-noise flow field ──
-            let (cx, cy, cz) = curl_noise(px * 0.5 + time * 0.1, py * 0.5, pz * 0.5);
-            vx += cx * FLOW_STRENGTH * FLOW_SCALE * 60.0;
-            vy += cy * FLOW_STRENGTH * FLOW_SCALE * 60.0;
-            vz += cz * FLOW_STRENGTH * FLOW_SCALE * 60.0;
+                // Midpoint between the two nearest clusters
+                let mid_x = (a0x + a1x) * 0.5;
+                let mid_y = (a0y + a1y) * 0.5;
+                let mid_z = (a0z + a1z) * 0.5;
 
-            // ── 3. Hover attractor ──
-            if has_hover {
+                // Grid force: pull toward midpoint, creating structural connections
+                let gdx = mid_x - px;
+                let gdy = mid_y - py;
+                let gdz = mid_z - pz;
+                let gdist = (gdx * gdx + gdy * gdy + gdz * gdz).sqrt() + 0.001;
+                let grid_force = 0.0008;
+                vx += (gdx / gdist) * grid_force;
+                vy += (gdy / gdist) * grid_force;
+                vz += (gdz / gdist) * grid_force;
+
+                // Also standard cluster attraction (machine builds near clusters)
+                vx += fx * 0.008;
+                vy += fy * 0.008;
+                vz += fz * 0.008;
+
+                // Minimal curl noise — structured, not organic
+                let (cx, cy, cz) = curl_noise(px * 0.3 + time * 0.05, py * 0.3, pz * 0.3);
+                vx += cx * FLOW_STRENGTH * FLOW_SCALE * 15.0;
+                vy += cy * FLOW_STRENGTH * FLOW_SCALE * 15.0;
+                vz += cz * FLOW_STRENGTH * FLOW_SCALE * 15.0;
+            } else {
+                // LUONTO: organic branching toward nearest cluster (fractal growth)
+                // Strong attraction to nearest cluster
+                vx += fx * 0.015;
+                vy += fy * 0.015;
+                vz += fz * 0.015;
+
+                // Mutualism: extra attraction toward clusters where machine builds
+                // (machine midpoints = structural support for nature to grow on)
+                let ao0 = nearest_idx * 12;
+                let ao1 = second_idx * 12;
+                let mid_x = (attractors[ao0] + attractors[ao1]) * 0.5;
+                let mid_y = (attractors[ao0 + 1] + attractors[ao1 + 1]) * 0.5;
+                let mid_z = (attractors[ao0 + 2] + attractors[ao1 + 2]) * 0.5;
+                let mut_dx = mid_x - px;
+                let mut_dy = mid_y - py;
+                let mut_dz = mid_z - pz;
+                let mut_dist = (mut_dx * mut_dx + mut_dy * mut_dy + mut_dz * mut_dz).sqrt() + 0.001;
+                let mutualism_force = 0.0005;
+                vx += (mut_dx / mut_dist) * mutualism_force;
+                vy += (mut_dy / mut_dist) * mutualism_force;
+                vz += (mut_dz / mut_dist) * mutualism_force;
+
+                // Strong curl noise — organic, branching
+                let (cx, cy, cz) = curl_noise(px * 0.6 + time * 0.15, py * 0.6, pz * 0.6);
+                vx += cx * FLOW_STRENGTH * FLOW_SCALE * 80.0;
+                vy += cy * FLOW_STRENGTH * FLOW_SCALE * 80.0;
+                vz += cz * FLOW_STRENGTH * FLOW_SCALE * 80.0;
+            }
+
+            // ── 3. Hover attractor for all species (cursor = user "juuret") ──
+            if has_hover && species != SPECIES_HUMAN {
+                // Non-human species get mild cursor attraction too
                 let dx = hover_x - px;
                 let dy = hover_y - py;
                 let dz = hover_z - pz;
                 let dist = (dx * dx + dy * dy + dz * dz).sqrt() + 0.001;
-                vx += (dx / dist) * ATTRACTION_FORCE * 2.0;
-                vy += (dy / dist) * ATTRACTION_FORCE * 2.0;
-                vz += (dz / dist) * ATTRACTION_FORCE * 2.0;
+                vx += (dx / dist) * ATTRACTION_FORCE * 0.8;
+                vy += (dy / dist) * ATTRACTION_FORCE * 0.8;
+                vz += (dz / dist) * ATTRACTION_FORCE * 0.8;
             }
 
             // ── 4. Damping + clamp ──
@@ -416,10 +534,15 @@ impl ParticleSystem {
             let new_py = py + vy;
             let new_pz = pz + vz;
 
-            // ── 6. Boundary ──
-            let mut fx2 = new_px;
-            let mut fy2 = new_py;
-            let mut fz2 = new_pz;
+            // ── 6. Breathing: scale position relative to origin ──
+            let breathed_px = new_px * breath_scale;
+            let breathed_py = new_py * breath_scale;
+            let breathed_pz = new_pz * breath_scale;
+
+            // ── 7. Boundary ──
+            let mut fx2 = breathed_px;
+            let mut fy2 = breathed_py;
+            let mut fz2 = breathed_pz;
             if fx2.abs() > bounds[0] { fx2 = fx2.clamp(-bounds[0], bounds[0]); vx *= -0.2; }
             if fy2.abs() > bounds[1] { fy2 = fy2.clamp(-bounds[1], bounds[1]); vy *= -0.2; }
             if fz2.abs() > bounds[2] { fz2 = fz2.clamp(-bounds[2], bounds[2]); vz *= -0.2; }
@@ -431,7 +554,7 @@ impl ParticleSystem {
             data[base + 4] = vy;
             data[base + 5] = vz;
 
-            // ── 7. Color blend toward nearest attractor ──
+            // ── 8. Color: species base color blended with cluster color ──
             let ao = nearest_idx * 12;
             let cr = attractors[ao + 3];
             let cg = attractors[ao + 4];
@@ -444,16 +567,46 @@ impl ParticleSystem {
             };
             let t = t.clamp(0.0, 1.0);
 
-            data[base + 8]  = DEFAULT_R + (cr - DEFAULT_R) * t;
-            data[base + 9]  = DEFAULT_G + (cg - DEFAULT_G) * t;
-            data[base + 10] = DEFAULT_B + (cb - DEFAULT_B) * t;
+            // Species base color
+            let (sr, sg, sb) = if species == SPECIES_HUMAN {
+                (HUMAN_R, HUMAN_G, HUMAN_B)
+            } else if species == SPECIES_MACHINE {
+                (MACHINE_R, MACHINE_G, MACHINE_B)
+            } else {
+                (NATURE_R, NATURE_G, NATURE_B)
+            };
 
-            // ── 8. Pulsing alpha + brightness based on proximity ──
-            let pulse_phase = attractors[ao + 7];
+            // Blend: species color → cluster color based on proximity
+            data[base + 8]  = sr + (cr - sr) * t * 0.6;
+            data[base + 9]  = sg + (cg - sg) * t * 0.6;
+            data[base + 10] = sb + (cb - sb) * t * 0.6;
+
+            // ── 9. Pulsing alpha + bioluminescence ──
+            let pulse_freq = attractors[ao + 7];
             let pulse_amp = attractors[ao + 8];
             let brightness = 0.3 + t * 0.5; // closer = brighter
-            let pulse = (time * pulse_phase).sin() * pulse_amp;
-            data[base + 7] = (brightness + pulse).clamp(0.05, 1.0);
+
+            // Bioluminescence: particles near cursor glow brighter
+            let mut bio_boost = 0.0;
+            if has_hover {
+                let hdx = hover_x - fx2;
+                let hdy = hover_y - fy2;
+                let hdz = hover_z - fz2;
+                let hdist_sq = hdx * hdx + hdy * hdy + hdz * hdz;
+                if hdist_sq < 9.0 { // within 3 units of cursor
+                    bio_boost = (1.0 - (hdist_sq / 9.0).sqrt()) * 0.4;
+                }
+            }
+
+            // Mutualism: luonto near cluster centers brightens kone particles
+            let mut mutual_boost = 0.0;
+            if species == SPECIES_MACHINE && nearest_dist_sq < 4.0 {
+                // Machine near cluster = luonto is also there → brighten
+                mutual_boost = (1.0 - (nearest_dist_sq / 4.0).sqrt()) * 0.2;
+            }
+
+            let pulse = (time * pulse_freq).sin() * pulse_amp;
+            data[base + 7] = (brightness + pulse + bio_boost + mutual_boost).clamp(0.05, 1.0);
         }
 
         data.as_ptr()

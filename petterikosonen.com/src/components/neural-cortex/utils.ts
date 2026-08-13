@@ -10,6 +10,16 @@ export const CLUSTER_COLORS: Record<string, string> = {
   research: "#ef4444",
 };
 
+// -- SYMBIOOSIS: Species base colors --
+export const SPECIES_COLOR_HUMAN: string = "#22D3EE";    // ihminen — sininen
+export const SPECIES_COLOR_MACHINE: string = "#FF6B35";  // kone — oranssi
+export const SPECIES_COLOR_NATURE: string = "#39FF88";   // luonto — vihreä
+
+// Species indices matching WASM
+export const SPECIES_HUMAN = 0;
+export const SPECIES_MACHINE = 1;
+export const SPECIES_NATURE = 2;
+
 // -- Deterministic seeded PRNG (JS fallback) --
 export function seededRandom(seed: number) {
   let s = seed;

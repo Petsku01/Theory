@@ -198,41 +198,13 @@ export default function NeuralCortex() {
             </button>
           )}
 
-          <nav
-            className="pointer-events-auto absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 gap-2"
-            aria-label="Cluster filter"
-          >
-            <button
-              onClick={() => handleClusterSelect(null)}
-              className={`rounded-lg border px-3 py-1.5 font-mono text-xs backdrop-blur-sm transition-colors ${
-                activeCluster === null
-                  ? "border-cyan-500/60 bg-cyan-500/15 text-cyan-400"
-                  : "border-slate-700/50 bg-[#0a0a0f]/80 text-slate-400 hover:border-cyan-500/40 hover:text-cyan-500"
-              }`}
-            >
-              all
-            </button>
-            {(
-              ["core", "projects", "skills", "experience", "research"] as const
-            ).map((cluster) => {
-              const isActive = activeCluster === cluster;
-              return (
-                <button
-                  key={cluster}
-                  onClick={() => {
-                    handleClusterSelect(isActive ? null : cluster);
-                  }}
-                  className={`rounded-lg border px-3 py-1.5 font-mono text-xs backdrop-blur-sm transition-colors ${
-                    isActive
-                      ? "border-cyan-500/60 bg-cyan-500/15 text-cyan-400"
-                      : "border-slate-700/50 bg-[#0a0a0f]/80 text-slate-400 hover:border-cyan-500/40 hover:text-cyan-500"
-                  }`}
-                >
-                  {cluster}
-                </button>
-              );
-            })}
-          </nav>
+          {/* SYMBIOOSIS: No traditional navbar — cursor is navigation */}
+          {/* Hint text for the user */}
+          <div className="pointer-events-none absolute bottom-6 left-1/2 z-20 -translate-x-1/2 select-none">
+            <span className="font-mono text-[10px] text-slate-500/70 tracking-wide">
+              move cursor to explore · click near an organ to focus
+            </span>
+          </div>
 
           <DetailPanel
             node={panelNode}
