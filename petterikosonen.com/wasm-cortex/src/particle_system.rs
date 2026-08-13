@@ -439,9 +439,9 @@ impl ParticleSystem {
                 vy += cy * FLOW_STRENGTH * FLOW_SCALE * 8.0;
                 vz += cz * FLOW_STRENGTH * FLOW_SCALE * 8.0;
                 // Standard cluster attraction (reduced — human explores between clusters)
-                vx += fx * 0.02;
-                vy += fy * 0.02;
-                vz += fz * 0.02;
+                vx += fx * 0.08;
+                vy += fy * 0.08;
+                vz += fz * 0.08;
             } else if species == SPECIES_MACHINE {
                 // KONE: forms cross-like structures between clusters (grid force)
                 // Pull toward the line connecting nearest and second-nearest attractors
@@ -470,9 +470,9 @@ impl ParticleSystem {
                 vz += (gdz / gdist) * grid_force;
 
                 // Also standard cluster attraction (machine builds near clusters)
-                vx += fx * 0.008;
-                vy += fy * 0.008;
-                vz += fz * 0.008;
+                vx += fx * 0.06;
+                vy += fy * 0.06;
+                vz += fz * 0.06;
 
                 // Minimal curl noise — structured, not organic
                 let (cx, cy, cz) = curl_noise(px * 0.3 + time * 0.05, py * 0.3, pz * 0.3);
@@ -482,9 +482,9 @@ impl ParticleSystem {
             } else {
                 // LUONTO: organic branching toward nearest cluster (fractal growth)
                 // Strong attraction to nearest cluster
-                vx += fx * 0.03;
-                vy += fy * 0.03;
-                vz += fz * 0.03;
+                vx += fx * 0.1;
+                vy += fy * 0.1;
+                vz += fz * 0.1;
 
                 // Mutualism: extra attraction toward clusters where machine builds
                 // (machine midpoints = structural support for nature to grow on)
