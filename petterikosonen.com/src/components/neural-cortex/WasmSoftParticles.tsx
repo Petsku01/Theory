@@ -230,7 +230,8 @@ export function WasmSoftParticles({
         const tz = targetPos!.z;
         wasm.particlesystem_update(ptr, tx, ty, tz, 1);
       } else {
-        wasm.particlesystem_update(ptr, 0, 0, 0, 0);
+        // Curl-noise flow field (no wasm_alloc, safe for memory buffer)
+        wasm.particlesystem_update_with_flow(ptr, time, 0.15, 1.0);
       }
 
       // DISABLED: update_colors for isolation test
