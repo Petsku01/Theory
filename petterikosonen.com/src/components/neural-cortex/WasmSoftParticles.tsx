@@ -231,7 +231,7 @@ export function WasmSoftParticles({
         wasm.particlesystem_update(ptr, tx, ty, tz, 1);
       } else {
         // Curl-noise flow field (no wasm_alloc, safe for memory buffer)
-        wasm.particlesystem_update_with_flow(ptr, time, 0.15, 1.0);
+        wasm.particlesystem_update_with_flow(ptr, time, 0.15, 0.3);
       }
 
       // DISABLED: update_colors for isolation test
