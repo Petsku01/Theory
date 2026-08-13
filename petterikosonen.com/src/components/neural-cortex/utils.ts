@@ -100,16 +100,6 @@ export interface CortexWasmExports {
   // Particle system (3D soft particles for NeuralCortex)
   particlesystem_new(count: number, xb: number, yb: number, zb: number): number;
   particlesystem_update(ptr: number, tx: number, ty: number, tz: number, hasTarget: number): number;
-  particlesystem_update_with_flow(ptr: number, time: number, noiseScale: number, noiseStrength: number): number;
-  particlesystem_update_colors(
-    ptr: number,
-    nodePositionsPtr: number,
-    nodePositionsLen: number,
-    nodeCount: number,
-    clusterColorsPtr: number,
-    clusterColorsLen: number,
-    blendRadius: number,
-  ): void;
   particlesystem_data_ptr(ptr: number): number;
   particlesystem_len(ptr: number): number;
   particlesystem_stride(ptr: number): number;

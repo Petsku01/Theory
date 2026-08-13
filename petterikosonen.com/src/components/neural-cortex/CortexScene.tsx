@@ -23,20 +23,12 @@ export function CortexScene({
   shakeTimestamp,
   activeCluster,
   onHoverChange,
-  particleCount = 3600,
-  bloomIntensity = 1.8,
-  isMobile = false,
-  reducedMotion = false,
 }: {
   selectedId: string | null;
   onNodeSelect: (id: string | null) => void;
   shakeTimestamp: number;
   activeCluster: string | null;
   onHoverChange: (node: CortexNode | null) => void;
-  particleCount?: number;
-  bloomIntensity?: number;
-  isMobile?: boolean;
-  reducedMotion?: boolean;
 }) {
   const positions = useMemo(() => computePositions(nodes), []);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -84,12 +76,7 @@ export function CortexScene({
       <pointLight position={[10, 10, 10]} intensity={0.4} color="#00f0ff" />
       <pointLight position={[-10, -5, -10]} intensity={0.3} color="#22d3ee" />
 
-      <WasmSoftParticles
-        count={particleCount}
-        targetPos={attractionTarget}
-        color="#00f0ff"
-        reducedMotion={reducedMotion}
-      />
+      <WasmSoftParticles count={3600} targetPos={attractionTarget} color="#00f0ff" />
       <WasmBurstParticles
         origin={targetPosition}
         color={
@@ -119,7 +106,7 @@ export function CortexScene({
       <CameraController
         target={targetPosition}
         controlsRef={controlsRef}
-        shakeTimestamp={reducedMotion ? 0 : shakeTimestamp}
+        shakeTimestamp={shakeTimestamp}
       />
       <OrbitControls
         ref={controlsRef}
@@ -128,7 +115,7 @@ export function CortexScene({
         minDistance={3}
         maxDistance={25}
         enablePan
-        autoRotate={!selectedId && !reducedMotion}
+        autoRotate={!selectedId}
         autoRotateSpeed={0.3}
       />
 
@@ -137,7 +124,7 @@ export function CortexScene({
         <Bloom
           luminanceThreshold={0.15}
           luminanceSmoothing={0.9}
-          intensity={bloomIntensity}
+          intensity={1.8}
           mipmapBlur
         />
       </EffectComposer>

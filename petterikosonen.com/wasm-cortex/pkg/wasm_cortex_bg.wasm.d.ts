@@ -1,14 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
 export const memory: WebAssembly.Memory;
-export const __wbg_particlesystem_free: (a: number, b: number) => void;
-export const particlesystem_data_ptr: (a: number) => number;
-export const particlesystem_len: (a: number) => number;
-export const particlesystem_new: (a: number, b: number, c: number, d: number) => number;
-export const particlesystem_stride: (a: number) => number;
-export const particlesystem_update: (a: number, b: number, c: number, d: number, e: number) => number;
-export const particlesystem_update_colors: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => void;
-export const particlesystem_update_with_flow: (a: number, b: number, c: number, d: number) => number;
 export const __wbg_scramblesystem_free: (a: number, b: number) => void;
 export const __wbg_springcursor_free: (a: number, b: number) => void;
 export const scramblesystem_data_ptr: (a: number) => number;
@@ -75,6 +67,12 @@ export const nodeanimationsystem_len: (a: number) => number;
 export const nodeanimationsystem_new: () => number;
 export const nodeanimationsystem_stride: (a: number) => number;
 export const nodeanimationsystem_update: (a: number, b: number, c: number, d: number) => number;
+export const __wbg_particlesystem_free: (a: number, b: number) => void;
+export const particlesystem_data_ptr: (a: number) => number;
+export const particlesystem_len: (a: number) => number;
+export const particlesystem_new: (a: number, b: number, c: number, d: number) => number;
+export const particlesystem_stride: (a: number) => number;
+export const particlesystem_update: (a: number, b: number, c: number, d: number, e: number) => number;
 export const __wbg_edgesystem_free: (a: number, b: number) => void;
 export const edgesystem_cylinder_data_ptr: (a: number) => number;
 export const edgesystem_cylinder_stride: (a: number) => number;
@@ -87,5 +85,4 @@ export const edgesystem_pulse_stride: (a: number) => number;
 export const edgesystem_update_highlights: (a: number, b: number) => void;
 export const edgesystem_update_pulses: (a: number, b: number, c: number, d: number) => number;
 export const __wbindgen_externrefs: WebAssembly.Table;
-export const __wbindgen_malloc: (a: number, b: number) => number;
 export const __wbindgen_start: () => void;

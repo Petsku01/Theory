@@ -601,8 +601,7 @@ export class ParticleSystem {
         return ret >>> 0;
     }
     /**
-     * Update all particles with optional attraction target.
-     * Returns pointer to position data (count * stride f32s).
+     * Update all particles. Returns pointer to position data (count * 3 f32s).
      * target_pos: [x, y, z] of attraction target, or empty for no attraction.
      * @param {number} target_x
      * @param {number} target_y
@@ -612,36 +611,6 @@ export class ParticleSystem {
      */
     update(target_x, target_y, target_z, has_target) {
         const ret = wasm.particlesystem_update(this.__wbg_ptr, target_x, target_y, target_z, has_target);
-        return ret >>> 0;
-    }
-    /**
-     * Update particle colors based on nearest node and its cluster color.
-     * node_positions: flat [x,y,z, x,y,z, ...] for each node
-     * cluster_colors: flat [r,g,b, r,g,b, ...] per node (already mapped from cluster)
-     * blend_radius: distance within which color is fully applied; outside fades to default
-     * @param {Float32Array} node_positions
-     * @param {number} node_count
-     * @param {Float32Array} cluster_colors
-     * @param {number} blend_radius
-     */
-    update_colors(node_positions, node_count, cluster_colors, blend_radius) {
-        const ptr0 = passArrayF32ToWasm0(node_positions, wasm.__wbindgen_malloc);
-        const len0 = WASM_VECTOR_LEN;
-        const ptr1 = passArrayF32ToWasm0(cluster_colors, wasm.__wbindgen_malloc);
-        const len1 = WASM_VECTOR_LEN;
-        wasm.particlesystem_update_colors(this.__wbg_ptr, ptr0, len0, node_count, ptr1, len1, blend_radius);
-    }
-    /**
-     * Update particles using a curl-noise flow field instead of attraction.
-     * The curl noise creates organic, swirling motion.
-     * JS calls this instead of `update` when there is no hover/selection target.
-     * @param {number} time
-     * @param {number} noise_scale
-     * @param {number} noise_strength
-     * @returns {number}
-     */
-    update_with_flow(time, noise_scale, noise_strength) {
-        const ret = wasm.particlesystem_update_with_flow(this.__wbg_ptr, time, noise_scale, noise_strength);
         return ret >>> 0;
     }
 }
@@ -873,14 +842,6 @@ const SpringCursorFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_springcursor_free(ptr, 1));
 
-let cachedFloat32ArrayMemory0 = null;
-function getFloat32ArrayMemory0() {
-    if (cachedFloat32ArrayMemory0 === null || cachedFloat32ArrayMemory0.byteLength === 0) {
-        cachedFloat32ArrayMemory0 = new Float32Array(wasm.memory.buffer);
-    }
-    return cachedFloat32ArrayMemory0;
-}
-
 function getStringFromWasm0(ptr, len) {
     return decodeText(ptr >>> 0, len);
 }
@@ -891,13 +852,6 @@ function getUint8ArrayMemory0() {
         cachedUint8ArrayMemory0 = new Uint8Array(wasm.memory.buffer);
     }
     return cachedUint8ArrayMemory0;
-}
-
-function passArrayF32ToWasm0(arg, malloc) {
-    const ptr = malloc(arg.length * 4, 4) >>> 0;
-    getFloat32ArrayMemory0().set(arg, ptr / 4);
-    WASM_VECTOR_LEN = arg.length;
-    return ptr;
 }
 
 let cachedTextDecoder = new TextDecoder('utf-8', { ignoreBOM: true, fatal: true });
@@ -914,14 +868,11 @@ function decodeText(ptr, len) {
     return cachedTextDecoder.decode(getUint8ArrayMemory0().subarray(ptr, ptr + len));
 }
 
-let WASM_VECTOR_LEN = 0;
-
 let wasmModule, wasmInstance, wasm;
 function __wbg_finalize_init(instance, module) {
     wasmInstance = instance;
     wasm = instance.exports;
     wasmModule = module;
-    cachedFloat32ArrayMemory0 = null;
     cachedUint8ArrayMemory0 = null;
     wasm.__wbindgen_start();
     return wasm;
