@@ -28,7 +28,7 @@ export function ClusterLabels({ activeCluster, hoveredCluster }: ClusterLabelsPr
         const color = CLUSTER_COLORS[key] ?? "#00f0ff";
         const isActive = activeCluster === key;
         const isHovered = hoveredCluster === key;
-        const opacity = isActive ? 1.0 : isHovered ? 0.85 : 0.5;
+        const opacity = isActive ? 1.0 : isHovered ? 0.9 : 0.7;
 
         return (
           <Html
@@ -45,11 +45,15 @@ export function ClusterLabels({ activeCluster, hoveredCluster }: ClusterLabelsPr
             <div
               style={{
                 fontFamily: "monospace",
-                fontSize: "14px",
-                fontWeight: 600,
+                fontSize: "18px",
+                fontWeight: 700,
                 color,
                 opacity,
-                textShadow: `0 0 8px ${color}80`,
+                textShadow: `0 0 12px ${color}, 0 0 4px ${color}80`,
+                background: "rgba(5, 7, 10, 0.7)",
+                padding: "2px 8px",
+                borderRadius: "4px",
+                border: `1px solid ${color}40`,
                 transition: "opacity 0.2s ease",
                 whiteSpace: "nowrap",
                 letterSpacing: "0.05em",
