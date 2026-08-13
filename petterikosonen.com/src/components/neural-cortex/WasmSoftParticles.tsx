@@ -231,13 +231,8 @@ export function WasmSoftParticles({
         const tz = targetPos!.z;
         wasm.particlesystem_update(ptr, tx, ty, tz, 1);
       } else {
-        // Curl-noise flow field — update only every 3rd frame for performance
-        // (3600 particles × 12 simplex calls = 43k/frame → too heavy at 60fps)
-        flowUpdateCounter.current += 1;
-        if (flowUpdateCounter.current >= 3) {
-          wasm.particlesystem_update_with_flow(ptr, time, 0.15, 0.5);
-          flowUpdateCounter.current = 0;
-        }
+        // Curl-noise flow field — 3 simplex calls per particle (4x faster than original)
+        wasm.particlesystem_update_with_flow(ptr, time, 0.15, 0.5);
       }
 
       // DISABLED: update_colors for isolation test

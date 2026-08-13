@@ -387,39 +387,12 @@ fn hash_perm(i: i32, j: i32, k: i32) -> usize {
 /// sampled at slightly offset positions and take the curl via finite differences.
 /// Returns a divergence-free velocity field.
 fn curl_noise(x: f32, y: f32, z: f32) -> (f32, f32, f32) {
-    const EPS: f32 = 0.0001;
-
-    // Curl = (∂Nz/∂y - ∂Ny/∂z, ∂Nx/∂z - ∂Nz/∂x, ∂Ny/∂x - ∂Nx/∂y)
-    // where N is the noise potential field
-
-    // Partial derivatives via finite differences
-    let nx_y_plus = simplex_noise_3d(x, y + EPS, z);
-    let nx_y_minus = simplex_noise_3d(x, y - EPS, z);
-    let nx_z_plus = simplex_noise_3d(x, y, z + EPS);
-    let nx_z_minus = simplex_noise_3d(x, y, z - EPS);
-
-    let ny_x_plus = simplex_noise_3d(x + EPS, y, z);
-    let ny_x_minus = simplex_noise_3d(x - EPS, y, z);
-    let ny_z_plus = simplex_noise_3d(x, y, z + EPS);
-    let ny_z_minus = simplex_noise_3d(x, y, z - EPS);
-
-    let nz_x_plus = simplex_noise_3d(x + EPS, y, z);
-    let nz_x_minus = simplex_noise_3d(x - EPS, y, z);
-    let nz_y_plus = simplex_noise_3d(x, y + EPS, z);
-    let nz_y_minus = simplex_noise_3d(x, y - EPS, z);
-
-    let dnz_dy = (nz_y_plus - nz_y_minus) / (2.0 * EPS);
-    let dny_dz = (ny_z_plus - ny_z_minus) / (2.0 * EPS);
-    let dnx_dz = (nx_z_plus - nx_z_minus) / (2.0 * EPS);
-    let dnz_dx = (nz_x_plus - nz_x_minus) / (2.0 * EPS);
-    let dny_dx = (ny_x_plus - ny_x_minus) / (2.0 * EPS);
-    let dnx_dy = (nx_y_plus - nx_y_minus) / (2.0 * EPS);
-
-    let curl_x = dnz_dy - dny_dz;
-    let curl_y = dnx_dz - dnz_dx;
-    let curl_z = dny_dx - dnx_dy;
-
-    (curl_x, curl_y, curl_z)
+    // Simplified: 3 simplex calls instead of 12 (4x faster)
+    // Not true curl noise, but organic swirling motion
+    let nx = simplex_noise_3d(x, y, z);
+    let ny = simplex_noise_3d(x + 100.0, y + 100.0, z);
+    let nz = simplex_noise_3d(x + 200.0, y + 200.0, z + 100.0);
+    (nx, ny, nz)
 }
 
 /// Simple pseudo-random number generator (deterministic per particle + seed).
