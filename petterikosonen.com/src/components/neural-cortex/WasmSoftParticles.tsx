@@ -35,6 +35,7 @@ export function WasmSoftParticles({
   const wasmReady = useRef(false);
   const particlePtr = useRef<number>(0);
   const colorUpdateTimer = useRef<number>(0);
+  const flowUpdateCounter = useRef<number>(0);
   const clusterDataRef = useRef<{
     nodePositions: Float32Array;
     clusterColors: Float32Array;
@@ -230,8 +231,13 @@ export function WasmSoftParticles({
         const tz = targetPos!.z;
         wasm.particlesystem_update(ptr, tx, ty, tz, 1);
       } else {
-        // Curl-noise flow field (no wasm_alloc, safe for memory buffer)
-        wasm.particlesystem_update_with_flow(ptr, time, 0.15, 0.3);
+        // Curl-noise flow field — update only every 3rd frame for performance
+        // (3600 particles × 12 simplex calls = 43k/frame → too heavy at 60fps)
+        flowUpdateCounter.current += 1;
+        if (flowUpdateCounter.current >= 3) {
+          wasm.particlesystem_update_with_flow(ptr, time, 0.15, 0.5);
+          flowUpdateCounter.current = 0;
+        }
       }
 
       // DISABLED: update_colors for isolation test
