@@ -36,10 +36,8 @@ export function WasmSoftParticles({
   const particlePtr = useRef<number>(0);
   const colorUpdateTimer = useRef<number>(0);
   const clusterDataRef = useRef<{
-    nodePositionsPtr: number;
-    clusterColorsPtr: number;
-    nodePositionsByteLen: number;
-    clusterColorsByteLen: number;
+    nodePositions: Float32Array;
+    clusterColors: Float32Array;
     nodeCount: number;
   } | null>(null);
 
@@ -110,7 +108,7 @@ export function WasmSoftParticles({
     });
   }, [texture]);
 
-  // Prepare cluster color data for WASM
+  // Prepare cluster color data (JS-side, no WASM alloc to avoid memory buffer detach)
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -118,7 +116,7 @@ export function WasmSoftParticles({
       const wasm = getCortexWasm();
       if (!wasm) return;
 
-      // Build node positions and cluster colors arrays
+      // Build node positions and cluster colors arrays (kept in JS, no wasm_alloc)
       const nodeCount = nodes.length;
       const nodePositions = new Float32Array(nodeCount * 3);
       const clusterColors = new Float32Array(nodeCount * 3);
@@ -143,13 +141,9 @@ export function WasmSoftParticles({
         clusterColors[ni * 3 + 2] = c.b;
       }
 
-      const nodePositionsPtr = writeF32ToWasm(wasm, nodePositions);
-      const clusterColorsPtr = writeF32ToWasm(wasm, clusterColors);
       clusterDataRef.current = {
-        nodePositionsPtr,
-        clusterColorsPtr,
-        nodePositionsByteLen: nodePositions.length * 4,
-        clusterColorsByteLen: clusterColors.length * 4,
+        nodePositions,    // Float32Array (JS-side)
+        clusterColors,     // Float32Array (JS-side)
         nodeCount,
       };
     };
@@ -163,11 +157,7 @@ export function WasmSoftParticles({
     }
 
     return () => {
-      const wasm = getCortexWasm();
-      if (clusterDataRef.current && wasm) {
-        freeWasmPtr(wasm, clusterDataRef.current.nodePositionsPtr, clusterDataRef.current.nodePositionsByteLen);
-        freeWasmPtr(wasm, clusterDataRef.current.clusterColorsPtr, clusterDataRef.current.clusterColorsByteLen);
-      }
+      // No WASM pointers to free — data is JS-side Float32Arrays
       clusterDataRef.current = null;
     };
   }, []);
@@ -268,6 +258,43 @@ export function WasmSoftParticles({
         cl[dst] = wasmData[src + 8];
         cl[dst + 1] = wasmData[src + 9];
         cl[dst + 2] = wasmData[src + 10];
+      }
+
+      // Update cluster colors in JS (no WASM alloc → no memory buffer detach)
+      colorUpdateTimer.current += delta;
+      if (colorUpdateTimer.current > 0.5 && clusterDataRef.current) {
+        const cd = clusterDataRef.current;
+        const blendRadius = 8.0;
+        const blendRadiusSq = blendRadius * blendRadius;
+        for (let i = 0; i < len; i++) {
+          const dst = i * 3;
+          const px = wasmData[i * stride];
+          const py = wasmData[i * stride + 1];
+          const pz = wasmData[i * stride + 2];
+          let nearestIdx = 0;
+          let nearestDistSq = Infinity;
+          for (let n = 0; n < cd.nodeCount; n++) {
+            const dx = px - cd.nodePositions[n * 3];
+            const dy = py - cd.nodePositions[n * 3 + 1];
+            const dz = pz - cd.nodePositions[n * 3 + 2];
+            const dSq = dx * dx + dy * dy + dz * dz;
+            if (dSq < nearestDistSq) {
+              nearestDistSq = dSq;
+              nearestIdx = n;
+            }
+          }
+          const t = nearestDistSq < blendRadiusSq
+            ? Math.max(0, 1 - Math.sqrt(nearestDistSq / blendRadiusSq))
+            : 0;
+          const cr = cd.clusterColors[nearestIdx * 3];
+          const cg = cd.clusterColors[nearestIdx * 3 + 1];
+          const cb = cd.clusterColors[nearestIdx * 3 + 2];
+          cl[dst] = cr * t;
+          cl[dst + 1] = 0.94 + (cg - 0.94) * t;
+          cl[dst + 2] = 1.0 + (cb - 1.0) * t;
+        }
+        colorAttr.needsUpdate = true;
+        colorUpdateTimer.current = 0;
       }
 
       posAttr.needsUpdate = true;
