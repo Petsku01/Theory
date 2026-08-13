@@ -9,6 +9,7 @@ import * as THREE from "three";
 import { clusterPositions } from "@/lib/cortex-data";
 import { CameraController } from "@/components/neural-cortex/CameraController";
 import { FlowFieldParticles } from "@/components/neural-cortex/FlowFieldParticles";
+import { ClusterMarkers } from "@/components/neural-cortex/ClusterMarkers";
 
 // ── SYMBIOOSIS: Cursor = navigation, no traditional navbar ──
 // Particles respond to cursor position via raycaster.
@@ -138,6 +139,11 @@ export function CortexScene({
           count={particleCount}
           activeCluster={activeCluster}
           hoverTarget={hoverTarget}
+          reducedMotion={reducedMotion}
+        />
+        <ClusterMarkers
+          activeCluster={activeCluster}
+          onClusterSelect={onClusterSelect}
           reducedMotion={reducedMotion}
         />
       </group>

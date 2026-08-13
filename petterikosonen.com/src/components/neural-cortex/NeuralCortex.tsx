@@ -1,9 +1,8 @@
 "use client";
 
-import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { Suspense, useCallback, useEffect, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { CortexScene } from "@/components/neural-cortex/CortexScene";
-import { DetailPanel } from "@/components/neural-cortex/DetailPanel";
 
 import { Scanlines, Vignette, CortexLoader } from "@/components/neural-cortex/Overlays";
 import { AccessibleNav } from "@/components/neural-cortex/AccessibleNav";
@@ -11,7 +10,7 @@ import { AccessibleNav } from "@/components/neural-cortex/AccessibleNav";
 import { SplashScreen } from "@/components/neural-cortex/SplashScreen";
 import { getUnifiedWasmStatus } from "@/components/neural-cortex/utils";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
-import { nodes, type CortexNode } from "@/lib/cortex-data";
+import { nodes } from "@/lib/cortex-data";
 
 // ── Global keyframes ──
 function GlobalStyles() {
@@ -25,38 +24,37 @@ function GlobalStyles() {
   );
 }
 
-// ── Cluster descriptions for detail panel ──
-const CLUSTER_INFO: Record<string, { label: string; shortDesc: string; fullDesc: string }> = {
+// ── Cluster descriptions for minimal display ──
+const CLUSTER_INFO: Record<string, { label: string; shortDesc: string }> = {
   core: {
     label: "Core",
     shortDesc: "Petteri Kosonen — Application Specialist + AI Researcher",
-    fullDesc:
-      "Application Specialist at 2M-IT by day, AI researcher by night. Building tools for prompt security, fine-tuning, and trustworthy automation.",
   },
   projects: {
     label: "Projects",
     shortDesc: "LLM fine-tuning, security testing, and prompt engineering tools",
-    fullDesc:
-      "Prompt Optimizer, Prompt Security Guide, PromptKit, VET Pilot, HetuGuard, and Injection Scanner — a collection of AI-focused projects.",
   },
   skills: {
     label: "Skills",
     shortDesc: "Security, Cloud, Automation, AI/Prompting, Python, Linux, Web Dev",
-    fullDesc:
-      "From operational security and Microsoft cloud administration to Python automation and full-stack web development.",
   },
   experience: {
     label: "Experience",
     shortDesc: "2M-IT Application Specialist + Turku AMK Cybersecurity",
-    fullDesc:
-      "Application Specialist at 2M-IT (2022-), B.Eng. Cybersecurity at Turku AMK (2020-). Applied research in LLM security and prompt engineering.",
   },
   research: {
     label: "Research",
     shortDesc: "Reframing attacks, LLM research daily, automated analysis",
-    fullDesc:
-      "Reframing attack preprint (9 models, 10 categories, 222 tests), daily LLM research pipeline, and automated multi-model analysis.",
   },
+};
+
+// ── Cluster color map (matches utils.ts CLUSTER_COLORS) ──
+const CLUSTER_COLOR_MAP: Record<string, string> = {
+  core: "#00f0ff",
+  projects: "#a855f7",
+  skills: "#22d3ee",
+  experience: "#f59e0b",
+  research: "#ef4444",
 };
 
 // ── Exported wrapper ──
@@ -82,27 +80,6 @@ export default function NeuralCortex() {
   const particleCount = isMobile ? 2000 : 5000;
   const bloomIntensity = isMobile ? 1.2 : 2.2;
 
-  const [panelCluster, setPanelCluster] = useState<string | null>(null);
-  const [panelStage, setPanelStage] = useState<"show" | "hiding" | "hidden">(
-    "hidden"
-  );
-  const panelTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    if (activeCluster) {
-      clearTimeout(panelTimeout.current!);
-      setPanelCluster(activeCluster);
-      setPanelStage("show");
-    } else if (panelCluster) {
-      setPanelStage("hiding");
-      panelTimeout.current = setTimeout(() => {
-        setPanelCluster(null);
-        setPanelStage("hidden");
-      }, 300);
-    }
-    return () => clearTimeout(panelTimeout.current!);
-  }, [activeCluster, panelCluster]);
-
   const handleClusterSelect = useCallback(
     (cluster: string | null) => {
       setActiveCluster(cluster);
@@ -113,29 +90,9 @@ export default function NeuralCortex() {
     []
   );
 
-  const handlePanelClose = useCallback(() => {
-    setActiveCluster(null);
-  }, []);
-
-  // Build a pseudo-CortexNode for the DetailPanel from cluster info
-  const panelNode = useMemo<CortexNode | null>(() => {
-    if (!panelCluster) return null;
-    const info = CLUSTER_INFO[panelCluster];
-    if (!info) return null;
-    const firstNode = nodes.find((n) => n.cluster === panelCluster);
-    return {
-      id: panelCluster,
-      label: info.label,
-      type: firstNode?.type ?? "core",
-      shortDesc: info.shortDesc,
-      fullDesc: info.fullDesc,
-      tech: firstNode?.tech,
-      link: firstNode?.link,
-      color: firstNode?.color ?? "#00f0ff",
-      size: 2.0,
-      cluster: panelCluster,
-    };
-  }, [panelCluster]);
+  // Minimal cluster info — only shown when a cluster is selected
+  const activeInfo = activeCluster ? CLUSTER_INFO[activeCluster] : null;
+  const activeColor = activeCluster ? CLUSTER_COLOR_MAP[activeCluster] ?? "#00f0ff" : "#00f0ff";
 
   return (
     <div className="fixed inset-0 z-[5] overflow-hidden bg-[#05070A]">
@@ -206,11 +163,35 @@ export default function NeuralCortex() {
             </span>
           </div>
 
-          <DetailPanel
-            node={panelNode}
-            stage={panelStage}
-            onCloseAction={handlePanelClose}
-          />
+          {/* Minimal cluster info — replaces the old DetailPanel */}
+          {activeInfo && (
+            <div
+              className="pointer-events-none absolute bottom-16 left-1/2 z-20 -translate-x-1/2 select-none rounded-lg border bg-[#0a0a0f]/80 px-4 py-2 backdrop-blur-sm"
+              style={{
+                borderColor: `${activeColor}40`,
+                boxShadow: `0 0 20px ${activeColor}15`,
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <span
+                  className="h-2 w-2 rounded-full"
+                  style={{
+                    backgroundColor: activeColor,
+                    boxShadow: `0 0 6px ${activeColor}`,
+                  }}
+                />
+                <span
+                  className="font-mono text-sm font-bold tracking-wide"
+                  style={{ color: activeColor }}
+                >
+                  {activeInfo.label}
+                </span>
+              </div>
+              <p className="mt-1 font-mono text-[10px] text-slate-400 max-w-xs text-center">
+                {activeInfo.shortDesc}
+              </p>
+            </div>
+          )}
 
           <AccessibleNav onSelect={(id) => {
             // Map node id to its cluster

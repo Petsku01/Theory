@@ -64,7 +64,7 @@ export function FlowFieldParticles({
       data[o + 3] = c.r;      // color_r
       data[o + 4] = c.g;      // color_g
       data[o + 5] = c.b;      // color_b
-      data[o + 6] = 1.2;      // strength
+      data[o + 6] = 2.0;      // strength — strong enough to pull particles to nearest cluster
       data[o + 7] = symbiosis.pulseFreq; // pulse_freq
       data[o + 8] = 0.13;     // pulse_amp
       data[o + 9] = 1.0;      // active (all active by default)
@@ -86,9 +86,9 @@ export function FlowFieldParticles({
       new THREE.Color(SPECIES_COLORS[2] ?? "#39FF88"),
     ];
     for (let i = 0; i < count; i++) {
-      pos[i * 3] = (Math.random() - 0.5) * 30;
-      pos[i * 3 + 1] = (Math.random() - 0.5) * 20;
-      pos[i * 3 + 2] = (Math.random() - 0.5) * 20;
+      pos[i * 3] = (Math.random() - 0.5) * 24;
+      pos[i * 3 + 1] = (Math.random() - 0.5) * 24;
+      pos[i * 3 + 2] = (Math.random() - 0.5) * 24;
       const species = i % 3;
       const c = speciesColorObjs[species];
       col[i * 3] = c.r;
@@ -126,7 +126,7 @@ export function FlowFieldParticles({
       if (cancelled) return;
       const wasm = getCortexWasm();
       if (!wasm) return;
-      const ptr = wasm.particlesystem_new(count, 15, 10, 10);
+      const ptr = wasm.particlesystem_new(count, 12, 12, 12);
       particlePtr.current = ptr;
       wasmReady.current = true;
       setParticleWasmStatus("wasm");
@@ -294,9 +294,9 @@ export function FlowFieldParticles({
         pos[idx + 2] += Math.sin(px * 0.5 + t + i * 0.017) * 0.01;
 
         // Boundary
-        if (Math.abs(pos[idx]) > 15) pos[idx] *= -0.95;
-        if (Math.abs(pos[idx + 1]) > 10) pos[idx + 1] *= -0.95;
-        if (Math.abs(pos[idx + 2]) > 10) pos[idx + 2] *= -0.95;
+        if (Math.abs(pos[idx]) > 12) pos[idx] *= -0.95;
+        if (Math.abs(pos[idx + 1]) > 12) pos[idx + 1] *= -0.95;
+        if (Math.abs(pos[idx + 2]) > 12) pos[idx + 2] *= -0.95;
 
         // Species-based color (JS fallback)
         const species = i % 3;

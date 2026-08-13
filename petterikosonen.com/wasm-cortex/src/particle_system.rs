@@ -365,24 +365,17 @@ impl ParticleSystem {
             let mut nearest_dist_sq = f32::MAX;
             let mut second_idx = 0usize;
             let mut second_dist_sq = f32::MAX;
-            let mut fx = 0.0f32;
-            let mut fy = 0.0f32;
-            let mut fz = 0.0f32;
 
             for a in 0..attractor_count {
                 let ao = a * 12;
                 let ax = attractors[ao];
                 let ay = attractors[ao + 1];
                 let az = attractors[ao + 2];
-                let strength = attractors[ao + 6];
-                let active_flag = attractors[ao + 9];
-                let base_boost = attractors[ao + 10];
 
                 let dx = ax - px;
                 let dy = ay - py;
                 let dz = az - pz;
                 let dist_sq = dx * dx + dy * dy + dz * dz;
-                let dist = (dist_sq + 0.001).sqrt();
 
                 if dist_sq < nearest_dist_sq {
                     second_dist_sq = nearest_dist_sq;
@@ -393,26 +386,40 @@ impl ParticleSystem {
                     second_dist_sq = dist_sq;
                     second_idx = a;
                 }
+            }
 
-                // Compute boost: if active_cluster matches, boost; otherwise reduce
-                let boost = if active_cluster >= 0 {
-                    if a == active_cluster as usize {
-                        ACTIVE_BOOST
-                    } else {
-                        INACTIVE_BOOST
-                    }
+            // ── 1b. Attraction force from NEAREST attractor only ──
+            // Previously all attractors pulled simultaneously, causing particles
+            // to collapse toward the centroid (near core). Now only the nearest
+            // cluster attracts, so particles distribute across all 5 clusters.
+            let ao = nearest_idx * 12;
+            let nearest_strength = attractors[ao + 6];
+            let nearest_active = attractors[ao + 9];
+            let nearest_base_boost = attractors[ao + 10];
+
+            let boost = if active_cluster >= 0 {
+                if nearest_idx == active_cluster as usize {
+                    ACTIVE_BOOST
                 } else {
-                    base_boost
-                };
-
-                // Only apply attraction if attractor is active
-                if active_flag > 0.5 {
-                    let inv_dist = 1.0 / (dist_sq + SOFTENING);
-                    let force = strength * boost * inv_dist;
-                    fx += dx * force;
-                    fy += dy * force;
-                    fz += dz * force;
+                    INACTIVE_BOOST
                 }
+            } else {
+                nearest_base_boost
+            };
+
+            let mut fx = 0.0f32;
+            let mut fy = 0.0f32;
+            let mut fz = 0.0f32;
+
+            if nearest_active > 0.5 {
+                let dx = attractors[ao] - px;
+                let dy = attractors[ao + 1] - py;
+                let dz = attractors[ao + 2] - pz;
+                let dist_sq = dx * dx + dy * dy + dz * dz + SOFTENING;
+                let force = nearest_strength * boost / dist_sq;
+                fx = dx * force;
+                fy = dy * force;
+                fz = dz * force;
             }
 
             // ── 2. Species-specific behavior ──
