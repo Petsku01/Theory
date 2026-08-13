@@ -148,12 +148,14 @@ impl ParticleSystem {
             let mut vy = data[base + 4];
             let mut vz = data[base + 5];
 
-            // Sample curl noise at particle position + time
-            let (cx, cy, cz) = curl_noise(
-                px * noise_scale + time * 0.1,
-                py * noise_scale + time * 0.1,
-                pz * noise_scale + time * 0.1,
-            );
+            // Lightweight flow field — hash-based pseudo-noise (no simplex, ~10x cheaper)
+            let t = time * 0.1;
+            let h1 = wrapping_hash((i.wrapping_add((t * 100.0) as usize)).wrapping_mul(2654435761));
+            let h2 = wrapping_hash((i.wrapping_add((t * 100.0) as usize).wrapping_add(7919)).wrapping_mul(40503));
+            let h3 = wrapping_hash((i.wrapping_add((t * 100.0) as usize).wrapping_add(104729)).wrapping_mul(2654435761));
+            let cx = ((h1 as f32) / (u32::MAX as f32)) * 2.0 - 1.0;
+            let cy = ((h2 as f32) / (u32::MAX as f32)) * 2.0 - 1.0;
+            let cz = ((h3 as f32) / (u32::MAX as f32)) * 2.0 - 1.0;
 
             vx += cx * noise_strength * FLOW_FORCE * 60.0;
             vy += cy * noise_strength * FLOW_FORCE * 60.0;
