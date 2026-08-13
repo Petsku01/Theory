@@ -110,6 +110,7 @@ export function WasmSoftParticles({
   }, [texture]);
 
   // Prepare cluster color data (JS-side, no WASM alloc to avoid memory buffer detach)
+  // Use cluster centers (5) instead of nodes (20) for 4x faster nearest-neighbor
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -117,30 +118,24 @@ export function WasmSoftParticles({
       const wasm = getCortexWasm();
       if (!wasm) return;
 
-      // Build node positions and cluster colors arrays (kept in JS, no wasm_alloc)
-      const nodeCount = nodes.length;
+      // Build cluster center positions and colors (5 clusters, not 20 nodes)
+      const clusterKeys = Object.keys(clusterPositions);
+      const nodeCount = clusterKeys.length;
       const nodePositions = new Float32Array(nodeCount * 3);
       const clusterColors = new Float32Array(nodeCount * 3);
 
-      const clusterNodeMap = new Map<string, number>();
-      const goldenAngle = Math.PI * (3 - Math.sqrt(5));
-      for (let ni = 0; ni < nodes.length; ni++) {
-        const node = nodes[ni];
-        const idx = clusterNodeMap.get(node.cluster) ?? 0;
-        clusterNodeMap.set(node.cluster, idx + 1);
-        const cp = clusterPositions[node.cluster] ?? [0, 0, 0];
-        const angle = idx * goldenAngle;
-        const r = Math.sqrt((idx + 0.5) / 10) * 3.0;
-        nodePositions[ni * 3] = cp[0] + Math.cos(angle) * r;
-        nodePositions[ni * 3 + 1] = cp[1] + Math.sin(angle * 0.7) * 0.8;
-        nodePositions[ni * 3 + 2] = cp[2] + Math.sin(angle) * r;
+      clusterKeys.forEach((key, ni) => {
+        const cp = clusterPositions[key] ?? [0, 0, 0];
+        nodePositions[ni * 3] = cp[0];
+        nodePositions[ni * 3 + 1] = cp[1];
+        nodePositions[ni * 3 + 2] = cp[2];
 
-        const clusterColorHex = CLUSTER_COLORS[node.cluster] ?? "#00f0ff";
+        const clusterColorHex = CLUSTER_COLORS[key] ?? "#00f0ff";
         const c = new THREE.Color(clusterColorHex);
         clusterColors[ni * 3] = c.r;
         clusterColors[ni * 3 + 1] = c.g;
         clusterColors[ni * 3 + 2] = c.b;
-      }
+      });
 
       clusterDataRef.current = {
         nodePositions,    // Float32Array (JS-side)
@@ -256,10 +251,7 @@ export function WasmSoftParticles({
         pos[dst + 2] = wasmData[src + 2];
         sz[i] = wasmData[src + 6];
         al[i] = wasmData[src + 7];
-        // Colors at offset 8, 9, 10
-        cl[dst] = wasmData[src + 8];
-        cl[dst + 1] = wasmData[src + 9];
-        cl[dst + 2] = wasmData[src + 10];
+        // Colors handled by cluster color update below, skip here
       }
 
       // Update cluster colors in JS (no WASM alloc → no memory buffer detach)
