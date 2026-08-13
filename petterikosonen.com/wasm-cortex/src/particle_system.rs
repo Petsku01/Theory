@@ -3,9 +3,9 @@ use wasm_bindgen::prelude::*;
 /// 3D particle with position, velocity, size, alpha, color, species.
 /// SYMBIOOSIS: three symbiont species — ihminen, kone, luonto.
 /// Matches the SoftParticles JS implementation but runs in WASM.
-const DAMPING: f32 = 0.998;
-const MAX_VEL: f32 = 0.02;
-const ATTRACTION_FORCE: f32 = 0.0003;
+const DAMPING: f32 = 0.97;
+const MAX_VEL: f32 = 0.15;
+const ATTRACTION_FORCE: f32 = 0.001;
 const FLOW_FORCE: f32 = 0.0008;
 
 /// Particle state stored in a flat buffer for cache-friendly access.
@@ -435,13 +435,13 @@ impl ParticleSystem {
                 }
                 // Light curl noise — curious but gentle
                 let (cx, cy, cz) = curl_noise(px * 0.5 + time * 0.1, py * 0.5, pz * 0.5);
-                vx += cx * FLOW_STRENGTH * FLOW_SCALE * 40.0;
-                vy += cy * FLOW_STRENGTH * FLOW_SCALE * 40.0;
-                vz += cz * FLOW_STRENGTH * FLOW_SCALE * 40.0;
+                vx += cx * FLOW_STRENGTH * FLOW_SCALE * 8.0;
+                vy += cy * FLOW_STRENGTH * FLOW_SCALE * 8.0;
+                vz += cz * FLOW_STRENGTH * FLOW_SCALE * 8.0;
                 // Standard cluster attraction (reduced — human explores between clusters)
-                vx += fx * 0.005;
-                vy += fy * 0.005;
-                vz += fz * 0.005;
+                vx += fx * 0.02;
+                vy += fy * 0.02;
+                vz += fz * 0.02;
             } else if species == SPECIES_MACHINE {
                 // KONE: forms cross-like structures between clusters (grid force)
                 // Pull toward the line connecting nearest and second-nearest attractors
@@ -476,15 +476,15 @@ impl ParticleSystem {
 
                 // Minimal curl noise — structured, not organic
                 let (cx, cy, cz) = curl_noise(px * 0.3 + time * 0.05, py * 0.3, pz * 0.3);
-                vx += cx * FLOW_STRENGTH * FLOW_SCALE * 15.0;
-                vy += cy * FLOW_STRENGTH * FLOW_SCALE * 15.0;
-                vz += cz * FLOW_STRENGTH * FLOW_SCALE * 15.0;
+                vx += cx * FLOW_STRENGTH * FLOW_SCALE * 3.0;
+                vy += cy * FLOW_STRENGTH * FLOW_SCALE * 3.0;
+                vz += cz * FLOW_STRENGTH * FLOW_SCALE * 3.0;
             } else {
                 // LUONTO: organic branching toward nearest cluster (fractal growth)
                 // Strong attraction to nearest cluster
-                vx += fx * 0.015;
-                vy += fy * 0.015;
-                vz += fz * 0.015;
+                vx += fx * 0.03;
+                vy += fy * 0.03;
+                vz += fz * 0.03;
 
                 // Mutualism: extra attraction toward clusters where machine builds
                 // (machine midpoints = structural support for nature to grow on)
@@ -504,9 +504,9 @@ impl ParticleSystem {
 
                 // Strong curl noise — organic, branching
                 let (cx, cy, cz) = curl_noise(px * 0.6 + time * 0.15, py * 0.6, pz * 0.6);
-                vx += cx * FLOW_STRENGTH * FLOW_SCALE * 80.0;
-                vy += cy * FLOW_STRENGTH * FLOW_SCALE * 80.0;
-                vz += cz * FLOW_STRENGTH * FLOW_SCALE * 80.0;
+                vx += cx * FLOW_STRENGTH * FLOW_SCALE * 12.0;
+                vy += cy * FLOW_STRENGTH * FLOW_SCALE * 12.0;
+                vz += cz * FLOW_STRENGTH * FLOW_SCALE * 12.0;
             }
 
             // ── 3. Hover attractor for all species (cursor = user "juuret") ──
