@@ -259,6 +259,9 @@ export function WasmSoftParticles({
         colorUpdateTimer.current = 0;
       }
 
+      // Re-create WASM data view each frame — wasm.memory.buffer can become
+      // detached if WASM grows memory (e.g. during update_colors), which would
+      // crash on read. Creating a fresh Float32Array view is cheap and safe.
       const dataPtr = wasm.particlesystem_data_ptr(ptr);
       const len = wasm.particlesystem_len(ptr);
       const stride = wasm.particlesystem_stride(ptr);

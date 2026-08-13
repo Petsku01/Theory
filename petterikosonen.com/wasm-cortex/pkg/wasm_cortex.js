@@ -12,6 +12,21 @@ export class BurstSystem {
         wasm.__wbg_burstsystem_free(ptr, 0);
     }
     /**
+     * Apply a shockwave push to all particles.
+     * center: [cx, cy, cz] (3 f32s)
+     * radius: current shockwave radius
+     * force: outward push strength
+     * Applies radial velocity boost to particles within the shockwave ring
+     * (between radius * 0.8 and radius * 1.2).
+     * @param {number} center_ptr
+     * @param {number} center_len
+     * @param {number} radius
+     * @param {number} force
+     */
+    apply_shockwave(center_ptr, center_len, radius, force) {
+        wasm.burstsystem_apply_shockwave(this.__wbg_ptr, center_ptr, center_len, radius, force);
+    }
+    /**
      * @returns {number}
      */
     data_ptr() {
@@ -192,6 +207,9 @@ if (Symbol.dispose) CameraSystem.prototype[Symbol.dispose] = CameraSystem.protot
  *
  * Pulse data per edge (3 f32s):
  * [pulse_x, pulse_y, pulse_z]
+ *
+ * Wave data per edge (1 f32):
+ * [wave_intensity]  -- 0.0 = no wave, 1.0 = just arrived, decays over 0.5s
  */
 export class EdgeSystem {
     __destroy_into_raw() {
@@ -222,17 +240,19 @@ export class EdgeSystem {
      * Initialize edges from node positions and edge list.
      * from_positions: flat array [x0,y0,z0, x1,y1,z1, ...] for "from" nodes
      * to_positions: flat array [x0,y0,z0, x1,y1,z1, ...] for "to" nodes
-     * edge_indices: indices into the position arrays (from_idx, to_idx pairs)
+     * edge_count: number of edges
      * highlight_flags: 1 if this edge is highlighted (connects selected node), 0 otherwise
+     * edge_node_indices: flat array [from_idx0, to_idx0, from_idx1, to_idx1, ...] (edge_count * 2)
      * Returns pointer to cylinder data.
      * @param {number} from_positions
      * @param {number} to_positions
      * @param {number} edge_count
      * @param {number} highlight_flags
+     * @param {number} edge_node_indices
      * @returns {number}
      */
-    init_edges(from_positions, to_positions, edge_count, highlight_flags) {
-        const ret = wasm.edgesystem_init_edges(this.__wbg_ptr, from_positions, to_positions, edge_count, highlight_flags);
+    init_edges(from_positions, to_positions, edge_count, highlight_flags, edge_node_indices) {
+        const ret = wasm.edgesystem_init_edges(this.__wbg_ptr, from_positions, to_positions, edge_count, highlight_flags, edge_node_indices);
         return ret >>> 0;
     }
     /**
@@ -271,7 +291,28 @@ export class EdgeSystem {
         return ret >>> 0;
     }
     /**
+     * Set wave decay duration (0.5s desktop, 0.8s mobile).
+     * @param {number} decay
+     */
+    set_wave_decay(decay) {
+        wasm.edgesystem_set_wave_decay(this.__wbg_ptr, decay);
+    }
+    /**
+     * Trigger a connection wave from a source node using BFS.
+     * Each edge gets wave_arrival_time = current_time + hop_count * hop_delay.
+     * node_count: total number of nodes in the graph (for BFS visited array).
+     * hop_delay: seconds per hop (0.08 desktop, 0.15 mobile).
+     * @param {number} source_node_idx
+     * @param {number} current_time
+     * @param {number} hop_delay
+     * @param {number} node_count
+     */
+    trigger_wave(source_node_idx, current_time, hop_delay, node_count) {
+        wasm.edgesystem_trigger_wave(this.__wbg_ptr, source_node_idx, current_time, hop_delay, node_count);
+    }
+    /**
      * Update highlight flags (called when selection changes).
+     * Also speeds up pulses on highlighted edges.
      * @param {number} flags
      */
     update_highlights(flags) {
@@ -288,6 +329,31 @@ export class EdgeSystem {
      */
     update_pulses(from_positions, to_positions, elapsed) {
         const ret = wasm.edgesystem_update_pulses(this.__wbg_ptr, from_positions, to_positions, elapsed);
+        return ret >>> 0;
+    }
+    /**
+     * Update wave intensities for all edges. Call per frame.
+     * elapsed: current clock time in seconds.
+     * Returns pointer to wave data (edge_count * WAVE_STRIDE f32s).
+     * @param {number} elapsed
+     * @returns {number}
+     */
+    update_wave(elapsed) {
+        const ret = wasm.edgesystem_update_wave(this.__wbg_ptr, elapsed);
+        return ret >>> 0;
+    }
+    /**
+     * @returns {number}
+     */
+    wave_data_ptr() {
+        const ret = wasm.edgesystem_wave_data_ptr(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @returns {number}
+     */
+    wave_stride() {
+        const ret = wasm.edgesystem_wave_stride(this.__wbg_ptr);
         return ret >>> 0;
     }
 }
@@ -743,6 +809,86 @@ export class ScrambleSystem {
 }
 if (Symbol.dispose) ScrambleSystem.prototype[Symbol.dispose] = ScrambleSystem.prototype.free;
 
+export class ShockwaveSystem {
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        ShockwaveSystemFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_shockwavesystem_free(ptr, 0);
+    }
+    /**
+     * Get number of currently active shockwaves.
+     * @returns {number}
+     */
+    active_count() {
+        const ret = wasm.shockwavesystem_active_count(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @returns {number}
+     */
+    data_ptr() {
+        const ret = wasm.shockwavesystem_data_ptr(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @returns {number}
+     */
+    max_slots() {
+        const ret = wasm.shockwavesystem_max_slots(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    constructor() {
+        const ret = wasm.shockwavesystem_new();
+        this.__wbg_ptr = ret;
+        ShockwaveSystemFinalization.register(this, this.__wbg_ptr, this);
+        return this;
+    }
+    /**
+     * Set max concurrent shockwaves (3 desktop, 1 mobile).
+     * @param {number} max_count
+     */
+    set_max_count(max_count) {
+        wasm.shockwavesystem_set_max_count(this.__wbg_ptr, max_count);
+    }
+    /**
+     * @returns {number}
+     */
+    stride() {
+        const ret = wasm.shockwavesystem_stride(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * Trigger a new shockwave at (cx, cy, cz) with given max_radius and speed.
+     * Finds the oldest (or first inactive) slot to reuse.
+     * @param {number} cx
+     * @param {number} cy
+     * @param {number} cz
+     * @param {number} max_radius
+     * @param {number} speed
+     */
+    trigger(cx, cy, cz, max_radius, speed) {
+        wasm.shockwavesystem_trigger(this.__wbg_ptr, cx, cy, cz, max_radius, speed);
+    }
+    /**
+     * Update all shockwaves. Returns pointer to data buffer (max_count * 6 f32s).
+     * delta: frame delta time in seconds.
+     * Returns data where each slot is [cx, cy, cz, radius, opacity, intensity].
+     * Inactive slots have opacity=0 and intensity=0.
+     * @param {number} delta
+     * @returns {number}
+     */
+    update(delta) {
+        const ret = wasm.shockwavesystem_update(this.__wbg_ptr, delta);
+        return ret >>> 0;
+    }
+}
+if (Symbol.dispose) ShockwaveSystem.prototype[Symbol.dispose] = ShockwaveSystem.prototype.free;
+
 export class SpringCursor {
     __destroy_into_raw() {
         const ptr = this.__wbg_ptr;
@@ -869,6 +1015,9 @@ const ParticleSystemFinalization = (typeof FinalizationRegistry === 'undefined')
 const ScrambleSystemFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_scramblesystem_free(ptr, 1));
+const ShockwaveSystemFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_shockwavesystem_free(ptr, 1));
 const SpringCursorFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_springcursor_free(ptr, 1));

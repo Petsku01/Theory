@@ -7,13 +7,14 @@ import { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { EffectComposer, Bloom, ChromaticAberration, Noise } from "@react-three/postprocessing";
 import { BlendFunction } from "postprocessing";
 import * as THREE from "three";
-import { nodes, edges } from "@/lib/cortex-data";
+import { nodes } from "@/lib/cortex-data";
 import { type CortexNode } from "@/lib/cortex-data";
 import { CLUSTER_COLORS, computePositions } from "@/components/neural-cortex/utils";
 import { NetworkNode } from "@/components/neural-cortex/NetworkNode";
 import { NetworkEdges } from "@/components/neural-cortex/NetworkEdges";
 import { WasmSoftParticles } from "@/components/neural-cortex/WasmSoftParticles";
 import { WasmBurstParticles } from "@/components/neural-cortex/WasmBurstParticles";
+import { WasmShockwave } from "@/components/neural-cortex/WasmShockwave";
 import { CameraController } from "@/components/neural-cortex/CameraController";
 
 
@@ -91,6 +92,27 @@ export function CortexScene({
     }
   }, [selectedId]);
 
+  // Trigger shockwave when selection changes
+  const triggerShockwaveForNode = useCallback(
+    (nodeId: string) => {
+      if (reducedMotion || typeof window === "undefined") return;
+      const triggerFn = (window as any).__cortexTriggerShockwave as
+        | ((center: THREE.Vector3, color: THREE.Color, maxRadius?: number, speed?: number) => void)
+        | undefined;
+      if (!triggerFn) return;
+
+      const pos = positions.get(nodeId);
+      if (!pos) return;
+
+      const node = nodes.find((n) => n.id === nodeId);
+      const clusterColor = CLUSTER_COLORS[node?.cluster ?? "core"] ?? "#00f0ff";
+      const color = new THREE.Color(clusterColor);
+
+      triggerFn(pos, color);
+    },
+    [positions, reducedMotion]
+  );
+
   // Animate CA pulse in useFrame
   useFrame(() => {
     if (!caRef.current || caPulseTime.current === 0) return;
@@ -129,7 +151,16 @@ export function CortexScene({
             : "#00f0ff"
         }
       />
-      <NetworkEdges positions={positions} selectedId={selectedId} />
+      <NetworkEdges
+        positions={positions}
+        selectedId={selectedId}
+        isMobile={isMobile}
+        reducedMotion={reducedMotion}
+        onTriggerShockwave={triggerShockwaveForNode}
+      />
+
+      {/* Shockwave ring effect on node selection */}
+      <WasmShockwave isMobile={isMobile} reducedMotion={reducedMotion} />
 
       {nodes.map((node) => {
         const isDimmed = activeCluster !== null && node.cluster !== activeCluster;
@@ -175,8 +206,6 @@ export function CortexScene({
           ref={caRef}
           blendFunction={BlendFunction.NORMAL}
           offset={isMobile ? new THREE.Vector2(0, 0) : caBaseOffset}
-          radialModulation={false}
-          modulationOffset={0.15}
         />
         <Noise
           blendFunction={BlendFunction.SCREEN}

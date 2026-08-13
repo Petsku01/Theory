@@ -4,6 +4,15 @@
 export class BurstSystem {
     free(): void;
     [Symbol.dispose](): void;
+    /**
+     * Apply a shockwave push to all particles.
+     * center: [cx, cy, cz] (3 f32s)
+     * radius: current shockwave radius
+     * force: outward push strength
+     * Applies radial velocity boost to particles within the shockwave ring
+     * (between radius * 0.8 and radius * 1.2).
+     */
+    apply_shockwave(center_ptr: number, center_len: number, radius: number, force: number): void;
     data_ptr(): number;
     has_spawned(): boolean;
     len(): number;
@@ -77,6 +86,9 @@ export class CameraSystem {
  *
  * Pulse data per edge (3 f32s):
  * [pulse_x, pulse_y, pulse_z]
+ *
+ * Wave data per edge (1 f32):
+ * [wave_intensity]  -- 0.0 = no wave, 1.0 = just arrived, decays over 0.5s
  */
 export class EdgeSystem {
     free(): void;
@@ -87,18 +99,31 @@ export class EdgeSystem {
      * Initialize edges from node positions and edge list.
      * from_positions: flat array [x0,y0,z0, x1,y1,z1, ...] for "from" nodes
      * to_positions: flat array [x0,y0,z0, x1,y1,z1, ...] for "to" nodes
-     * edge_indices: indices into the position arrays (from_idx, to_idx pairs)
+     * edge_count: number of edges
      * highlight_flags: 1 if this edge is highlighted (connects selected node), 0 otherwise
+     * edge_node_indices: flat array [from_idx0, to_idx0, from_idx1, to_idx1, ...] (edge_count * 2)
      * Returns pointer to cylinder data.
      */
-    init_edges(from_positions: number, to_positions: number, edge_count: number, highlight_flags: number): number;
+    init_edges(from_positions: number, to_positions: number, edge_count: number, highlight_flags: number, edge_node_indices: number): number;
     is_highlighted(index: number): boolean;
     len(): number;
     constructor();
     pulse_data_ptr(): number;
     pulse_stride(): number;
     /**
+     * Set wave decay duration (0.5s desktop, 0.8s mobile).
+     */
+    set_wave_decay(decay: number): void;
+    /**
+     * Trigger a connection wave from a source node using BFS.
+     * Each edge gets wave_arrival_time = current_time + hop_count * hop_delay.
+     * node_count: total number of nodes in the graph (for BFS visited array).
+     * hop_delay: seconds per hop (0.08 desktop, 0.15 mobile).
+     */
+    trigger_wave(source_node_idx: number, current_time: number, hop_delay: number, node_count: number): void;
+    /**
      * Update highlight flags (called when selection changes).
+     * Also speeds up pulses on highlighted edges.
      */
     update_highlights(flags: number): void;
     /**
@@ -107,6 +132,14 @@ export class EdgeSystem {
      * Returns pointer to pulse data (edge_count * 3 f32s).
      */
     update_pulses(from_positions: number, to_positions: number, elapsed: number): number;
+    /**
+     * Update wave intensities for all edges. Call per frame.
+     * elapsed: current clock time in seconds.
+     * Returns pointer to wave data (edge_count * WAVE_STRIDE f32s).
+     */
+    update_wave(elapsed: number): number;
+    wave_data_ptr(): number;
+    wave_stride(): number;
 }
 
 /**
@@ -276,6 +309,35 @@ export class ScrambleSystem {
     tick(): number;
 }
 
+export class ShockwaveSystem {
+    free(): void;
+    [Symbol.dispose](): void;
+    /**
+     * Get number of currently active shockwaves.
+     */
+    active_count(): number;
+    data_ptr(): number;
+    max_slots(): number;
+    constructor();
+    /**
+     * Set max concurrent shockwaves (3 desktop, 1 mobile).
+     */
+    set_max_count(max_count: number): void;
+    stride(): number;
+    /**
+     * Trigger a new shockwave at (cx, cy, cz) with given max_radius and speed.
+     * Finds the oldest (or first inactive) slot to reuse.
+     */
+    trigger(cx: number, cy: number, cz: number, max_radius: number, speed: number): void;
+    /**
+     * Update all shockwaves. Returns pointer to data buffer (max_count * 6 f32s).
+     * delta: frame delta time in seconds.
+     * Returns data where each slot is [cx, cy, cz, radius, opacity, intensity].
+     * Inactive slots have opacity=0 and intensity=0.
+     */
+    update(delta: number): number;
+}
+
 export class SpringCursor {
     free(): void;
     [Symbol.dispose](): void;
@@ -312,25 +374,8 @@ export interface InitOutput {
     readonly particlesystem_update: (a: number, b: number, c: number, d: number, e: number) => number;
     readonly particlesystem_update_colors: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => void;
     readonly particlesystem_update_with_flow: (a: number, b: number, c: number, d: number) => number;
-    readonly __wbg_scramblesystem_free: (a: number, b: number) => void;
-    readonly __wbg_springcursor_free: (a: number, b: number) => void;
-    readonly scramblesystem_data_ptr: (a: number) => number;
-    readonly scramblesystem_init: (a: number, b: number, c: number) => void;
-    readonly scramblesystem_is_complete: (a: number) => number;
-    readonly scramblesystem_len: (a: number) => number;
-    readonly scramblesystem_new: () => number;
-    readonly scramblesystem_reset: (a: number) => void;
-    readonly scramblesystem_reveal_next: (a: number) => void;
-    readonly scramblesystem_target_char: (a: number, b: number) => number;
-    readonly scramblesystem_tick: (a: number) => number;
-    readonly springcursor_get_opacity: (a: number) => number;
-    readonly springcursor_get_x: (a: number) => number;
-    readonly springcursor_get_y: (a: number) => number;
-    readonly springcursor_hide: (a: number) => void;
-    readonly springcursor_new: () => number;
-    readonly springcursor_set_target: (a: number, b: number, c: number) => void;
-    readonly springcursor_update: (a: number, b: number) => void;
     readonly __wbg_burstsystem_free: (a: number, b: number) => void;
+    readonly burstsystem_apply_shockwave: (a: number, b: number, c: number, d: number, e: number) => void;
     readonly burstsystem_data_ptr: (a: number) => number;
     readonly burstsystem_has_spawned: (a: number) => number;
     readonly burstsystem_len: (a: number) => number;
@@ -339,15 +384,9 @@ export interface InitOutput {
     readonly burstsystem_set_origin: (a: number, b: number, c: number, d: number) => void;
     readonly burstsystem_stride: (a: number) => number;
     readonly burstsystem_update: (a: number, b: number, c: number) => number;
-    readonly __wbg_gridgenerator_free: (a: number, b: number) => void;
-    readonly gridgenerator_data_ptr: (a: number) => number;
-    readonly gridgenerator_generate: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number) => number;
-    readonly gridgenerator_height: (a: number) => number;
-    readonly gridgenerator_len: (a: number) => number;
-    readonly gridgenerator_new: () => number;
-    readonly gridgenerator_width: (a: number) => number;
     readonly __wbg_camerasystem_free: (a: number, b: number) => void;
     readonly __wbg_layoutsystem_free: (a: number, b: number) => void;
+    readonly __wbg_springcursor_free: (a: number, b: number) => void;
     readonly camerasystem_clear_target: (a: number) => void;
     readonly camerasystem_data_ptr: (a: number) => number;
     readonly camerasystem_has_target: (a: number) => number;
@@ -361,9 +400,49 @@ export interface InitOutput {
     readonly layoutsystem_compute_cluster: (a: number, b: number, c: number, d: number, e: number, f: number) => number;
     readonly layoutsystem_len: (a: number) => number;
     readonly layoutsystem_new: () => number;
+    readonly springcursor_get_opacity: (a: number) => number;
+    readonly springcursor_get_x: (a: number) => number;
+    readonly springcursor_get_y: (a: number) => number;
+    readonly springcursor_hide: (a: number) => void;
+    readonly springcursor_new: () => number;
+    readonly springcursor_set_target: (a: number, b: number, c: number) => void;
+    readonly springcursor_update: (a: number, b: number) => void;
+    readonly layoutsystem_data_ptr: (a: number) => number;
+    readonly __wbg_edgesystem_free: (a: number, b: number) => void;
+    readonly edgesystem_cylinder_data_ptr: (a: number) => number;
+    readonly edgesystem_cylinder_stride: (a: number) => number;
+    readonly edgesystem_init_edges: (a: number, b: number, c: number, d: number, e: number, f: number) => number;
+    readonly edgesystem_is_highlighted: (a: number, b: number) => number;
+    readonly edgesystem_len: (a: number) => number;
+    readonly edgesystem_new: () => number;
+    readonly edgesystem_pulse_data_ptr: (a: number) => number;
+    readonly edgesystem_pulse_stride: (a: number) => number;
+    readonly edgesystem_set_wave_decay: (a: number, b: number) => void;
+    readonly edgesystem_trigger_wave: (a: number, b: number, c: number, d: number, e: number) => void;
+    readonly edgesystem_update_highlights: (a: number, b: number) => void;
+    readonly edgesystem_update_pulses: (a: number, b: number, c: number, d: number) => number;
+    readonly edgesystem_update_wave: (a: number, b: number) => number;
+    readonly edgesystem_wave_data_ptr: (a: number) => number;
+    readonly edgesystem_wave_stride: (a: number) => number;
+    readonly __wbg_gridgenerator_free: (a: number, b: number) => void;
+    readonly __wbg_scramblesystem_free: (a: number, b: number) => void;
+    readonly gridgenerator_data_ptr: (a: number) => number;
+    readonly gridgenerator_generate: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number) => number;
+    readonly gridgenerator_height: (a: number) => number;
+    readonly gridgenerator_len: (a: number) => number;
+    readonly gridgenerator_new: () => number;
+    readonly gridgenerator_width: (a: number) => number;
+    readonly scramblesystem_data_ptr: (a: number) => number;
+    readonly scramblesystem_init: (a: number, b: number, c: number) => void;
+    readonly scramblesystem_is_complete: (a: number) => number;
+    readonly scramblesystem_new: () => number;
+    readonly scramblesystem_reset: (a: number) => void;
+    readonly scramblesystem_reveal_next: (a: number) => void;
+    readonly scramblesystem_target_char: (a: number, b: number) => number;
+    readonly scramblesystem_tick: (a: number) => number;
+    readonly scramblesystem_len: (a: number) => number;
     readonly wasm_alloc: (a: number) => number;
     readonly wasm_free: (a: number, b: number) => void;
-    readonly layoutsystem_data_ptr: (a: number) => number;
     readonly __wbg_particlefield2d_free: (a: number, b: number) => void;
     readonly particlefield2d_count: (a: number) => number;
     readonly particlefield2d_data_ptr: (a: number) => number;
@@ -371,6 +450,15 @@ export interface InitOutput {
     readonly particlefield2d_new: () => number;
     readonly particlefield2d_stride: (a: number) => number;
     readonly particlefield2d_update: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => void;
+    readonly __wbg_shockwavesystem_free: (a: number, b: number) => void;
+    readonly shockwavesystem_active_count: (a: number) => number;
+    readonly shockwavesystem_data_ptr: (a: number) => number;
+    readonly shockwavesystem_max_slots: (a: number) => number;
+    readonly shockwavesystem_new: () => number;
+    readonly shockwavesystem_set_max_count: (a: number, b: number) => void;
+    readonly shockwavesystem_stride: (a: number) => number;
+    readonly shockwavesystem_trigger: (a: number, b: number, c: number, d: number, e: number, f: number) => void;
+    readonly shockwavesystem_update: (a: number, b: number) => number;
     readonly __wbg_nodeanimationsystem_free: (a: number, b: number) => void;
     readonly nodeanimationsystem_data_ptr: (a: number) => number;
     readonly nodeanimationsystem_init: (a: number, b: number, c: number, d: number) => void;
@@ -378,17 +466,6 @@ export interface InitOutput {
     readonly nodeanimationsystem_new: () => number;
     readonly nodeanimationsystem_stride: (a: number) => number;
     readonly nodeanimationsystem_update: (a: number, b: number, c: number, d: number) => number;
-    readonly __wbg_edgesystem_free: (a: number, b: number) => void;
-    readonly edgesystem_cylinder_data_ptr: (a: number) => number;
-    readonly edgesystem_cylinder_stride: (a: number) => number;
-    readonly edgesystem_init_edges: (a: number, b: number, c: number, d: number, e: number) => number;
-    readonly edgesystem_is_highlighted: (a: number, b: number) => number;
-    readonly edgesystem_len: (a: number) => number;
-    readonly edgesystem_new: () => number;
-    readonly edgesystem_pulse_data_ptr: (a: number) => number;
-    readonly edgesystem_pulse_stride: (a: number) => number;
-    readonly edgesystem_update_highlights: (a: number, b: number) => void;
-    readonly edgesystem_update_pulses: (a: number, b: number, c: number, d: number) => number;
     readonly __wbindgen_externrefs: WebAssembly.Table;
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_start: () => void;

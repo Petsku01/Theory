@@ -104,6 +104,10 @@ export function WasmBurstParticles({
       const ptr = wasm.burstsystem_new(count);
       burstPtr.current = ptr;
       wasmReady.current = true;
+      // Register global burst pointer for shockwave interaction
+      if (typeof window !== "undefined") {
+        (window as any).__cortexBurstPtr = ptr;
+      }
     };
 
     if (isCortexWasmReady()) {
@@ -119,6 +123,10 @@ export function WasmBurstParticles({
       if (burstPtr.current) {
         try { getCortexWasm()?.__wbg_burstsystem_free(burstPtr.current, 0); } catch {}
         burstPtr.current = 0;
+      }
+      // Unregister global burst pointer
+      if (typeof window !== "undefined") {
+        delete (window as any).__cortexBurstPtr;
       }
     };
   }, [count]);
