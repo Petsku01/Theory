@@ -1,93 +1,153 @@
 "use client";
 
-import React, { useMemo, useRef, useEffect, useState } from "react";
+import React, { useMemo, useRef, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { nodes, edges } from "@/lib/cortex-data";
-import {
-  CLUSTER_COLORS,
-  blendColors,
-  ensureCortexWasm,
-  isCortexWasmReady,
-  getCortexWasm,
-  writeF32ToWasm,
-  writeU32ToWasm,
-  freeWasmPtr,
-  type CortexWasmExports,
-} from "@/components/neural-cortex/utils";
+import { CLUSTER_COLORS } from "@/components/neural-cortex/utils";
 
-// ── Shared geometry for energy pulses ──
-const PULSE_GEOMETRY = /* @__PURE__ */ new THREE.SphereGeometry(1, 8, 8);
+// ── Shared geometry for energy pulses (sphereGeometry(1,12,12)) ──
+const PULSE_GEOMETRY = /* @__PURE__ */ new THREE.SphereGeometry(1, 12, 12);
 
-// ── Edge cylinder (JS fallback, also used for rendering) ──
-const EdgeCylinder = React.memo(function EdgeCylinder({
-  position,
-  quaternion,
-  length,
-  color,
-  opacity,
-  thickness,
-}: {
-  position: [number, number, number];
-  quaternion: THREE.Quaternion;
-  length: number;
-  color: string;
-  opacity: number;
-  thickness: number;
-}) {
-  return (
-    <mesh position={position} quaternion={quaternion} renderOrder={0}>
-      <cylinderGeometry args={[thickness, thickness, length, 6, 1]} />
-      <meshBasicMaterial color={color} transparent opacity={opacity} depthWrite={false} />
-    </mesh>
+// ── Create gradient cylinder geometry with vertex colors A→B ──
+function createGradientCylinder(
+  thickness: number,
+  length: number,
+  fromColor: THREE.Color,
+  toColor: THREE.Color,
+  radialSegments = 12
+): THREE.BufferGeometry {
+  const safeThickness = Math.max(0.001, thickness);
+  const safeLen = Math.max(0.001, length);
+  const geom = new THREE.CylinderGeometry(
+    safeThickness,
+    safeThickness,
+    safeLen,
+    radialSegments,
+    1
   );
-});
+  const positions = geom.attributes.position;
+  const colors = new Float32Array(positions.count * 3);
+  const halfLen = safeLen / 2;
+  for (let i = 0; i < positions.count; i++) {
+    const y = positions.getY(i);
+    // t=0 at bottom (from-end), t=1 at top (to-end)
+    const t = Math.max(0, Math.min(1, (y + halfLen) / safeLen));
+    colors[i * 3] = fromColor.r + (toColor.r - fromColor.r) * t;
+    colors[i * 3 + 1] = fromColor.g + (toColor.g - fromColor.g) * t;
+    colors[i * 3 + 2] = fromColor.b + (toColor.b - fromColor.b) * t;
+  }
+  geom.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+  return geom;
+}
 
-// ── Energy Pulse (WASM-computed position) ──
-function WasmEnergyPulse({
-  edgeIndex,
-  edgePtr,
-  wasm,
-  color,
-  opacity,
-  pulseSize = 0.05,
+// ── Pulse count by strength (mobile reduces by 1) ──
+function pulseCount(strength: number, isMobile: boolean): number {
+  const base = strength > 0.7 ? 3 : strength >= 0.4 ? 2 : 1;
+  return isMobile ? Math.max(1, base - 1) : base;
+}
+
+// ── Multi-pulse: N spheres travelling along edge, brightening at midpoint ──
+const MultiPulse = React.memo(function MultiPulse({
+  from,
+  to,
+  fromColor,
+  toColor,
+  count,
+  isHighlighted,
+  reducedMotion,
 }: {
-  edgeIndex: number;
-  edgePtr: number;
-  wasm: CortexWasmExports;
-  color: string;
-  opacity: number;
-  pulseSize?: number;
+  from: THREE.Vector3;
+  to: THREE.Vector3;
+  fromColor: THREE.Color;
+  toColor: THREE.Color;
+  count: number;
+  isHighlighted: boolean;
+  reducedMotion: boolean;
 }) {
-  const sphereRef = useRef<THREE.Mesh>(null);
+  const groupRef = useRef<THREE.Group>(null);
+  const posRef = useRef(new THREE.Vector3());
+  const colorRef = useRef(new THREE.Color());
+
+  const speed = isHighlighted ? 1.5 : 2.5;
+
+  // Evenly distributed phase offsets
+  const phases = useMemo(
+    () => Array.from({ length: count }, (_, i) => i / count),
+    [count]
+  );
+
+  // Set initial pulse positions (also used for reducedMotion static display)
+  useEffect(() => {
+    if (!groupRef.current) return;
+    for (let i = 0; i < groupRef.current.children.length; i++) {
+      const mesh = groupRef.current.children[i] as THREE.Mesh;
+      if (!mesh) continue;
+      const t = phases[i] ?? 0;
+      mesh.position.lerpVectors(from, to, t);
+      // Set initial color
+      const mat = mesh.material as THREE.MeshStandardMaterial;
+      colorRef.current.copy(fromColor).lerp(toColor, t);
+      mat.emissive.copy(colorRef.current);
+    }
+  }, [from, to, fromColor, toColor, phases]);
 
   useFrame((state) => {
-    if (!sphereRef.current || !edgePtr) return;
-    const pulsePtr = wasm.edgesystem_pulse_data_ptr(edgePtr);
-    const stride = wasm.edgesystem_pulse_stride(edgePtr);
-    const pulseData = new Float32Array(
-      wasm.memory.buffer,
-      pulsePtr + edgeIndex * stride * 4,
-      3
-    );
-    sphereRef.current.position.set(pulseData[0], pulseData[1], pulseData[2]);
+    if (reducedMotion || !groupRef.current) return;
+
+    const elapsed = state.clock.elapsedTime;
+    for (let i = 0; i < groupRef.current.children.length; i++) {
+      const mesh = groupRef.current.children[i] as THREE.Mesh;
+      if (!mesh) continue;
+
+      const offset = phases[i] ?? 0;
+      const t = ((elapsed / speed) + offset) % 1;
+
+      posRef.current.lerpVectors(from, to, t);
+      mesh.position.copy(posRef.current);
+
+      // Brighten at midpoint (t=0.5): brightness goes 0→1→0
+      const brightness = 1 - Math.abs(t - 0.5) * 2;
+
+      const mat = mesh.material as THREE.MeshStandardMaterial;
+      mat.emissiveIntensity = 0.5 + brightness * 2.5;
+
+      // Color blend along path
+      colorRef.current.copy(fromColor).lerp(toColor, t);
+      mat.emissive.copy(colorRef.current);
+    }
   });
 
   return (
-    <mesh ref={sphereRef} renderOrder={0} scale={pulseSize}>
-      <primitive object={PULSE_GEOMETRY} attach="geometry" />
-      <meshBasicMaterial color={color} transparent opacity={opacity} depthWrite={false} />
-    </mesh>
+    <group ref={groupRef}>
+      {Array.from({ length: count }, (_, i) => (
+        <mesh key={i} scale={0.06} renderOrder={1}>
+          <primitive object={PULSE_GEOMETRY} attach="geometry" />
+          <meshStandardMaterial
+            emissive={fromColor}
+            emissiveIntensity={0.5}
+            toneMapped={false}
+            transparent
+            opacity={isHighlighted ? 0.9 : 0.6}
+            depthWrite={false}
+          />
+        </mesh>
+      ))}
+    </group>
   );
-}
+});
 
-// ── All network edges with cluster-coloured wires & travelling pulses ──
+// ── All network edges with gradient vertex-color cylinders & multi-pulses ──
 export const NetworkEdges = React.memo(function NetworkEdges({
   positions,
   selectedId,
+  isMobile = false,
+  reducedMotion = false,
 }: {
   positions: Map<string, THREE.Vector3>;
   selectedId: string | null;
+  isMobile?: boolean;
+  reducedMotion?: boolean;
 }) {
   // Build id -> cluster map
   const nodeClusterMap = useMemo(() => {
@@ -96,319 +156,124 @@ export const NetworkEdges = React.memo(function NetworkEdges({
     return map;
   }, []);
 
-  // Compute edge data (colors, from/to positions -- NOT highlights)
+  // Compute edge data (stable — does NOT depend on selectedId)
   const edgeData = useMemo(() => {
     return edges
       .filter((e) => positions.has(e.from) && positions.has(e.to))
       .map((e) => {
         const fromPos = positions.get(e.from)!;
         const toPos = positions.get(e.to)!;
-        const clusterFrom = nodeClusterMap.get(e.from);
-        const clusterTo = nodeClusterMap.get(e.to);
-        const colorFrom = CLUSTER_COLORS[clusterFrom ?? ""] ?? "#00f0ff";
-        const colorTo = CLUSTER_COLORS[clusterTo ?? ""] ?? "#00f0ff";
-        const edgeColor =
-          clusterFrom === clusterTo
-            ? colorFrom
-            : blendColors(colorFrom, colorTo, 0.5);
+        const fromCluster = nodeClusterMap.get(e.from);
+        const toCluster = nodeClusterMap.get(e.to);
+        const fromColor = new THREE.Color(
+          CLUSTER_COLORS[fromCluster ?? ""] ?? "#00f0ff"
+        );
+        const toColor = new THREE.Color(
+          CLUSTER_COLORS[toCluster ?? ""] ?? "#00f0ff"
+        );
+        const blendColor = fromColor.clone().lerp(toColor, 0.5);
+
+        const direction = new THREE.Vector3().subVectors(toPos, fromPos);
+        const length = Math.max(0.001, direction.length());
+        const midpoint = new THREE.Vector3()
+          .addVectors(fromPos, toPos)
+          .multiplyScalar(0.5);
+        const quaternion = new THREE.Quaternion().setFromUnitVectors(
+          new THREE.Vector3(0, 1, 0),
+          direction.clone().normalize()
+        );
+
+        // Paksuus = 0.012 + edge.strength * 0.018
+        const thickness = 0.012 + e.strength * 0.018;
 
         return {
           key: `${e.from}-${e.to}`,
+          fromId: e.from,
+          toId: e.to,
           from: fromPos,
           to: toPos,
-          strength: e.strength,
-          color: edgeColor,
+          fromColor,
+          toColor,
+          blendColor,
+          position: [midpoint.x, midpoint.y, midpoint.z] as [
+            number,
+            number,
+            number
+          ],
+          quaternion,
+          length,
+          thickness,
+          pulseCount: pulseCount(e.strength, isMobile),
         };
       });
-  }, [positions, nodeClusterMap]);
+  }, [positions, nodeClusterMap, isMobile]);
 
-  // Compute highlight flags separately -- updates without re-creating WASM system
-  const highlightFlags = useMemo(() => {
-    const flags = new Uint32Array(edgeData.length);
-    edgeData.forEach((ed, i) => {
-      const e = edges.find((e) => `${e.from}-${e.to}` === ed.key);
-      flags[i] = (e && (selectedId === e.from || selectedId === e.to)) ? 1 : 0;
-    });
-    return flags;
-  }, [edgeData, selectedId]);
-
-  // ── WASM path ──
-  const edgePtr = useRef<number>(0);
-  const fromWasmPtrRef = useRef<number>(0);
-  const toWasmPtrRef = useRef<number>(0);
-  const fromPositionsRef = useRef<Float32Array | null>(null);
-  const toPositionsRef = useRef<Float32Array | null>(null);
-  const cylinderDataRef = useRef<{
-    positions: [number, number, number][];
-    quaternions: THREE.Quaternion[];
-    lengths: number[];
-  } | null>(null);
-  const [, setWasmReadyFlag] = useState(false);
-
-  // Initialize WASM edges when edgeData changes or WASM becomes ready
-  useEffect(() => {
-    if (!isCortexWasmReady() || !getCortexWasm() || edgeData.length === 0) {
-      if (!isCortexWasmReady()) {
-        ensureCortexWasm().then((ok) => { if (ok) setWasmReadyFlag(true); });
-      }
-      return;
-    }
-    const wasm = getCortexWasm()!;
-
-    // Free previous WASM memory if any
-    if (fromWasmPtrRef.current && fromPositionsRef.current) {
-      freeWasmPtr(wasm, fromWasmPtrRef.current, fromPositionsRef.current.length * 4);
-    }
-    if (toWasmPtrRef.current && toPositionsRef.current) {
-      freeWasmPtr(wasm, toWasmPtrRef.current, toPositionsRef.current.length * 4);
-    }
-    if (edgePtr.current) { try { wasm.__wbg_edgesystem_free(edgePtr.current, 0); } catch {} }
-
-    // Build flat position arrays
-    const fromArr = new Float32Array(edgeData.length * 3);
-    const toArr = new Float32Array(edgeData.length * 3);
-    const flags = new Uint32Array(edgeData.length);
-
-    edgeData.forEach((ed, i) => {
-      fromArr[i * 3] = ed.from.x;
-      fromArr[i * 3 + 1] = ed.from.y;
-      fromArr[i * 3 + 2] = ed.from.z;
-      toArr[i * 3] = ed.to.x;
-      toArr[i * 3 + 1] = ed.to.y;
-      toArr[i * 3 + 2] = ed.to.z;
-      flags[i] = highlightFlags[i] ?? 0;
-    });
-
-    const ptr = wasm.edgesystem_new();
-    edgePtr.current = ptr;
-
-    const fromWasmPtr = writeF32ToWasm(wasm, fromArr);
-    const toWasmPtr = writeF32ToWasm(wasm, toArr);
-    const flagsWasmPtr = writeU32ToWasm(wasm, flags);
-    const flagsByteLen = flags.length * 4;
-
-    try {
-      wasm.edgesystem_init_edges(ptr, fromWasmPtr, toWasmPtr, edgeData.length, flagsWasmPtr);
-
-      // Read cylinder data back
-      const cylPtr = wasm.edgesystem_cylinder_data_ptr(ptr);
-      const cylStride = wasm.edgesystem_cylinder_stride(ptr);
-      const cylData = new Float32Array(wasm.memory.buffer, cylPtr, edgeData.length * cylStride);
-
-      const cylPositions: [number, number, number][] = [];
-      const cylQuats: THREE.Quaternion[] = [];
-      const cylLengths: number[] = [];
-
-      for (let i = 0; i < edgeData.length; i++) {
-        const base = i * cylStride;
-        cylPositions.push([cylData[base], cylData[base + 1], cylData[base + 2]]);
-        cylLengths.push(cylData[base + 3]);
-        cylQuats.push(new THREE.Quaternion(cylData[base + 4], cylData[base + 5], cylData[base + 6], cylData[base + 7]));
-      }
-
-      cylinderDataRef.current = { positions: cylPositions, quaternions: cylQuats, lengths: cylLengths };
-      fromPositionsRef.current = fromArr;
-      toPositionsRef.current = toArr;
-      fromWasmPtrRef.current = fromWasmPtr;
-      toWasmPtrRef.current = toWasmPtr;
-    } catch (err) {
-      console.warn("[edges] WASM init failed, using JS fallback:", err);
-      edgePtr.current = 0;
-      freeWasmPtr(wasm, fromWasmPtr, fromArr.length * 4);
-      freeWasmPtr(wasm, toWasmPtr, toArr.length * 4);
-    } finally {
-      freeWasmPtr(wasm, flagsWasmPtr, flagsByteLen);
-    }
+  // Create gradient cylinder geometries (stable — only changes when edgeData changes)
+  const geometries = useMemo(() => {
+    return edgeData.map((ed) =>
+      createGradientCylinder(
+        ed.thickness,
+        ed.length,
+        ed.fromColor,
+        ed.toColor,
+        12
+      )
+    );
   }, [edgeData]);
 
-  // Cleanup on unmount
+  // Dispose geometries when they change or on unmount
   useEffect(() => {
     return () => {
-      const wasm = getCortexWasm();
-      if (!wasm) return;
-      if (fromWasmPtrRef.current && fromPositionsRef.current) {
-        freeWasmPtr(wasm, fromWasmPtrRef.current, fromPositionsRef.current.length * 4);
-      }
-      if (toWasmPtrRef.current && toPositionsRef.current) {
-        freeWasmPtr(wasm, toWasmPtrRef.current, toPositionsRef.current.length * 4);
-      }
-      if (edgePtr.current) { try { wasm.__wbg_edgesystem_free(edgePtr.current, 0); } catch {} }
-      edgePtr.current = 0;
-      fromWasmPtrRef.current = 0;
-      toWasmPtrRef.current = 0;
+      geometries.forEach((g) => g.dispose());
     };
-  }, []);
-
-  // ── JS fallback cylinder computation ──
-  const jsCylinderData = useMemo(() => {
-    if (edgePtr.current) return null; // WASM is handling it
-    return edgeData.map((ed) => {
-      const direction = new THREE.Vector3().subVectors(ed.to, ed.from);
-      const len = direction.length();
-      const midpoint = new THREE.Vector3().addVectors(ed.from, ed.to).multiplyScalar(0.5);
-      const orientation = new THREE.Quaternion().setFromUnitVectors(
-        new THREE.Vector3(0, 1, 0),
-        direction.normalize()
-      );
-      return {
-        position: midpoint,
-        quaternion: orientation,
-        length: len,
-      };
-    });
-  }, [edgeData]);
-
-  // Update WASM highlights without re-creating the system
-  useEffect(() => {
-    if (!edgePtr.current) return;
-    const wasm = getCortexWasm();
-    if (!wasm) return;
-    const flagsPtr = writeU32ToWasm(wasm, highlightFlags);
-    try {
-      wasm.edgesystem_update_highlights(edgePtr.current, flagsPtr);
-    } catch {
-      // Silent fail, highlights just won't update
-    } finally {
-      freeWasmPtr(wasm, flagsPtr, highlightFlags.length * 4);
-    }
-  }, [highlightFlags]);
-
-  // WASM per-frame pulse update (uses persistent from/to pointers, no malloc per frame)
-  useFrame((state) => {
-    if (!edgePtr.current || !fromWasmPtrRef.current || !toWasmPtrRef.current) return;
-    const wasm = getCortexWasm();
-    if (!wasm) return;
-    try {
-      wasm.edgesystem_update_pulses(
-        edgePtr.current,
-        fromWasmPtrRef.current,
-        toWasmPtrRef.current,
-        state.clock.elapsedTime
-      );
-    } catch {
-      // Silent fail, pulses just won't update
-    }
-  });
-
-  // ── Render ──
-  const useWasm = edgePtr.current > 0 && cylinderDataRef.current !== null;
-  const cylData = useWasm ? cylinderDataRef.current! : null;
+  }, [geometries]);
 
   return (
     <>
       {edgeData.map((ed, i) => {
-        const isHighlighted = highlightFlags[i] === 1;
-        const wireOpacity = isHighlighted ? 0.5 : 0.2;
-        const pulseOpacity = isHighlighted ? 1 : 0.5;
+        const isHighlighted =
+          selectedId !== null &&
+          (ed.fromId === selectedId || ed.toId === selectedId);
 
-        // Cylinder position/rotation
-        let position: [number, number, number];
-        let quaternion: THREE.Quaternion;
-        let length: number;
-
-        if (cylData && i < cylData.positions.length) {
-          position = cylData.positions[i];
-          quaternion = cylData.quaternions[i];
-          length = cylData.lengths[i];
-        } else if (jsCylinderData && i < jsCylinderData.length) {
-          position = [jsCylinderData[i].position.x, jsCylinderData[i].position.y, jsCylinderData[i].position.z];
-          quaternion = jsCylinderData[i].quaternion;
-          length = jsCylinderData[i].length;
-        } else {
-          // Fallback: compute inline
-          const direction = new THREE.Vector3().subVectors(ed.to, ed.from);
-          const len = direction.length();
-          const mid = new THREE.Vector3().addVectors(ed.from, ed.to).multiplyScalar(0.5);
-          const quat = new THREE.Quaternion().setFromUnitVectors(
-            new THREE.Vector3(0, 1, 0),
-            direction.normalize()
-          );
-          position = [mid.x, mid.y, mid.z];
-          quaternion = quat;
-          length = len;
-        }
+        const scale: [number, number, number] = isHighlighted
+          ? [1.5, 1, 1.5]
+          : [1, 1, 1];
 
         return (
           <group key={ed.key}>
-            {/* Thin wire */}
-            <EdgeCylinder
-              position={position}
-              quaternion={quaternion}
-              length={length}
-              color={ed.color}
-              opacity={wireOpacity}
-              thickness={0.02}
+            {/* Gradient edge cylinder — vertexColors + meshStandardMaterial emissive */}
+            <mesh
+              position={ed.position}
+              quaternion={ed.quaternion}
+              geometry={geometries[i]}
+              scale={scale}
+              renderOrder={0}
+            >
+              <meshStandardMaterial
+                vertexColors
+                emissive={ed.blendColor}
+                emissiveIntensity={isHighlighted ? 2.0 : 0.3}
+                transparent
+                opacity={isHighlighted ? 0.65 : 0.25}
+                depthWrite={false}
+                roughness={0.4}
+                metalness={0.3}
+              />
+            </mesh>
+
+            {/* Multi-pulse */}
+            <MultiPulse
+              from={ed.from}
+              to={ed.to}
+              fromColor={ed.fromColor}
+              toColor={ed.toColor}
+              count={ed.pulseCount}
+              isHighlighted={isHighlighted}
+              reducedMotion={reducedMotion}
             />
-            {/* Glow cylinder only when highlighted */}
-            {isHighlighted && (
-              <EdgeCylinder
-                position={position}
-                quaternion={quaternion}
-                length={length}
-                color={ed.color}
-                opacity={0.1}
-                thickness={0.04}
-              />
-            )}
-            {/* Travelling pulse */}
-            {useWasm && getCortexWasm() ? (
-              <WasmEnergyPulse
-                edgeIndex={i}
-                edgePtr={edgePtr.current}
-                wasm={getCortexWasm()!}
-                color={ed.color}
-                opacity={pulseOpacity}
-                pulseSize={0.05}
-              />
-            ) : (
-              <JSEnergyPulse
-                from={ed.from}
-                to={ed.to}
-                color={ed.color}
-                speed={isHighlighted ? 1.2 : 2.0}
-                opacity={pulseOpacity}
-                pulseSize={0.05}
-              />
-            )}
           </group>
         );
       })}
     </>
   );
 });
-
-// ── JS fallback EnergyPulse ──
-function JSEnergyPulse({
-  from,
-  to,
-  color,
-  speed = 2,
-  pulseSize = 0.06,
-  opacity = 1,
-}: {
-  from: THREE.Vector3;
-  to: THREE.Vector3;
-  color: string;
-  speed?: number;
-  pulseSize?: number;
-  opacity?: number;
-}) {
-  const sphereRef = useRef<THREE.Mesh>(null);
-  const offsetRef = useRef(Math.random() * speed);
-  const posRef = useRef(new THREE.Vector3());
-
-  useFrame((state) => {
-    if (!sphereRef.current) return;
-    const t = (state.clock.elapsedTime + offsetRef.current) % speed;
-    const progress = t / speed;
-    posRef.current.lerpVectors(from, to, progress);
-    sphereRef.current.position.copy(posRef.current);
-  });
-
-  return (
-    <mesh ref={sphereRef} renderOrder={0} scale={pulseSize}>
-      <primitive object={PULSE_GEOMETRY} attach="geometry" />
-      <meshBasicMaterial color={color} transparent opacity={opacity} depthWrite={false} />
-    </mesh>
-  );
-}

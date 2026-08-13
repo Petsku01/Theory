@@ -48,7 +48,7 @@ export default function NeuralCortex() {
 
   // Mobile: fewer particles, lower bloom. Desktop defaults.
   const particleCount = isMobile ? 1200 : 3600;
-  const bloomIntensity = isMobile ? 1.2 : 1.8;
+  const bloomIntensity = isMobile ? 1.2 : 2.2;
 
   const [panelNode, setPanelNode] = useState<CortexNode | null>(null);
   const [panelStage, setPanelStage] = useState<"show" | "hiding" | "hidden">(

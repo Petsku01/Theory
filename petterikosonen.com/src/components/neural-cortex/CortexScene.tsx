@@ -24,7 +24,7 @@ export function CortexScene({
   activeCluster,
   onHoverChange,
   particleCount = 3600,
-  bloomIntensity = 1.8,
+  bloomIntensity = 2.2,
   isMobile = false,
   reducedMotion = false,
 }: {
@@ -98,7 +98,12 @@ export function CortexScene({
             : "#00f0ff"
         }
       />
-      <NetworkEdges positions={positions} selectedId={selectedId} />
+      <NetworkEdges
+        positions={positions}
+        selectedId={selectedId}
+        isMobile={isMobile}
+        reducedMotion={reducedMotion}
+      />
 
       {nodes.map((node) => {
         const isDimmed = activeCluster !== null && node.cluster !== activeCluster;
@@ -110,6 +115,8 @@ export function CortexScene({
           isSelected={selectedId === node.id}
           isHovered={hoveredId === node.id}
           isDimmed={isDimmed}
+          isMobile={isMobile}
+          reducedMotion={reducedMotion}
           onSelect={handleSelect}
           onHover={handleHover}
         />
@@ -135,7 +142,7 @@ export function CortexScene({
       {/* Post-processing: Bloom only */}
       <EffectComposer>
         <Bloom
-          luminanceThreshold={0.35}
+          luminanceThreshold={0.22}
           luminanceSmoothing={0.9}
           intensity={bloomIntensity}
           mipmapBlur
