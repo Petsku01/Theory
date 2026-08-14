@@ -362,7 +362,7 @@ impl ParticleSystem {
             let pz = data[base + 2];
             let species = data[base + 12];
 
-            // ── 1. Find nearest cluster (X,Z plane only — pillars are vertical) ──
+            // ── 1. Find nearest cluster (X,Z plane only) ──
             let mut nearest_idx = 0usize;
             let mut nearest_dist_xz_sq = f32::MAX;
 
@@ -385,10 +385,10 @@ impl ParticleSystem {
             let cluster_x = attractors[ao];
             let cluster_y = attractors[ao + 1];
             let cluster_z = attractors[ao + 2];
-            let cluster_strength = attractors[ao + 6];
+            let _cluster_strength = attractors[ao + 6];
             let cluster_pulse_freq = attractors[ao + 7];
             let cluster_pulse_amp = attractors[ao + 8];
-            let cluster_active = attractors[ao + 9];
+            let _cluster_active = attractors[ao + 9];
             let cluster_boost = attractors[ao + 10];
 
             // Boost for active cluster
@@ -402,102 +402,129 @@ impl ParticleSystem {
                 cluster_boost
             };
 
-            // ── 2. Pillar height: 6-10 based on cluster strength, with breathing ──
-            let base_height = 6.0 + cluster_strength * 2.0; // 6-10 range
-            let pillar_height = (base_height * boost * 0.4 + 4.0) * breath_scale;
-            let pillar_height = pillar_height.clamp(4.0, 12.0);
+            // ── 2. X,Z distance to cluster center ──
+            let dx_xz = px - cluster_x;
+            let dz_xz = pz - cluster_z;
+            let dist_xz = (dx_xz * dx_xz + dz_xz * dz_xz).sqrt();
 
-            // ── 3. Particle phase (pseudo-random per particle) ──
+            // ── 3. Per-particle phase ──
             let particle_phase = pseudo_random(i, 42) * std::f32::consts::TAU;
 
             // ── 4. Species-specific parameters ──
-            // X,Z oscillation radius (units from cluster center) — large enough
-            // to form WIDE PILLARS, not thin lines.
-            // - IHMINEN: large wandering (curious, exploring surroundings)
-            // - KONE: medium rhythmic pillar
-            // - LUONTO: organic spreading
-            let (xz_oscillation, y_speed_mult, y_noise_strength) = if species == SPECIES_HUMAN {
-                // IHMINEN: large X,Z oscillation (curious, exploring)
-                (2.5, 1.0, 0.15)
+            // ball_osc: X,Z oscillation amplitude for cluster ball particles
+            // pillar_xz_radius: base radius for pillar particles around cluster
+            // pillar_y_range: Y range for pillar up/down movement
+            // y_noise_strength: organic Y noise
+            let (ball_osc, pillar_xz_radius, pillar_y_range, y_noise_strength) = if species == SPECIES_HUMAN {
+                // IHMINEN: medium ball, wide pillar, tall Y — curious explorer
+                (0.22, 3.0, 8.0 * breath_scale, 0.15)
             } else if species == SPECIES_MACHINE {
-                // KONE: medium X,Z oscillation, rhythmic Y (systematic pillar)
-                (1.5, 1.2, 0.02)
+                // KONE: tight ball, medium pillar, rhythmic Y — systematic
+                (0.15, 2.2, 6.0 * breath_scale, 0.02)
             } else {
-                // LUONTO: organic spreading, irregular
-                (3.0, 0.8, 0.3)
+                // LUONTO: organic ball, wide spreading pillar, irregular Y
+                (0.28, 3.5, 7.0 * breath_scale, 0.3)
             };
 
-            // ── 5. X,Z: lerp toward cluster center with species-specific oscillation ──
-            let lerp_factor = if cluster_active > 0.5 { LERP_SPEED } else { LERP_SPEED * 0.3 };
+            // Pillar Y range with boost
+            let pillar_y_range = (pillar_y_range * boost * 0.5 + 3.0).clamp(3.0, 12.0);
 
-            // Oscillation: species-specific wandering around cluster center
-            let osc_t = time * 0.5 + particle_phase;
-            let osc_x = (osc_t).sin() * xz_oscillation;
-            let osc_z = (osc_t * 1.3 + 1.0).sin() * xz_oscillation;
+            let mut final_px: f32;
+            let mut final_py: f32;
+            let mut final_pz: f32;
 
-            // Human: extra curiosity oscillation (scaled to match larger pillars)
-            let (extra_osc_x, extra_osc_z) = if species == SPECIES_HUMAN {
-                let t2 = time * 0.8 + particle_phase * 2.0;
-                ((t2).sin() * 1.0, (t2 * 0.7).cos() * 1.0)
+            if dist_xz < 1.5 {
+                // ═══════════════════════════════════════════════════════════
+                // KLUSTERIPALLO: tiivis partikkelipallo klusterin ympärillä
+                // Partikkelit kerääntyvät tiiviisti klusterikeskukseen
+                // ═══════════════════════════════════════════════════════════
+
+                // Lerp X,Z toward cluster center with small oscillation
+                let osc_t = time * 0.8 + particle_phase;
+                let osc_x = (osc_t).sin() * ball_osc;
+                let osc_z = (osc_t * 1.3 + 1.0).sin() * ball_osc;
+
+                // Y: keep near cluster_y with small spherical variation
+                let osc_y = (time * 0.6 + particle_phase * 1.7).sin() * 0.9;
+
+                // Strong pull toward center for dense ball
+                let ball_lerp = 0.10;
+                final_px = px + (cluster_x + osc_x - px) * ball_lerp;
+                final_pz = pz + (cluster_z + osc_z - pz) * ball_lerp;
+                final_py = cluster_y + osc_y + (py - cluster_y) * 0.7;
+
+            } else if dist_xz < 4.0 {
+                // ═══════════════════════════════════════════════════════════
+                // PILARI: sylinterimäinen pilvi — Y liikkuu ylös-alas,
+                // X,Z heilahtelee klusterin ympärillä (säde 1.5-4.0)
+                // X,Z heilahtelu TARPEKSII suuri → PAKSUT pilarit
+                // ═══════════════════════════════════════════════════════════
+
+                // Each particle gets a pseudo-random base radius in [1.5, 4.0)
+                let base_radius = 1.5 + pseudo_random(i, 99) * 2.5;
+
+                // Orbital angle — slowly rotating around cluster
+                let orbit_angle = particle_phase + time * 0.25;
+
+                // Target position on a cylinder around cluster center
+                let target_x = cluster_x + orbit_angle.cos() * base_radius;
+                let target_z = cluster_z + orbit_angle.sin() * base_radius;
+
+                // Large X,Z wobble for THICK pillars (not thin lines!)
+                let wobble_t = time * 0.4 + particle_phase;
+                let wobble_x = (wobble_t).sin() * pillar_xz_radius * 0.35;
+                let wobble_z = (wobble_t * 1.3 + 1.0).sin() * pillar_xz_radius * 0.35;
+
+                final_px = px + (target_x + wobble_x - px) * LERP_SPEED;
+                final_pz = pz + (target_z + wobble_z - pz) * LERP_SPEED;
+
+                // Y: sinusoidal pillar flow — up and down through cluster
+                let pillar_speed = cluster_pulse_freq;
+
+                let y_base = if species == SPECIES_NATURE {
+                    // Luonto: organic, irregular Y
+                    let n1 = (time * pillar_speed + particle_phase).sin();
+                    let n2 = (time * pillar_speed * 0.37 + particle_phase * 1.7).sin() * 0.3;
+                    let n3 = (time * pillar_speed * 2.1 + particle_phase * 0.5).sin() * 0.1;
+                    (n1 + n2 + n3) / 1.4
+                } else if species == SPECIES_MACHINE {
+                    // Kone: clean systematic sine
+                    (time * pillar_speed + particle_phase).sin()
+                } else {
+                    // Ihminen: sine with slight wobble
+                    let n1 = (time * pillar_speed + particle_phase).sin();
+                    let n2 = (time * pillar_speed * 0.5 + particle_phase * 0.3).sin() * 0.1;
+                    (n1 + n2) / 1.1
+                };
+
+                // Light Y curl noise for organic variation
+                let (_cnx, cny, _cnz) = curl_noise(px * 0.3 + time * 0.05, py * 0.3, pz * 0.3);
+                let y_noise = cny * y_noise_strength;
+
+                final_py = cluster_y + y_base * pillar_y_range + y_noise;
+
             } else {
-                (0.0, 0.0)
-            };
+                // ═══════════════════════════════════════════════════════════
+                // RETURN: liian kaukana → lerp kohti lähintä klusteria
+                // ═══════════════════════════════════════════════════════════
 
-            let target_x = cluster_x + osc_x + extra_osc_x;
-            let target_z = cluster_z + osc_z + extra_osc_z;
+                let return_lerp = 0.06;
+                final_px = px + (cluster_x - px) * return_lerp;
+                final_pz = pz + (cluster_z - pz) * return_lerp;
+                final_py = py + (cluster_y - py) * return_lerp;
+            }
 
-            let new_px = px + (target_x - px) * lerp_factor;
-            let new_pz = pz + (target_z - pz) * lerp_factor;
-
-            // ── 6. Y: pillar flow — sinusoidal up/down through cluster ──
-            let pillar_speed = cluster_pulse_freq * y_speed_mult;
-
-            let y_base = if species == SPECIES_NATURE {
-                // Luonto: organic, irregular Y — add noise harmonics
-                let n1 = (time * pillar_speed + particle_phase).sin();
-                let n2 = (time * pillar_speed * 0.37 + particle_phase * 1.7).sin() * 0.3;
-                let n3 = (time * pillar_speed * 2.1 + particle_phase * 0.5).sin() * 0.1;
-                (n1 + n2 + n3) / 1.4 // normalized to ~[-1, 1]
-            } else if species == SPECIES_MACHINE {
-                // Kone: systematic, clean sine
-                (time * pillar_speed + particle_phase).sin()
-            } else {
-                // Ihminen: standard sine with slight wobble
-                let n1 = (time * pillar_speed + particle_phase).sin();
-                let n2 = (time * pillar_speed * 0.5 + particle_phase * 0.3).sin() * 0.1;
-                (n1 + n2) / 1.1
-            };
-
-            // Light Y-only curl noise for organic variation
-            let (_cnx, cny, _cnz) = curl_noise(px * 0.3 + time * 0.05, py * 0.3, pz * 0.3);
-            let y_noise = cny * y_noise_strength;
-
-            let new_py = cluster_y + y_base * pillar_height + y_noise;
-
-            // ── 7. Hover influence: mild X,Z pull toward cursor for all species ──
-            let mut final_px = new_px;
-            let mut final_pz = new_pz;
-            let mut final_py = new_py;
-
+            // ── 5. Hover influence: mild X,Z pull toward cursor ──
             if has_hover {
-                let hdx = hover_x - new_px;
-                let hdz = hover_z - new_pz;
+                let hdx = hover_x - final_px;
+                let hdz = hover_z - final_pz;
                 let hdist_xz = (hdx * hdx + hdz * hdz).sqrt() + 0.001;
                 let hover_pull = if species == SPECIES_HUMAN { 0.03 } else { 0.01 };
                 final_px += (hdx / hdist_xz) * hover_pull;
                 final_pz += (hdz / hdist_xz) * hover_pull;
-
-                // Bioluminescence: particles near cursor glow brighter
-                let hdy = hover_y - new_py;
-                let hdist_sq = hdx * hdx + hdy * hdy + hdz * hdz;
-                let _bio_boost = if hdist_sq < 9.0 {
-                    (1.0 - (hdist_sq / 9.0).sqrt()) * 0.4
-                } else {
-                    0.0
-                };
             }
 
-            // ── 8. Boundary: Y ±12 (pillars need space), X,Z ±12 ──
+            // ── 6. Boundary clamping ──
             final_px = final_px.clamp(-bounds[0], bounds[0]);
             final_py = final_py.clamp(-bounds[1], bounds[1]);
             final_pz = final_pz.clamp(-bounds[2], bounds[2]);
@@ -514,12 +541,11 @@ impl ParticleSystem {
             data[base + 4] = vy;
             data[base + 5] = vz;
 
-            // ── 9. Color: species base color blended with cluster color ──
+            // ── 7. Color: species base color blended with cluster color ──
             let cr = attractors[ao + 3];
             let cg = attractors[ao + 4];
             let cb = attractors[ao + 5];
 
-            // Distance to cluster center in 3D for color blending
             let dx3 = final_px - cluster_x;
             let dy3 = final_py - cluster_y;
             let dz3 = final_pz - cluster_z;
@@ -532,7 +558,6 @@ impl ParticleSystem {
             };
             let t = t.clamp(0.0, 1.0);
 
-            // Species base color
             let (sr, sg, sb) = if species == SPECIES_HUMAN {
                 (HUMAN_R, HUMAN_G, HUMAN_B)
             } else if species == SPECIES_MACHINE {
@@ -541,15 +566,13 @@ impl ParticleSystem {
                 (NATURE_R, NATURE_G, NATURE_B)
             };
 
-            // Blend: species color → cluster color based on proximity
             data[base + 8]  = sr + (cr - sr) * t * 0.6;
             data[base + 9]  = sg + (cg - sg) * t * 0.6;
             data[base + 10] = sb + (cb - sb) * t * 0.6;
 
-            // ── 10. Pulsing alpha + bioluminescence ──
-            let brightness = 0.3 + t * 0.5; // closer = brighter
+            // ── 8. Pulsing alpha + bioluminescence ──
+            let brightness = 0.3 + t * 0.5;
 
-            // Bioluminescence: particles near cursor glow brighter
             let mut bio_boost = 0.0;
             if has_hover {
                 let hdx = hover_x - final_px;

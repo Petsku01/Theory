@@ -1,20 +1,119 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
+import { OrbitControls, Html } from "@react-three/drei";
 import { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import * as THREE from "three";
-// clusterPositions still used by targetPosition memo below
 import { clusterPositions } from "@/lib/cortex-data";
+import { CLUSTER_COLORS } from "@/components/neural-cortex/utils";
 import { CameraController } from "@/components/neural-cortex/CameraController";
 import { FlowFieldParticles } from "@/components/neural-cortex/FlowFieldParticles";
-import { ClusterMarkers } from "@/components/neural-cortex/ClusterMarkers";
 
 // ── SYMBIOOSIS: Cursor = navigation, no traditional navbar ──
 // Particles respond to cursor position via raycaster.
-// No ClusterLabels or ClusterPickTarget — the organism is the navigation.
+// NO ClusterMarkers — the organism IS the particles.
+// Invisible click-target spheres handle cluster selection.
+
+const CLUSTER_KEYS = ["core", "projects", "skills", "experience", "research"] as const;
+
+const CLUSTER_LABELS: Record<string, string> = {
+  core: "Core",
+  projects: "Projects",
+  skills: "Skills",
+  experience: "Experience",
+  research: "Research",
+};
+
+// ── Invisible click-target sphere for one cluster ──
+function ClickTarget({
+  clusterKey,
+  position,
+  color,
+  label,
+  isActive,
+  onClick,
+}: {
+  clusterKey: string;
+  position: [number, number, number];
+  color: string;
+  label: string;
+  isActive: boolean;
+  onClick: () => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+  const colorObj = useMemo(() => new THREE.Color(color), [color]);
+
+  return (
+    <group position={position}>
+      {/* Invisible click-target sphere — visible=false but still raycastable */}
+      <mesh
+        visible={false}
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick();
+        }}
+        onPointerOver={(e) => {
+          e.stopPropagation();
+          setHovered(true);
+          document.body.style.cursor = "pointer";
+        }}
+        onPointerOut={() => {
+          setHovered(false);
+          document.body.style.cursor = "default";
+        }}
+      >
+        <sphereGeometry args={[1.5, 16, 16]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
+
+      {/* Html label — shown on hover or when active */}
+      <Html
+        position={[0, 1.8, 0]}
+        center
+        distanceFactor={10}
+        zIndexRange={[10, 0]}
+        style={{
+          pointerEvents: "none",
+          userSelect: "none",
+        }}
+      >
+        <div
+          style={{
+            fontFamily: "monospace",
+            fontSize: "11px",
+            fontWeight: isActive ? "bold" : "normal",
+            color: isActive ? color : hovered ? color : "rgba(203, 213, 225, 0.7)",
+            textShadow: `0 0 8px ${color}80`,
+            whiteSpace: "nowrap",
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+            transition: "all 0.2s ease",
+            opacity: isActive || hovered ? 1 : 0.5,
+          }}
+        >
+          {label}
+        </div>
+      </Html>
+
+      {/* Subtle glow ring when active (no mesh sphere, just a faint ring) */}
+      {isActive && (
+        <mesh rotation={[Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[1.2, 1.4, 32]} />
+          <meshBasicMaterial
+            color={colorObj}
+            transparent
+            opacity={0.3}
+            depthWrite={false}
+            blending={THREE.AdditiveBlending}
+          />
+        </mesh>
+      )}
+    </group>
+  );
+}
+
 export function CortexScene({
   activeCluster,
   onClusterSelect,
@@ -41,7 +140,6 @@ export function CortexScene({
   const cursorTargetRef = useRef<THREE.Vector3 | null>(null);
 
   // Compute hover target from cursor position
-  // The cursor position acts as the hover attractor for particles
   const hoverTarget = useMemo(() => {
     return cursorTargetRef.current;
   }, []);
@@ -53,6 +151,16 @@ export function CortexScene({
     if (!pos) return null;
     return new THREE.Vector3(pos[0], pos[1], pos[2]);
   }, [activeCluster]);
+
+  // Build click-target data
+  const clickTargets = useMemo(() => {
+    return CLUSTER_KEYS.map((key) => {
+      const pos = clusterPositions[key] ?? [0, 0, 0];
+      const color = CLUSTER_COLORS[key] ?? "#00f0ff";
+      const label = CLUSTER_LABELS[key] ?? key;
+      return { key, position: pos as [number, number, number], color, label };
+    });
+  }, []);
 
   // Track cursor position in 3D via raycaster — this IS the navigation
   useEffect(() => {
@@ -74,11 +182,6 @@ export function CortexScene({
     window.addEventListener("pointermove", handlePointerMove, { passive: true });
     return () => window.removeEventListener("pointermove", handlePointerMove);
   }, [raycaster, camera, pointer, reducedMotion]);
-
-  // NOTE: Cluster click handling is done by R3F mesh onClick in ClusterMarkers.
-  // The old window-level click handler raycasted to z=0 plane, which made all
-  // non-core clusters (at z=±5) unreachable because dz²=25 ≥ threshold.
-  // onPointerMissed on the Canvas handles deselection (see NeuralCortex.tsx).
 
   // Breathing cycle for the whole group
   useFrame((state) => {
@@ -109,11 +212,25 @@ export function CortexScene({
           hoverTarget={hoverTarget}
           reducedMotion={reducedMotion}
         />
-        <ClusterMarkers
-          activeCluster={activeCluster}
-          onClusterSelect={onClusterSelect}
-          reducedMotion={reducedMotion}
-        />
+
+        {/* Invisible click-targets + Html labels (no visible mesh spheres) */}
+        {clickTargets.map((t) => (
+          <ClickTarget
+            key={t.key}
+            clusterKey={t.key}
+            position={t.position}
+            color={t.color}
+            label={t.label}
+            isActive={activeCluster === t.key}
+            onClick={() => {
+              if (activeCluster === t.key) {
+                onClusterSelect(null);
+              } else {
+                onClusterSelect(t.key);
+              }
+            }}
+          />
+        ))}
       </group>
 
       <CameraController
