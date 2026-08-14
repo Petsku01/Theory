@@ -114,7 +114,7 @@ export default function NeuralCortex() {
           {/* Hint text for the user */}
           <div className="pointer-events-none absolute bottom-6 left-1/2 z-20 -translate-x-1/2 select-none">
             <span className="font-mono text-[10px] text-slate-500/70 tracking-wide">
-              move cursor to explore · click near an organ to focus
+              move cursor to explore · click areas to explore
             </span>
           </div>
 

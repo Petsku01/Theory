@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
-import { useFrame, useThree } from "@react-three/fiber";
+import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import {
   createSoftCircleTexture,
@@ -21,9 +21,9 @@ import { clusterPositions, clusterSymbiosis, SPECIES_COLORS } from "@/lib/cortex
 
 const CLUSTER_KEYS = ["core", "projects", "skills", "experience", "research"] as const;
 
-// Attractor data: 5 clusters × 12 f32 per cluster
-// [pos_x, pos_y, pos_z, color_r, color_g, color_b, strength, pulse_freq, pulse_amp, active, boost, _pad]
-const ATTRACTOR_STRIDE = 12;
+// Attractor data: 5 clusters × 13 f32 per cluster
+// [pos_x, pos_y, pos_z, color_r, color_g, color_b, strength, pulse_freq, pulse_amp, boost, species_human, species_machine, species_nature]
+const ATTRACTOR_STRIDE = 13;
 
 export interface FlowFieldParticlesProps {
   count?: number;
@@ -42,10 +42,8 @@ export function FlowFieldParticles({
   const wasmReady = useRef(false);
   const particlePtr = useRef<number>(0);
   const wasmDataRef = useRef<Float32Array | null>(null);
-  const attractorDataRef = useRef<Float32Array>(new Float32Array(CLUSTER_KEYS.length * ATTRACTOR_STRIDE));
   const attractorPtrRef = useRef<number>(0);
-  const { raycaster, camera, pointer } = useThree();
-  const cursorPosRef = useRef<THREE.Vector3>(new THREE.Vector3());
+  const attractorWasmViewRef = useRef<Float32Array | null>(null);
 
   // Build static attractor data (positions, colors, strengths, pulse params)
   const attractorData = useMemo(() => {
@@ -67,9 +65,10 @@ export function FlowFieldParticles({
       data[o + 6] = 2.0;      // strength — strong enough to pull particles to nearest cluster
       data[o + 7] = symbiosis.pulseFreq; // pulse_freq
       data[o + 8] = 0.13;     // pulse_amp
-      data[o + 9] = 1.0;      // active (all active by default)
-      data[o + 10] = 1.0;     // boost (default)
-      data[o + 11] = 0.0;     // _pad
+      data[o + 9] = 1.0;      // boost (default)
+      data[o + 10] = symbiosis.speciesWeights[0];
+      data[o + 11] = symbiosis.speciesWeights[1];
+      data[o + 12] = symbiosis.speciesWeights[2];
     });
 
     return data;
@@ -128,6 +127,9 @@ export function FlowFieldParticles({
       if (!wasm) return;
       const ptr = wasm.particlesystem_new(count, 12, 12, 12);
       particlePtr.current = ptr;
+      const attractorPtr = writeF32ToWasm(wasm, attractorData);
+      attractorPtrRef.current = attractorPtr;
+      attractorWasmViewRef.current = new Float32Array(wasm.memory.buffer, attractorPtr, attractorData.length);
       wasmReady.current = true;
       setParticleWasmStatus("wasm");
     };
@@ -165,26 +167,6 @@ export function FlowFieldParticles({
     };
   }, [material, texture]);
 
-  // Track cursor position in 3D via raycaster — cursor = user "juuret"
-  useEffect(() => {
-    if (reducedMotion) return;
-    const handlePointerMove = (e: PointerEvent) => {
-      pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
-      pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
-      // Raycast from camera through pointer into scene
-      raycaster.setFromCamera(pointer, camera);
-      // Project onto z=0 plane for a 3D hover target
-      const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
-      const intersect = new THREE.Vector3();
-      raycaster.ray.intersectPlane(plane, intersect);
-      if (intersect) {
-        cursorPosRef.current.copy(intersect);
-      }
-    };
-    window.addEventListener("pointermove", handlePointerMove, { passive: true });
-    return () => window.removeEventListener("pointermove", handlePointerMove);
-  }, [raycaster, camera, pointer, reducedMotion]);
-
   // Animation loop
   useFrame((state) => {
     if (typeof document !== "undefined" && document.hidden) return;
@@ -201,43 +183,27 @@ export function FlowFieldParticles({
       const ptr = particlePtr.current;
       const time = state.clock.elapsedTime;
 
-      // Update attractor data: set active flags and boost based on activeCluster
-      const attractors = attractorDataRef.current;
-      attractors.set(attractorData); // reset to base
-
       const activeIdx = activeCluster ? CLUSTER_KEYS.indexOf(activeCluster as typeof CLUSTER_KEYS[number]) : -1;
-
-      for (let a = 0; a < CLUSTER_KEYS.length; a++) {
-        const o = a * ATTRACTOR_STRIDE;
-        if (activeIdx >= 0) {
-          attractors[o + 9] = 1.0; // all still active
-        } else {
-          attractors[o + 9] = 1.0;
-        }
-      }
-
-      // Write attractor data to WASM memory
       const wasm2 = getCortexWasm();
-      if (!wasm2) return;
+      if (!wasm2 || !attractorPtrRef.current) return;
 
-      // Free previous allocation if any
-      if (attractorPtrRef.current) {
-        try { freeWasmPtr(wasm2, attractorPtrRef.current, attractors.length * 4); } catch {}
+      const attractorWasmView = attractorWasmViewRef.current;
+      if (!attractorWasmView || attractorWasmView.buffer !== wasm2.memory.buffer) {
+        attractorWasmViewRef.current = new Float32Array(wasm2.memory.buffer, attractorPtrRef.current, attractorData.length);
       }
-      attractorPtrRef.current = writeF32ToWasm(wasm2, attractors);
 
-      // Cursor hover: use the raycasted 3D position as hover target
-      const hasHover = !reducedMotion;
-      const hx = cursorPosRef.current.x;
-      const hy = cursorPosRef.current.y;
-      const hz = cursorPosRef.current.z;
+      // Cursor hover tulee CortexScenestä
+      const hasHover = !reducedMotion && hoverTarget !== null;
+      const hx = hoverTarget?.x ?? 0;
+      const hy = hoverTarget?.y ?? 0;
+      const hz = hoverTarget?.z ?? 0;
 
       // Call update_clusters with cursor as hover attractor
       wasm2.particlesystem_update_clusters(
         ptr,
         time,
         attractorPtrRef.current,
-        attractors.length,
+        attractorData.length,
         CLUSTER_KEYS.length,
         activeIdx,
         hx,
@@ -298,11 +264,6 @@ export function FlowFieldParticles({
         if (Math.abs(pos[idx + 1]) > 12) pos[idx + 1] *= -0.95;
         if (Math.abs(pos[idx + 2]) > 12) pos[idx + 2] *= -0.95;
 
-        // Species-based color (JS fallback)
-        const species = i % 3;
-        const colorHex = SPECIES_COLORS[species] ?? "#22D3EE";
-        const c = new THREE.Color(colorHex);
-
         // Blend toward nearest cluster
         let nearestIdx = 0;
         let nearestDistSq = Infinity;
@@ -321,11 +282,21 @@ export function FlowFieldParticles({
         const t2 = nearestDistSq < blendRadius * blendRadius
           ? Math.max(0, 1 - Math.sqrt(nearestDistSq) / blendRadius)
           : 0;
+        const speciesWeights = clusterSymbiosis[CLUSTER_KEYS[nearestIdx]]?.speciesWeights ?? [0.33, 0.33, 0.34];
+        const speciesRoll = ((Math.sin(i * 12.9898 + nearestIdx * 78.233) * 43758.5453) % 1 + 1) % 1;
+        const species = speciesRoll < speciesWeights[0]
+          ? 0
+          : speciesRoll < speciesWeights[0] + speciesWeights[1]
+            ? 1
+            : 2;
+        const colorHex = SPECIES_COLORS[species] ?? "#22D3EE";
+        const c = new THREE.Color(colorHex);
         const clusterColorHex = CLUSTER_COLORS[CLUSTER_KEYS[nearestIdx]] ?? "#00f0ff";
         const cc = new THREE.Color(clusterColorHex);
-        col[idx] = c.r + (cc.r - c.r) * t2 * 0.6;
-        col[idx + 1] = c.g + (cc.g - c.g) * t2 * 0.6;
-        col[idx + 2] = c.b + (cc.b - c.b) * t2 * 0.6;
+        const speciesMix = 0.1 + (1 - t2) * 0.3;
+        col[idx] = cc.r + (c.r - cc.r) * speciesMix;
+        col[idx + 1] = cc.g + (c.g - cc.g) * speciesMix;
+        col[idx + 2] = cc.b + (c.b - cc.b) * speciesMix;
       }
 
       posAttr.needsUpdate = true;

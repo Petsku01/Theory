@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { nodes, type CortexNode } from "@/lib/cortex-data";
+import { CLUSTER_COLORS } from "@/components/neural-cortex/utils";
 
 // ── Cluster labels ──
 const CLUSTER_LABELS: Record<string, string> = {
@@ -11,15 +12,6 @@ const CLUSTER_LABELS: Record<string, string> = {
   skills: "Skills",
   experience: "Experience",
   research: "Research",
-};
-
-// ── Cluster colors (matches CLUSTER_COLORS in utils.ts) ──
-const CLUSTER_COLORS: Record<string, string> = {
-  core: "#00f0ff",
-  projects: "#a855f7",
-  skills: "#22d3ee",
-  experience: "#f59e0b",
-  research: "#ef4444",
 };
 
 // ── Core intro text (special case: core has only one node) ──

@@ -71,8 +71,8 @@ impl ParticleSystem {
             data[base + 9]  = DEFAULT_G;
             data[base + 10] = DEFAULT_B;
             // base + 11 is padding / reserved
-            // base + 12 is species: 33% ihminen (0), 33% kone (1), 34% luonto (2)
-            data[base + 12] = (i % 3) as f32;
+            // base + 12 is species: set to HUMAN by default, overridden by init_species_from_clusters
+            data[base + 12] = SPECIES_HUMAN;
         }
         ParticleSystem {
             data,
@@ -298,8 +298,8 @@ impl ParticleSystem {
     /// - Breathing: pillar_height scales with sin(time * 0.15) * 0.1
     /// - Light Y-only curl noise for organic variation
     ///
-    /// `attractors` — flat f32 array, `attractor_count × 12`:
-    ///   [pos_x, pos_y, pos_z, color_r, color_g, color_b, strength, pulse_freq, pulse_amp, active, boost, _pad]
+    /// `attractors` — flat f32 array, `attractor_count × 13`:
+    ///   [pos_x, pos_y, pos_z, color_r, color_g, color_b, strength, pulse_freq, pulse_amp, boost, species_human, species_machine, species_nature]
     /// `active_cluster` — -1 = no selection, 0..N = selected cluster index
     /// `hover_x/y/z` + `has_hover` — optional hover attractor (cursori = käyttäjän "juuret")
     ///
@@ -331,7 +331,7 @@ impl ParticleSystem {
         let breath_scale = 1.0 + breath;
 
         // Validate attractor data
-        if attractor_count == 0 || attractors.len() < attractor_count * 12 {
+        if attractor_count == 0 || attractors.len() < attractor_count * 13 {
             // Fallback: gentle drift without attractors
             for i in 0..count {
                 let base = i * PARTICLE_STRIDE;
@@ -360,14 +360,12 @@ impl ParticleSystem {
             let px = data[base];
             let py = data[base + 1];
             let pz = data[base + 2];
-            let species = data[base + 12];
-
             // ── 1. Find nearest cluster (X,Z plane only) ──
             let mut nearest_idx = 0usize;
             let mut nearest_dist_xz_sq = f32::MAX;
 
             for a in 0..attractor_count {
-                let ao = a * 12;
+                let ao = a * 13;
                 let ax = attractors[ao];
                 let az = attractors[ao + 2];
 
@@ -381,15 +379,34 @@ impl ParticleSystem {
                 }
             }
 
-            let ao = nearest_idx * 12;
+            let ao = nearest_idx * 13;
             let cluster_x = attractors[ao];
             let cluster_y = attractors[ao + 1];
             let cluster_z = attractors[ao + 2];
             let _cluster_strength = attractors[ao + 6];
             let cluster_pulse_freq = attractors[ao + 7];
             let cluster_pulse_amp = attractors[ao + 8];
-            let _cluster_active = attractors[ao + 9];
-            let cluster_boost = attractors[ao + 10];
+            let cluster_boost = attractors[ao + 9];
+
+            let species_human = attractors[ao + 10].max(0.0);
+            let species_machine = attractors[ao + 11].max(0.0);
+            let species_nature = attractors[ao + 12].max(0.0);
+            let species_total = species_human + species_machine + species_nature;
+            let species_roll = pseudo_random(i, nearest_idx.wrapping_add(10_001));
+            let species = if species_total <= 0.0 {
+                SPECIES_HUMAN
+            } else {
+                let human_threshold = species_human / species_total;
+                let machine_threshold = (species_human + species_machine) / species_total;
+                if species_roll < human_threshold {
+                    SPECIES_HUMAN
+                } else if species_roll < machine_threshold {
+                    SPECIES_MACHINE
+                } else {
+                    SPECIES_NATURE
+                }
+            };
+            data[base + 12] = species;
 
             // Boost for active cluster
             let boost = if active_cluster >= 0 {
@@ -529,17 +546,12 @@ impl ParticleSystem {
             final_py = final_py.clamp(-bounds[1], bounds[1]);
             final_pz = final_pz.clamp(-bounds[2], bounds[2]);
 
-            // Velocity (for compatibility — stored but not used for position)
-            let vx = (final_px - px) * 0.5;
-            let vy = (final_py - py) * 0.5;
-            let vz = (final_pz - pz) * 0.5;
-
             data[base]     = final_px;
             data[base + 1] = final_py;
             data[base + 2] = final_pz;
-            data[base + 3] = vx;
-            data[base + 4] = vy;
-            data[base + 5] = vz;
+            data[base + 3] = 0.0;
+            data[base + 4] = 0.0;
+            data[base + 5] = 0.0;
 
             // ── 7. Color: cluster color dominant, species tint subtle ──
             let cr = attractors[ao + 3];
@@ -558,7 +570,7 @@ impl ParticleSystem {
             };
             let t = t.clamp(0.0, 1.0);
 
-            // Species tint — very subtle (10%), cluster color dominant (90%)
+            // Species tint grows toward the edge of the cluster volume.
             let (sr, sg, sb) = if species == SPECIES_HUMAN {
                 (HUMAN_R, HUMAN_G, HUMAN_B)
             } else if species == SPECIES_MACHINE {
@@ -567,9 +579,10 @@ impl ParticleSystem {
                 (NATURE_R, NATURE_G, NATURE_B)
             };
 
-            data[base + 8]  = cr + (sr - cr) * 0.1;
-            data[base + 9]  = cg + (sg - cg) * 0.1;
-            data[base + 10] = cb + (sb - cb) * 0.1;
+            let species_mix = 0.1 + (1.0 - t) * 0.3;
+            data[base + 8]  = cr + (sr - cr) * species_mix;
+            data[base + 9]  = cg + (sg - cg) * species_mix;
+            data[base + 10] = cb + (sb - cb) * species_mix;
 
             // ── 8. Pulsing alpha + bioluminescence ──
             let brightness = 0.3 + t * 0.5;

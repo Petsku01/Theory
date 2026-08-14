@@ -64,11 +64,11 @@ function ClickTarget({
           document.body.style.cursor = "default";
         }}
       >
-        <sphereGeometry args={[1.5, 16, 16]} />
+        <sphereGeometry args={[2.5, 16, 16]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
 
-      {/* Html label — shown on hover or when active */}
+      {/* Html label — always visible, brighter on hover/active */}
       <Html
         position={[0, 1.8, 0]}
         center
@@ -84,13 +84,13 @@ function ClickTarget({
             fontFamily: "monospace",
             fontSize: "11px",
             fontWeight: isActive ? "bold" : "normal",
-            color: isActive ? color : hovered ? color : "rgba(203, 213, 225, 0.7)",
+            color: isActive ? color : hovered ? color : "rgba(203, 213, 225, 0.72)",
             textShadow: `0 0 8px ${color}80`,
             whiteSpace: "nowrap",
             letterSpacing: "0.1em",
             textTransform: "uppercase",
             transition: "all 0.2s ease",
-            opacity: isActive || hovered ? 1 : 0.5,
+            opacity: isActive ? 1 : hovered ? 0.82 : 0.38,
           }}
         >
           {label}
@@ -137,12 +137,9 @@ export function CortexScene({
 
   // Cursor 3D position — the user's "juuret" in the organism
   const cursorWorldRef = useRef<THREE.Vector3>(new THREE.Vector3());
-  const cursorTargetRef = useRef<THREE.Vector3 | null>(null);
 
   // Compute hover target from cursor position
-  const hoverTarget = useMemo(() => {
-    return cursorTargetRef.current;
-  }, []);
+  const hoverTarget = !reducedMotion && !isMobile ? cursorWorldRef.current : null;
 
   // Cluster center for camera target
   const targetPosition = useMemo(() => {
@@ -164,7 +161,7 @@ export function CortexScene({
 
   // Track cursor position in 3D via raycaster — this IS the navigation
   useEffect(() => {
-    if (reducedMotion) return;
+    if (reducedMotion || isMobile) return;
     const handlePointerMove = (e: PointerEvent) => {
       pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
       pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
@@ -176,12 +173,11 @@ export function CortexScene({
       raycaster.ray.intersectPlane(plane, intersect);
       if (intersect) {
         cursorWorldRef.current.copy(intersect);
-        cursorTargetRef.current = cursorWorldRef.current;
       }
     };
     window.addEventListener("pointermove", handlePointerMove, { passive: true });
     return () => window.removeEventListener("pointermove", handlePointerMove);
-  }, [raycaster, camera, pointer, reducedMotion]);
+  }, [raycaster, camera, pointer, reducedMotion, isMobile]);
 
   // Breathing cycle for the whole group
   useFrame((state) => {

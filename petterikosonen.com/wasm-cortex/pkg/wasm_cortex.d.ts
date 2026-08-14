@@ -217,8 +217,8 @@ export class ParticleSystem {
      * - Breathing: pillar_height scales with sin(time * 0.15) * 0.1
      * - Light Y-only curl noise for organic variation
      *
-     * `attractors` — flat f32 array, `attractor_count × 12`:
-     *   [pos_x, pos_y, pos_z, color_r, color_g, color_b, strength, pulse_freq, pulse_amp, active, boost, _pad]
+     * `attractors` — flat f32 array, `attractor_count × 13`:
+     *   [pos_x, pos_y, pos_z, color_r, color_g, color_b, strength, pulse_freq, pulse_amp, boost, species_human, species_machine, species_nature]
      * `active_cluster` — -1 = no selection, 0..N = selected cluster index
      * `hover_x/y/z` + `has_hover` — optional hover attractor (cursori = käyttäjän "juuret")
      *
