@@ -209,8 +209,13 @@ export class ParticleSystem {
      */
     update(target_x: number, target_y: number, target_z: number, has_target: boolean): number;
     /**
-     * SYMBIOOSIS: Update particles with cluster attractors, species behavior, mutualism,
-     * breathing, and pulse. All-in-one: positions, velocities, colors, alpha in a single pass.
+     * SYMBIOOSIS: Update particles forming VERTICAL PILLARS through cluster spheres.
+     *
+     * Each particle finds its nearest cluster (X,Z plane), then:
+     * - X,Z: lerp toward cluster X,Z with species-specific oscillation (no curl noise X,Z)
+     * - Y: sinusoidal pillar flow — up and down through the cluster sphere
+     * - Breathing: pillar_height scales with sin(time * 0.15) * 0.1
+     * - Light Y-only curl noise for organic variation
      *
      * `attractors` — flat f32 array, `attractor_count × 12`:
      *   [pos_x, pos_y, pos_z, color_r, color_g, color_b, strength, pulse_freq, pulse_amp, active, boost, _pad]

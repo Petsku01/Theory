@@ -107,7 +107,7 @@ export function FlowFieldParticles({
   const material = useMemo(() => {
     if (!texture) return null;
     return new THREE.PointsMaterial({
-      size: 0.14,
+      size: 0.10,
       sizeAttenuation: true,
       map: texture,
       vertexColors: true,
