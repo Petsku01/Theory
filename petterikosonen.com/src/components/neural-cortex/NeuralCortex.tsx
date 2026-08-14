@@ -11,6 +11,7 @@ import { SplashScreen } from "@/components/neural-cortex/SplashScreen";
 import { getUnifiedWasmStatus } from "@/components/neural-cortex/utils";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { nodes } from "@/lib/cortex-data";
+import { ClusterInfoPanel } from "@/components/neural-cortex/ClusterInfoPanel";
 
 // ── Global keyframes ──
 function GlobalStyles() {
@@ -23,39 +24,6 @@ function GlobalStyles() {
     `}</style>
   );
 }
-
-// ── Cluster descriptions for minimal display ──
-const CLUSTER_INFO: Record<string, { label: string; shortDesc: string }> = {
-  core: {
-    label: "Core",
-    shortDesc: "Petteri Kosonen — Application Specialist + AI Researcher",
-  },
-  projects: {
-    label: "Projects",
-    shortDesc: "LLM fine-tuning, security testing, and prompt engineering tools",
-  },
-  skills: {
-    label: "Skills",
-    shortDesc: "Security, Cloud, Automation, AI/Prompting, Python, Linux, Web Dev",
-  },
-  experience: {
-    label: "Experience",
-    shortDesc: "2M-IT Application Specialist + Turku AMK Cybersecurity",
-  },
-  research: {
-    label: "Research",
-    shortDesc: "Reframing attacks, LLM research daily, automated analysis",
-  },
-};
-
-// ── Cluster color map (matches utils.ts CLUSTER_COLORS) ──
-const CLUSTER_COLOR_MAP: Record<string, string> = {
-  core: "#00f0ff",
-  projects: "#a855f7",
-  skills: "#22d3ee",
-  experience: "#f59e0b",
-  research: "#ef4444",
-};
 
 // ── Exported wrapper ──
 export default function NeuralCortex() {
@@ -89,10 +57,6 @@ export default function NeuralCortex() {
     },
     []
   );
-
-  // Minimal cluster info — only shown when a cluster is selected
-  const activeInfo = activeCluster ? CLUSTER_INFO[activeCluster] : null;
-  const activeColor = activeCluster ? CLUSTER_COLOR_MAP[activeCluster] ?? "#00f0ff" : "#00f0ff";
 
   return (
     <div className="fixed inset-0 z-[5] overflow-hidden bg-[#05070A]">
@@ -140,7 +104,7 @@ export default function NeuralCortex() {
           {activeCluster && (
             <button
               onClick={() => handleClusterSelect(null)}
-              className="pointer-events-auto absolute left-6 top-20 z-20 rounded-lg border border-slate-700/60 bg-[#0a0a0f]/90 px-3 py-1.5 font-mono text-xs text-slate-300 backdrop-blur-sm transition-colors hover:border-cyan-500/50 hover:text-cyan-400"
+              className="pointer-events-auto absolute left-6 top-20 z-30 rounded-lg border border-slate-700/60 bg-[#0a0a0f]/90 px-3 py-1.5 font-mono text-xs text-slate-300 backdrop-blur-sm transition-colors hover:border-cyan-500/50 hover:text-cyan-400"
             >
               Reset View
             </button>
@@ -154,35 +118,12 @@ export default function NeuralCortex() {
             </span>
           </div>
 
-          {/* Minimal cluster info — replaces the old DetailPanel */}
-          {activeInfo && (
-            <div
-              className="pointer-events-none absolute bottom-16 left-1/2 z-20 -translate-x-1/2 select-none rounded-lg border bg-[#0a0a0f]/80 px-4 py-2 backdrop-blur-sm"
-              style={{
-                borderColor: `${activeColor}40`,
-                boxShadow: `0 0 20px ${activeColor}15`,
-              }}
-            >
-              <div className="flex items-center gap-2">
-                <span
-                  className="h-2 w-2 rounded-full"
-                  style={{
-                    backgroundColor: activeColor,
-                    boxShadow: `0 0 6px ${activeColor}`,
-                  }}
-                />
-                <span
-                  className="font-mono text-sm font-bold tracking-wide"
-                  style={{ color: activeColor }}
-                >
-                  {activeInfo.label}
-                </span>
-              </div>
-              <p className="mt-1 font-mono text-[10px] text-slate-400 max-w-xs text-center">
-                {activeInfo.shortDesc}
-              </p>
-            </div>
-          )}
+          {/* Cluster info panel — floating haze showing cluster contents */}
+          <ClusterInfoPanel
+            activeCluster={activeCluster}
+            isMobile={isMobile}
+            reducedMotion={reducedMotion}
+          />
 
           <AccessibleNav onSelect={(id) => {
             // Map node id to its cluster
