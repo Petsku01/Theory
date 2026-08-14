@@ -6,6 +6,7 @@ import { OrbitControls } from "@react-three/drei";
 import { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import * as THREE from "three";
+// clusterPositions still used by targetPosition memo below
 import { clusterPositions } from "@/lib/cortex-data";
 import { CameraController } from "@/components/neural-cortex/CameraController";
 import { FlowFieldParticles } from "@/components/neural-cortex/FlowFieldParticles";
@@ -74,43 +75,10 @@ export function CortexScene({
     return () => window.removeEventListener("pointermove", handlePointerMove);
   }, [raycaster, camera, pointer, reducedMotion]);
 
-  // Click to select nearest cluster — cursor = navigation
-  useEffect(() => {
-    if (reducedMotion) return;
-    const handleClick = (e: MouseEvent) => {
-      pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
-      pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
-      raycaster.setFromCamera(pointer, camera);
-
-      // Find nearest cluster to click point
-      const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
-      const intersect = new THREE.Vector3();
-      raycaster.ray.intersectPlane(plane, intersect);
-      if (!intersect) return;
-
-      let nearestKey: string | null = null;
-      let nearestDistSq = Infinity;
-      for (const key of ["core", "projects", "skills", "experience", "research"]) {
-        const pos = clusterPositions[key] ?? [0, 0, 0];
-        const dx = intersect.x - pos[0];
-        const dy = intersect.y - pos[1];
-        const dz = intersect.z - pos[2];
-        const dSq = dx * dx + dy * dy + dz * dz;
-        if (dSq < nearestDistSq) {
-          nearestDistSq = dSq;
-          nearestKey = key;
-        }
-      }
-      // Only select if reasonably close (within 5 units)
-      if (nearestKey && nearestDistSq < 25) {
-        onClusterSelect(nearestKey);
-      } else {
-        onClusterSelect(null);
-      }
-    };
-    window.addEventListener("click", handleClick);
-    return () => window.removeEventListener("click", handleClick);
-  }, [raycaster, camera, pointer, onClusterSelect, reducedMotion]);
+  // NOTE: Cluster click handling is done by R3F mesh onClick in ClusterMarkers.
+  // The old window-level click handler raycasted to z=0 plane, which made all
+  // non-core clusters (at z=±5) unreachable because dz²=25 ≥ threshold.
+  // onPointerMissed on the Canvas handles deselection (see NeuralCortex.tsx).
 
   // Breathing cycle for the whole group
   useFrame((state) => {

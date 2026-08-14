@@ -411,15 +411,20 @@ impl ParticleSystem {
             let particle_phase = pseudo_random(i, 42) * std::f32::consts::TAU;
 
             // ── 4. Species-specific parameters ──
+            // X,Z oscillation radius (units from cluster center) — large enough
+            // to form WIDE PILLARS, not thin lines.
+            // - IHMINEN: large wandering (curious, exploring surroundings)
+            // - KONE: medium rhythmic pillar
+            // - LUONTO: organic spreading
             let (xz_oscillation, y_speed_mult, y_noise_strength) = if species == SPECIES_HUMAN {
-                // IHMINEN: more X,Z oscillation (curious, exploring)
-                (0.8, 1.0, 0.15)
+                // IHMINEN: large X,Z oscillation (curious, exploring)
+                (2.5, 1.0, 0.15)
             } else if species == SPECIES_MACHINE {
-                // KONE: less X,Z oscillation, rhythmic Y (systematic)
-                (0.15, 1.2, 0.02)
+                // KONE: medium X,Z oscillation, rhythmic Y (systematic pillar)
+                (1.5, 1.2, 0.02)
             } else {
-                // LUONTO: organic Y movement (irregular, branching)
-                (0.4, 0.8, 0.3)
+                // LUONTO: organic spreading, irregular
+                (3.0, 0.8, 0.3)
             };
 
             // ── 5. X,Z: lerp toward cluster center with species-specific oscillation ──
@@ -430,10 +435,10 @@ impl ParticleSystem {
             let osc_x = (osc_t).sin() * xz_oscillation;
             let osc_z = (osc_t * 1.3 + 1.0).sin() * xz_oscillation;
 
-            // Human: extra curiosity oscillation
+            // Human: extra curiosity oscillation (scaled to match larger pillars)
             let (extra_osc_x, extra_osc_z) = if species == SPECIES_HUMAN {
                 let t2 = time * 0.8 + particle_phase * 2.0;
-                ((t2).sin() * 0.4, (t2 * 0.7).cos() * 0.4)
+                ((t2).sin() * 1.0, (t2 * 0.7).cos() * 1.0)
             } else {
                 (0.0, 0.0)
             };

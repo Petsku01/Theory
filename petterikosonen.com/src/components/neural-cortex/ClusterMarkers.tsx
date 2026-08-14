@@ -88,6 +88,27 @@ function ClusterMarker({
         />
       </mesh>
 
+      {/* Invisible click-target sphere — larger, easy to click from any angle */}
+      <mesh
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick();
+        }}
+        onPointerOver={(e) => {
+          e.stopPropagation();
+          setHovered(true);
+          document.body.style.cursor = "pointer";
+        }}
+        onPointerOut={() => {
+          setHovered(false);
+          document.body.style.cursor = "default";
+        }}
+        visible={false}
+      >
+        <sphereGeometry args={[1.3, 8, 8]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
+
       {/* Html label — stylish, non-intrusive */}
       <Html
         position={[0, radius + 0.6, 0]}

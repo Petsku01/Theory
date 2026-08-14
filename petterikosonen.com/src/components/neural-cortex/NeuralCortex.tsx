@@ -119,9 +119,9 @@ export default function NeuralCortex() {
                 alpha: false,
                 powerPreference: "high-performance",
               }}
-              dpr={[1, 2]}
+              onPointerMissed={() => handleClusterSelect(null)}
             >
-              <fog attach="fog" args={["#060818", 12, 40]} />
+              <fog attach="fog" args={["#060818", 30, 80]} />
               <CortexScene
                 activeCluster={activeCluster}
                 onClusterSelect={handleClusterSelect}
