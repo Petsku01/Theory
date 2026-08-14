@@ -541,7 +541,7 @@ impl ParticleSystem {
             data[base + 4] = vy;
             data[base + 5] = vz;
 
-            // ── 7. Color: species base color blended with cluster color ──
+            // ── 7. Color: cluster color dominant, species tint subtle ──
             let cr = attractors[ao + 3];
             let cg = attractors[ao + 4];
             let cb = attractors[ao + 5];
@@ -558,6 +558,7 @@ impl ParticleSystem {
             };
             let t = t.clamp(0.0, 1.0);
 
+            // Species tint — very subtle (10%), cluster color dominant (90%)
             let (sr, sg, sb) = if species == SPECIES_HUMAN {
                 (HUMAN_R, HUMAN_G, HUMAN_B)
             } else if species == SPECIES_MACHINE {
@@ -566,9 +567,9 @@ impl ParticleSystem {
                 (NATURE_R, NATURE_G, NATURE_B)
             };
 
-            data[base + 8]  = sr + (cr - sr) * t * 0.6;
-            data[base + 9]  = sg + (cg - sg) * t * 0.6;
-            data[base + 10] = sb + (cb - sb) * t * 0.6;
+            data[base + 8]  = cr + (sr - cr) * 0.1;
+            data[base + 9]  = cg + (sg - cg) * 0.1;
+            data[base + 10] = cb + (sb - cb) * 0.1;
 
             // ── 8. Pulsing alpha + bioluminescence ──
             let brightness = 0.3 + t * 0.5;

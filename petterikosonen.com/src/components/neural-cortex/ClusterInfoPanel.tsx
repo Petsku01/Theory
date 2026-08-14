@@ -134,14 +134,26 @@ export function ClusterInfoPanel({
               </p>
             )}
 
-            {/* ── Non-core: list of nodes ── */}
+            {/* ── Non-core: list of nodes (clickable if they have a link) ── */}
             {!isCore && (
               <div className="flex flex-col gap-3.5">
                 {clusterNodes.map((node: CortexNode) => (
                   <div key={node.id} className="flex flex-col gap-0.5">
-                    <span className="font-mono text-[12px] font-semibold text-slate-100">
-                      {node.label}
-                    </span>
+                    {node.link ? (
+                      <a
+                        href={node.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-mono text-[12px] font-semibold text-slate-100 transition-colors hover:underline"
+                        style={{ color: clusterColor }}
+                      >
+                        {node.label} →
+                      </a>
+                    ) : (
+                      <span className="font-mono text-[12px] font-semibold text-slate-100">
+                        {node.label}
+                      </span>
+                    )}
                     <span className="font-mono text-[10px] leading-relaxed text-slate-400/80">
                       {node.shortDesc}
                     </span>
