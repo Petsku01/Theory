@@ -104,20 +104,11 @@ export default function NeuralCortex() {
       {/* Main 3D scene -- only renders after entering */}
       {entered && (
         <>
-          {/* Name + CTA overlay */}
-          <div className="pointer-events-none absolute left-6 top-5 z-30 select-none flex flex-col gap-3">
+          {/* Name overlay only — no Contact button (it's in the Navbar) */}
+          <div className="pointer-events-none absolute left-6 top-5 z-30 select-none">
             <span className="text-sm font-bold tracking-wide text-slate-100 font-mono">
               Petteri Kosonen
             </span>
-            <a
-              href="/contact"
-              className="pointer-events-auto inline-flex w-fit items-center gap-2 rounded-lg border border-cyan-500/40 bg-[#0a0a0f]/80 px-4 py-2 font-mono text-xs text-cyan-400 backdrop-blur-sm transition-colors hover:border-cyan-500/60 hover:bg-cyan-500/10"
-            >
-              Contact
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M5 12h14M12 5l7 7-7 7" />
-              </svg>
-            </a>
           </div>
 
           <Suspense fallback={<CortexLoader />}>

@@ -336,7 +336,7 @@ export function FlowFieldParticles({
   if (!texture || !material) return null;
 
   return (
-    <points ref={pointsRef}>
+    <points ref={pointsRef} raycast={() => null}>
       <bufferGeometry>
         <bufferAttribute
           attach="attributes-position"
