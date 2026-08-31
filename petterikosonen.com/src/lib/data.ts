@@ -15,6 +15,12 @@ export interface Project {
 // Daily blog posts -- commentary, analysis, opinion pieces
 export const blogPosts: BlogPost[] = [
   {
+    title: "The liability pivot in AI agent supply chains",
+    date: "2026-08-31",
+    desc: "Agent plugin ecosystems are becoming the npm/PyPI of AI: composer-style supply chains where plugins expand the attack surface beyond any single maintainer's audit capacity. Debian's AI policy vote shows the emerging answer — liability pinned to the human reviewer.",
+    link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-08-31.md"
+  },
+  {
     title: "The blind spot in AI evaluation: why we need an ethology of multi-agent systems",
     date: "2026-08-10",
     desc: "Multi-agent systems produce interaction effects that single-agent tests miss. As agent infrastructure matures, evaluation must move from isolated model behavior toward interaction behavior.",
