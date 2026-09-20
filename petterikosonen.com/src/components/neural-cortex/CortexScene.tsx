@@ -245,15 +245,6 @@ export function CortexScene({
         autoRotateSpeed={0.3}
       />
 
-      {/* Post-processing: Bloom only */}
-      <EffectComposer>
-        <Bloom
-          luminanceThreshold={0.22}
-          luminanceSmoothing={0.9}
-          intensity={bloomIntensity}
-          mipmapBlur
-        />
-      </EffectComposer>
     </>
   );
 }
