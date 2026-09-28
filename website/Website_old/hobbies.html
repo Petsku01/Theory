@@ -1,0 +1,147 @@
+//Unsecure do not use
+/Corrupted
+
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // JSON fiteröi tyhjänt linjat
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // backyp
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // json to csv
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // 
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Petsku's Hobbies</title>
+    <style type="text/css">
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+        }
+        #container {
+            width: 960px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border: 1px solid #cccccc;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        #header {
+            background-color: #336699;
+            color: #ffffff;
+            padding: 20px;
+            text-align: center;
+        }
+        #header h1 {
+            margin: 0;
+            font-size: 36px;
+        }
+        #nav {
+            background-color: #444444;
+            overflow: hidden;
+        }
+        #nav ul {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+        }
+        #nav ul li {
+            float: left;
+        }
+        #nav ul li a {
+            display: block;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 14px 20px;
+        }
+        #nav ul li a:hover {
+            background-color: #555555;
+        }
+        #content {
+            padding: 20px;
+        }
+        #content h2 {
+            color: #333333;
+        }
+        #content h3 {
+            color: #336699;
+        }
+        #footer {
+            background-color: #336699;
+            color: #ffffff;
+            text-align: center;
+            padding: 10px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="header">
+            <h1>Petsku's Hobbies</h1>
+        </div>
+        <div id="nav">
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="hobbies.html">Hobbies</a></li>
+                <li><a href="contact.html">Contact</a></li>
+            </ul>
+        </div>
+        <div id="content">
+            <h2>My Hobbies</h2>
+            <p>Here are some of the things I love to do in my free time!</p>
+            
+            <h3>Swimming</h3>
+            <p></p>
+            
+            <h3>Scouts</h3>
+            <p>.</p>
+            
+            <h3>Computers</h3>
+            <p>.</p>
+            
+            <h3>Gaming</h3>
+            <p>.</p>
+            
+            <h3>Star Trek: Enterprise</h3>
+            <p>.</p>
+        </div>
+        <div id="footer">
+            <p>© 2013 Petsku's Website. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>
