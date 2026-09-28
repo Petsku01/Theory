@@ -1,0 +1,16 @@
+{% extends "board_game_clubs/base.html" %}
+
+{% block page_header %}
+<h2><a href="{% url 'board_game_clubs:board_game' board_game.id %}">{{ board_game }}</a></h2>
+{% endblock page_header %}
+
+{% block content %}
+
+<p></p>
+<p>Edit comment/request:</p>
+  <form action="{% url 'board_game_clubs:edit_lending' board_game_lending.id %}" method='post'>
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button name="submit">Save changes</button>
+  </form>
+{% endblock content %}

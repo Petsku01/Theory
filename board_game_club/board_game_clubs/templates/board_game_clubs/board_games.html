@@ -1,0 +1,22 @@
+{% extends "board_game_clubs/base.html" %}
+
+{% block page_header %}
+<h1>Board Games</h1>
+{% endblock page_header %}
+{% block content %}
+<ul>
+    {% for board_game in board_games %}
+        {% if board_game.lended == False or board_game.owner == request.user %}
+        <li>
+            <a href="{% url 'board_game_clubs:board_game' board_game.id %}">{{ board_game }}</a>
+        </li>
+        {% endif %}
+    {% empty %}
+        <li>No board games have been added yet or available</li>
+    {% endfor %}
+
+</ul>
+
+<a href="{% url 'board_game_clubs:new_board_game' %}">Add a new board game</a>
+
+{% endblock content %}

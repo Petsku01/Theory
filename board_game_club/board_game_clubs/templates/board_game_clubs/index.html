@@ -1,0 +1,9 @@
+{% extends "board_game_clubs/base.html" %} 
+
+{% block page_header %}
+<div class="jumbotron">
+    <h1 class="display-3">Check what board games are available.</h1>
+    <p class="lead">Add you own board games to increase the amount of board games available to everyone. Join us and experience new games!</p>
+    <a class="btn btn-lg btn-primary" href="{% url 'users:register' %}" role="button">Register &raquo;</a>
+</div>
+{% endblock page_header %}

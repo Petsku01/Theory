@@ -1,0 +1,13 @@
+{% extends "board_game_clubs/base.html" %}
+
+{% block page_header %}
+<h2>Editing: {{board_game}}</h2>
+{% endblock page_header %}
+{% block content %}
+<p><a href="{% url 'board_game_clubs:board_game' board_game.id %}">Back to previous page</a></p>
+<form action="{% url 'board_game_clubs:edit_board_game' board_game.id %}" method='post'>
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button name="submit">Save changes</button>
+  </form>
+{% endblock content %}

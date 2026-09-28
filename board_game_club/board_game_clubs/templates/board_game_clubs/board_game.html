@@ -1,0 +1,31 @@
+{% extends 'board_game_clubs/base.html' %}
+
+{% block page_header %}
+   <h1>Board Game: {{ board_game }}</h1>
+   <h2>Owner : {{ board_game.owner }}</h2>
+{% endblock page_header %}
+{% block content %}
+   {% if board_game.owner == request.user %}
+      <p>Click here to change board game's status. <a href="{% url 'board_game_clubs:edit_board_game' board_game.id %}">Edit board game</a></p>
+   {% endif %}
+   <p>
+      <a href="{% url 'board_game_clubs:new_lending' board_game.id %}">Add a new comment or a request</a>
+   </p>
+   <h4>Board game comments:</h4>
+    {% for board_game_lending in board_game_lendings %}
+      <div class="card mb3">
+         <h4 class="card-header">{{ board_game_lending.lender }}</h4>
+         <h6>{{ board_game_lending.date_added|date:'M d, Y H:i' }}
+            {% if board_game_lending.lender == request.user %}
+               <a href="{% url 'board_game_clubs:edit_lending' board_game_lending.id %}">Edit your comment</a>
+            {% endif %}
+         </h6>
+         <div class="card body">
+            {{ board_game_lending.my_board_game_lending|linebreaks }}
+         </div>
+      </div>
+    {% empty %}
+       <li>There are no loans for this board game yet.</li>
+    {% endfor %}
+
+{% endblock content %}
