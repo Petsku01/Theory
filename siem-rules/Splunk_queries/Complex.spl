@@ -1,0 +1,91 @@
+`comment("
+================================================================================
+Multi-Stage Attack Detection
+================================================================================
+Description: Correlates authentication failures, lateral movement, and 
+             potential exfiltration into unified attack view
+Author: Security Operations Team  
+Date: 2026-01-22
+MITRE ATT&CK: T1087, T1021, T1041
+Note: Requires threat_intel lookup to be configured (optional)
+================================================================================
+")`
+
+| multisearch
+    `comment("Stage 1: Authentication Failures (Brute Force/Lateral Movement)")`
+    [| search index=windows sourcetype="WinEventLog:Security" 
+       EventCode=4625 
+       earliest=-24h
+     | stats count as fail_count 
+             dc(TargetUserName) as unique_users
+             values(TargetUserName) as targeted_users
+             earliest(_time) as first_fail
+             latest(_time) as last_fail
+             by IpAddress
+     | where fail_count > 5
+     | eval stage="authentication_failure"
+     | rename IpAddress as src_ip]
+    
+    `comment("Stage 2: Lateral Movement Indicators")`
+    [| search index=windows sourcetype="WinEventLog:Security"
+       (EventCode=4624 LogonType IN (3, 10)) OR EventCode=4648
+       earliest=-24h
+     | stats dc(Computer) as unique_targets
+             values(Computer) as target_hosts
+             count as login_count
+             earliest(_time) as first_lateral
+             latest(_time) as last_lateral
+             by IpAddress, TargetUserName
+     | where unique_targets > 3
+     | eval stage="lateral_movement"
+     | rename IpAddress as src_ip, TargetUserName as user]
+    
+    `comment("Stage 3: Large Outbound Data Transfer")`
+    [| search index=network sourcetype=firewall 
+       direction=outbound
+       earliest=-24h
+     | stats sum(bytes_out) as total_bytes
+             dc(dest_ip) as unique_destinations
+             values(dest_ip) as exfil_destinations
+             earliest(_time) as first_exfil
+             latest(_time) as last_exfil
+             by src_ip
+     | eval total_MB = round(total_bytes/1024/1024, 2)
+     | where total_MB > 100
+     | eval stage="potential_exfiltration"]
+
+`comment("Correlate stages by source IP")`
+| stats values(stage) as attack_stages
+        values(fail_count) as auth_failures
+        values(unique_targets) as lateral_targets
+        values(target_hosts) as compromised_hosts
+        values(total_MB) as data_transferred_MB
+        values(exfil_destinations) as exfil_destinations
+        min(first_fail, first_lateral, first_exfil) as attack_start
+        max(last_fail, last_lateral, last_exfil) as attack_end
+        by src_ip
+
+| eval stage_count = mvcount(attack_stages)
+| where stage_count >= 2
+
+`comment("Calculate risk score based on attack progression")`
+| eval risk_score = case(
+    stage_count >= 3, 95,
+    stage_count = 2 AND match(attack_stages, "exfiltration"), 85,
+    stage_count = 2 AND match(attack_stages, "lateral"), 70,
+    1=1, 50
+)
+
+| eval attack_duration_hours = round((attack_end - attack_start)/3600, 2)
+
+`comment("Optional: Enrich with threat intel lookup if configured")`
+| lookup threat_intel ip AS src_ip OUTPUT threat_category, threat_score
+
+| eval final_risk = if(isnotnull(threat_score), risk_score + 10, risk_score)
+| eval final_risk = if(final_risk > 100, 100, final_risk)
+
+| table src_ip, attack_stages, stage_count, auth_failures, lateral_targets,
+        compromised_hosts, data_transferred_MB, attack_duration_hours,
+        threat_category, final_risk
+
+| sort - final_risk

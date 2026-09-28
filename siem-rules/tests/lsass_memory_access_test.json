@@ -1,0 +1,99 @@
+{
+  "rule": "Sigma_rules/credential_access/lsass_memory_access.yaml",
+  "title": "LSASS Memory Access Detection Test Cases",
+  "atomic_red_team": "T1003.001",
+  
+  "test_cases": [
+    {
+      "name": "Mimikatz sekurlsa - Should Detect",
+      "expected": "alert",
+      "log": {
+        "EventType": "ProcessAccess",
+        "SourceImage": "C:\\Users\\attacker\\Desktop\\mimikatz.exe",
+        "TargetImage": "C:\\Windows\\System32\\lsass.exe",
+        "GrantedAccess": "0x1438",
+        "SourceUser": "CORP\\compromised_user",
+        "CallTrace": "C:\\Windows\\SYSTEM32\\ntdll.dll+9c4e4|UNKNOWN(00000000140BE460)"
+      }
+    },
+    {
+      "name": "ProcDump LSASS dump - Should Detect",
+      "expected": "alert",
+      "log": {
+        "EventType": "ProcessAccess",
+        "SourceImage": "C:\\Windows\\Temp\\procdump64.exe",
+        "TargetImage": "C:\\Windows\\System32\\lsass.exe",
+        "GrantedAccess": "0x1fffff",
+        "SourceUser": "CORP\\admin",
+        "CallTrace": "C:\\Windows\\SYSTEM32\\ntdll.dll+9c4e4|C:\\Windows\\System32\\dbgcore.dll+6a23"
+      }
+    },
+    {
+      "name": "Injected svchost accessing LSASS - Should Detect",
+      "expected": "alert",
+      "note": "Attackers inject into svchost - this must alert",
+      "log": {
+        "EventType": "ProcessAccess",
+        "SourceImage": "C:\\Windows\\System32\\svchost.exe",
+        "TargetImage": "C:\\Windows\\System32\\lsass.exe",
+        "GrantedAccess": "0x143a",
+        "SourceUser": "NT AUTHORITY\\SYSTEM",
+        "CallTrace": "C:\\Windows\\SYSTEM32\\ntdll.dll+9c4e4|UNKNOWN(00007FF812340000)"
+      }
+    },
+    {
+      "name": "Windows Defender scan - Should NOT Detect",
+      "expected": "no_alert",
+      "log": {
+        "EventType": "ProcessAccess",
+        "SourceImage": "C:\\Program Files\\Windows Defender\\MsMpEng.exe",
+        "TargetImage": "C:\\Windows\\System32\\lsass.exe",
+        "GrantedAccess": "0x1410",
+        "SourceUser": "NT AUTHORITY\\SYSTEM",
+        "CallTrace": "C:\\Windows\\SYSTEM32\\ntdll.dll+9c4e4|C:\\Program Files\\Windows Defender\\MpClient.dll+12345"
+      }
+    },
+    {
+      "name": "CrowdStrike Falcon - Should NOT Detect",
+      "expected": "no_alert",
+      "log": {
+        "EventType": "ProcessAccess",
+        "SourceImage": "C:\\Program Files\\CrowdStrike\\CSFalconService.exe",
+        "TargetImage": "C:\\Windows\\System32\\lsass.exe",
+        "GrantedAccess": "0x1010",
+        "SourceUser": "NT AUTHORITY\\SYSTEM",
+        "CallTrace": "normal_module_chain"
+      }
+    },
+    {
+      "name": "LSASS self-access - Should NOT Detect",
+      "expected": "no_alert",
+      "log": {
+        "EventType": "ProcessAccess",
+        "SourceImage": "C:\\Windows\\System32\\lsass.exe",
+        "TargetImage": "C:\\Windows\\System32\\lsass.exe",
+        "GrantedAccess": "0x1fffff",
+        "SourceUser": "NT AUTHORITY\\SYSTEM"
+      }
+    }
+  ],
+
+  "tuning_guidance": {
+    "high_fidelity_indicators": [
+      "CallTrace contains 'UNKNOWN' - indicates code injection",
+      "CallTrace contains dbgcore.dll or dbghelp.dll - MiniDump",
+      "GrantedAccess 0x143a or 0x1438 - Mimikatz signature",
+      "SourceImage in user-writable location (Temp, Downloads, AppData)"
+    ],
+    "common_false_positives": [
+      "Backup software - validate and add to filter with full path",
+      "SSO agents - add after signature verification",
+      "Monitoring tools - validate CallTrace is benign"
+    ],
+    "never_exclude": [
+      "Do not exclude by filename only (e.g., endswith svchost.exe)",
+      "Do not exclude based on GrantedAccess alone",
+      "Do not exclude without SYSTEM user validation"
+    ]
+  }
+}

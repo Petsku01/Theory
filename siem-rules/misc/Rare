@@ -1,0 +1,28 @@
+Computes aggregates (e.g., totals, averages) and adds them to each event without grouping, unlike stats
+Flags individual firewall events where data transfer exceeds twice the average for that source IP, spotting outliers without losing event details.
+
+index=security sourcetype=firewall | eventstats avg(bytes) as avg_bytes by src_ip | where bytes > avg_bytes * 2
+
+
+Maps proxy traffic origins to identify clusters of suspicious activity (e.g., unexpected countries).
+
+index=security sourcetype=proxy | geostats count by src_ip | where count > 100
+
+
+Runs multiple searches concurrently, merging results for cross-source analysis.
+Correlates blocked firewall events with IDS malware alerts by source IP, revealing multi-layered attacks.
+
+| multisearch 
+  [search index=security sourcetype=firewall action=blocked] 
+  [search index=security sourcetype=ids signature="malware"] 
+| stats count by src_ip
+
+
+Tracks login attempts per user sequentially, flagging those exceeding 5 tries for potential brute force.
+
+index=security sourcetype=auth | streamstats count as attempt_number by user | where attempt_number > 5
+
+
+Detects rare user agents in web logs, potentially indicating reconnaissance or malware.
+
+index=security sourcetype=web | rare user_agent | where count < 5

@@ -1,0 +1,57 @@
+title: Detect Fake Antivirus / Scareware Processes
+id: 7b8e9c3a-4f2d-4e9a-b7c3-f8a9e2b3c1d7
+status: test
+description: |
+    Detects process execution patterns matching known scareware/fake AV behavior.
+    Fake AV software often uses deceptive names and runs from user directories.
+    This rule focuses on behavioral patterns rather than specific filenames.
+author: -pk
+date: 2025/07/25
+modified: 2026/01/22
+references:
+    - https://attack.mitre.org/techniques/T1218/
+logsource:
+    category: process_creation
+    product: windows
+detection:
+    selection_suspicious_path:
+        Image|contains:
+            - '\\AppData\\Local\\Temp\\'
+            - '\\Users\\Public\\'
+            - '\\ProgramData\\'
+        Image|endswith:
+            - 'scan.exe'
+            - 'scanner.exe'
+            - 'cleaner.exe'
+            - 'protection.exe'
+            - 'antivirus.exe'
+            - 'security.exe'
+    
+    selection_suspicious_parent:
+        ParentImage|endswith:
+            - '\\iexplore.exe'
+            - '\\chrome.exe'
+            - '\\firefox.exe'
+            - '\\msedge.exe'
+    
+    selection_double_extension:
+        Image|re: '.*\\.(pdf|doc|jpg|png)\\.(exe|scr|com)$'
+    
+    filter_legitimate_paths:
+        Image|startswith:
+            - 'C:\\Program Files\\'
+            - 'C:\\Program Files (x86)\\'
+            - 'C:\\Windows\\'
+    
+    condition: (selection_suspicious_path or (selection_suspicious_parent and selection_double_extension)) and not filter_legitimate_paths
+fields:
+    - Image
+    - CommandLine
+    - ParentImage
+    - User
+falsepositives:
+    - Legitimate portable AV scanners
+    - Security tools downloaded to temp directories
+level: medium
+tags:
+    - attack.t1204.002

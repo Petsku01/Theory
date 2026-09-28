@@ -1,0 +1,24 @@
+#Use Case: Detects IP addresses with unusually high connection attempts, potentially indicating a brute force attack.
+
+index=security sourcetype=firewall action=deny earliest=-1h | stats count by src_ip | where count > 100
+
+
+#Quickly identifies top traffic in network traffic, useful for spotting potential data exfiltration.
+
+| tstats count from datamodel=Network_Traffic where All_Traffic.src_ip=* sourcetype=firewall dest_zone=external earliest=-1h by All_Traffic.src_ip | sort -count | head 10
+
+
+#Identifies long-lasting web sessions that might indicate session hijacking.
+
+index=security sourcetype=web earliest=-1d | transaction session_id maxspan=1h | where duration > 300
+
+
+#Maps detected behaviors to MITRE techniques for standardized reporting. Mittremap required.
+
+index=security earliest=-1d | mitremap name=attack | table technique_id, technique_name
+
+
+
+Extracts usernames from web logs to track suspicious actions.
+
+index=web_logs earliest=-1d | rex "user=(?<username>[a-zA-Z0-9_-]+)" | table username, action

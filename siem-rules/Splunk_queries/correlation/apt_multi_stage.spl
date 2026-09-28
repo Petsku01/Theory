@@ -1,0 +1,63 @@
+`comment("
+================================================================================
+APT Detection: Multi-Stage Attack Correlation
+================================================================================
+Description: Advanced query to detect multi-stage APT activity by correlating
+             reconnaissance, lateral movement, and exfiltration behaviors
+Author: Security Operations Team
+Date: 2026-01-22
+MITRE ATT&CK: T1087 (Discovery), T1021 (Lateral Movement), T1041 (Exfiltration)
+Severity: Critical
+================================================================================
+")`
+
+| multisearch 
+    [| search index=windows sourcetype=WinEventLog:Security EventCode=4688 
+       (CommandLine="*net user*" OR CommandLine="*net group*" OR 
+        CommandLine="*whoami*" OR CommandLine="*nltest*" OR
+        CommandLine="*systeminfo*" OR CommandLine="*ipconfig*")
+     | stats count as recon_count earliest(_time) as recon_start 
+             latest(_time) as recon_end by src_ip
+     | eval phase="reconnaissance"
+     | where recon_count > 5]
+    
+    [| search index=windows sourcetype=WinEventLog:Security 
+       (EventCode=4624 LogonType=3) OR (EventCode=4648)
+     | stats dc(dest) as unique_targets count as lateral_count 
+             earliest(_time) as lateral_start latest(_time) as lateral_end by src_ip
+     | eval phase="lateral_movement"
+     | where unique_targets > 3]
+    
+    [| search index=network sourcetype=firewall direction=outbound 
+       bytes_out > 10000000
+     | stats sum(bytes_out) as total_exfil dc(dest_ip) as unique_dests 
+             earliest(_time) as exfil_start latest(_time) as exfil_end by src_ip
+     | eval phase="exfiltration"
+     | eval total_MB = round(total_exfil/1024/1024, 2)
+     | where total_MB > 100]
+
+| stats values(phase) as attack_phases 
+        values(recon_count) as recon_events
+        values(unique_targets) as lateral_targets
+        values(total_MB) as exfil_MB
+        min(recon_start) as attack_start
+        max(exfil_end) as attack_end
+        by src_ip
+
+| eval phase_count = mvcount(attack_phases)
+| where phase_count >= 2
+
+| eval risk_score = case(
+    phase_count >= 3, 95,
+    phase_count = 2 AND match(attack_phases, "exfiltration"), 85,
+    phase_count = 2, 70,
+    1=1, 50
+)
+
+| eval attack_duration = attack_end - attack_start
+| eval attack_duration_hours = round(attack_duration/3600, 2)
+
+| table src_ip, attack_phases, phase_count, recon_events, lateral_targets, 
+        exfil_MB, attack_duration_hours, risk_score
+
+| sort - risk_score

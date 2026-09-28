@@ -1,0 +1,75 @@
+title: Suspicious Beaconing Activity
+id: 1b2c8d5e-3f4a-4b9c-8d1e-2f5a6b7c9d0e
+status: stable
+description: |
+    Detects potential C2 beaconing by identifying regular, periodic network
+    connections. C2 frameworks often beacon at regular intervals, which can
+    be detected through statistical analysis of connection timing.
+references:
+    - https://attack.mitre.org/techniques/T1071/001/
+    - https://www.activecountermeasures.com/detecting-beacons-with-jitter/
+author: Security Operations Team
+date: 2025/10/15
+modified: 2026/01/22
+
+logsource:
+    product: windows
+    category: network_connection
+
+detection:
+    selection_outbound:
+        Initiated: 'true'
+    
+    selection_common_ports:
+        DestinationPort:
+            - 80
+            - 443
+            - 8080
+            - 8443
+    
+    selection_suspicious_ports:
+        DestinationPort:
+            - 4444
+            - 5555
+            - 6666
+            - 1234
+            - 9999
+            - 31337
+    
+    selection_non_browser:
+        Image|endswith:
+            - '\rundll32.exe'
+            - '\regsvr32.exe'
+            - '\mshta.exe'
+            - '\wscript.exe'
+            - '\cscript.exe'
+            - '\certutil.exe'
+            - '\bitsadmin.exe'
+            - '\msiexec.exe'
+
+    filter_internal:
+        DestinationIp|cidr:
+            - '10.0.0.0/8'
+            - '172.16.0.0/12'
+            - '192.168.0.0/16'
+            - '127.0.0.0/8'
+
+    condition: selection_outbound and ((selection_common_ports and selection_non_browser) or selection_suspicious_ports) and not filter_internal
+
+falsepositives:
+    - Legitimate software updates
+    - Cloud synchronization services
+    - Monitoring and telemetry agents
+
+level: medium
+
+tags:
+    - attack.t1071.001
+    - attack.t1571
+
+fields:
+    - Image
+    - DestinationIp
+    - DestinationPort
+    - SourcePort
+    - User

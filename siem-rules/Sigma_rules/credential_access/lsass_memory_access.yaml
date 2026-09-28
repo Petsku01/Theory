@@ -1,0 +1,92 @@
+title: LSASS Memory Access for Credential Dumping
+id: 9e4f0a7b-5c6d-4e1f-0a3b-4c7d8e9f1a2b
+status: test
+description: |
+    Detects processes accessing LSASS memory for potential credential theft.
+    Requires tuning for your environment - expect false positives initially.
+    
+    IMPORTANT: Do NOT blanket-exclude svchost.exe - attackers inject into it.
+    Instead, tune based on specific parent process chains and CallTrace.
+references:
+    - https://attack.mitre.org/techniques/T1003/001/
+    - https://www.microsoft.com/en-us/security/blog/2022/10/05/detecting-and-preventing-lsass-credential-dumping-attacks/
+    - https://blog.xpnsec.com/exploring-mimikatz-part-1/
+author: Security Operations Team
+date: 2025/07/20
+modified: 2026/01/22
+
+logsource:
+    product: windows
+    category: process_access
+
+detection:
+    selection_target:
+        TargetImage|endswith: '\lsass.exe'
+    
+    # High-confidence malicious access masks
+    selection_mimikatz_access:
+        GrantedAccess:
+            - '0x1010'     # PROCESS_VM_READ + PROCESS_QUERY_LIMITED_INFO
+            - '0x1038'     # Common credential dumper mask
+            - '0x1438'     # Mimikatz sekurlsa
+            - '0x143a'     # Mimikatz sekurlsa variant
+            - '0x1fffff'   # PROCESS_ALL_ACCESS
+    
+    # Suspicious CallTrace patterns (if Sysmon captures this)
+    selection_suspicious_calltrace:
+        CallTrace|contains:
+            - 'UNKNOWN'           # Injected code, no module backing
+            - 'dbgcore.dll'       # MiniDumpWriteDump
+            - 'dbghelp.dll'       # MiniDumpWriteDump
+            - 'ntdsapi.dll'       # DCSync related
+    
+    # Only filter OS core processes with SYSTEM context AND signed
+    filter_os_core:
+        SourceImage|endswith:
+            - '\lsass.exe'
+            - '\csrss.exe'
+            - '\wininit.exe'
+            - '\smss.exe'
+        SourceUser|contains: 'SYSTEM'
+    
+    # Filter EDR/AV by full path - NEVER by just filename
+    filter_edr_signed:
+        SourceImage|startswith:
+            - 'C:\Program Files\Windows Defender\'
+            - 'C:\Program Files\Microsoft Defender Advanced Threat Protection\'
+            - 'C:\ProgramData\Microsoft\Windows Defender\'
+            - 'C:\Program Files\CrowdStrike\'
+            - 'C:\Program Files\SentinelOne\'
+            - 'C:\Program Files (x86)\Trend Micro\'
+    
+    # TUNE THIS: Add your specific legitimate software after validation
+    # NEVER add svchost.exe here - attackers inject into it
+    filter_environment_specific:
+        SourceImage|startswith:
+            - 'C:\Program Files\YourBackupSoftware\'  # Replace with your verified software
+        SourceUser|contains: 'SYSTEM'
+        CallTrace|contains:
+            - 'YourBackupSoftware.dll'  # Replace with verified module names
+
+    condition: >
+        selection_target and 
+        (selection_mimikatz_access or selection_suspicious_calltrace) and 
+        not (filter_os_core or filter_edr_signed or filter_environment_specific)
+
+falsepositives:
+    - AV/EDR not in filter list - add full path after verification
+    - Backup software accessing credentials
+    - Some authentication providers
+    - IMPORTANT: Document every exclusion with ticket reference
+
+level: critical
+
+tags:
+    - attack.t1003.001
+
+# TUNING NOTES:
+# 1. Deploy in log-only mode first
+# 2. Collect 2 weeks of CallTrace data
+# 3. Build allowlist based on legitimate module chains
+# 4. Remove the svchost blanket exclusion
+# 5. Add specific module paths to filter_environment_specific

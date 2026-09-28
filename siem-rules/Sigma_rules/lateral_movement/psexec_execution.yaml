@@ -1,0 +1,127 @@
+title: PsExec Remote Execution
+id: ef9f5a2b-0c1d-4e6f-5a8b-9c2d3e4f6a7b
+status: stable
+description: |
+    Detects PsExec or similar tools being used for remote command execution.
+    While PsExec is a legitimate administration tool, it is frequently
+    abused for lateral movement in attacks. This rule looks for the
+    characteristic service creation and named pipe access patterns.
+references:
+    - https://attack.mitre.org/techniques/T1021/002/
+    - https://attack.mitre.org/techniques/T1570/
+    - https://docs.microsoft.com/en-us/sysinternals/downloads/psexec
+author: Security Operations Team
+date: 2025/07/15
+modified: 2026/01/22
+
+logsource:
+    product: windows
+    category: process_creation
+
+detection:
+    selection_psexec_binary:
+        Image|endswith:
+            - '\psexec.exe'
+            - '\psexec64.exe'
+            - '\PsExec.exe'
+            - '\PsExec64.exe'
+    
+    selection_psexec_pattern:
+        CommandLine|contains:
+            - ' \\\\' 
+            - ' -accepteula'
+            - ' -s '
+            - ' -d '
+            - ' cmd.exe'
+            - ' powershell'
+
+    selection_service_creation:
+        Image|endswith: '\PSEXESVC.exe'
+    
+    selection_remote_indicators:
+        ParentImage|endswith: '\services.exe'
+        Image|endswith:
+            - '\cmd.exe'
+            - '\powershell.exe'
+        User: 'SYSTEM'
+
+    condition: selection_psexec_binary or selection_service_creation or (selection_psexec_pattern and selection_remote_indicators)
+
+falsepositives:
+    - Legitimate system administration using PsExec
+    - Authorized remote maintenance
+    - Software deployment tools using PsExec
+
+level: medium
+
+tags:
+    - attack.t1021.002
+    - attack.t1570
+    - attack.s0029
+
+fields:
+    - Image
+    - CommandLine
+    - ParentImage
+    - User
+    - Computer
+---
+title: Remote Service Installation via SCM
+id: ff0a6b3c-1d2e-4f7a-6b9c-0d3e4f5a7b8c
+status: stable
+description: |
+    Detects remote service installation via Service Control Manager,
+    which is a common lateral movement technique. Attackers create
+    services on remote systems to execute payloads.
+references:
+    - https://attack.mitre.org/techniques/T1021/002/
+    - https://attack.mitre.org/techniques/T1569/002/
+author: Security Operations Team
+date: 2025/07/15
+modified: 2026/01/22
+
+logsource:
+    product: windows
+    service: system
+
+detection:
+    selection_service_install:
+        EventID: 7045                      # A new service was installed
+    
+    selection_suspicious_paths:
+        ImagePath|contains:
+            - '\Temp\'
+            - '\tmp\'
+            - '\AppData\Local\'
+            - '\ProgramData\'
+            - '%TEMP%'
+            - '%TMP%'
+    
+    selection_cmd_service:
+        ImagePath|contains:
+            - 'cmd.exe'
+            - 'powershell'
+            - 'mshta'
+            - 'wscript'
+            - 'cscript'
+            - 'rundll32'
+            - 'regsvr32'
+
+    condition: selection_service_install and (selection_suspicious_paths or selection_cmd_service)
+
+falsepositives:
+    - Legitimate software installation
+    - Enterprise software deployment
+    - Administrative tools
+
+level: high
+
+tags:
+    - attack.t1021.002
+    - attack.t1543.003
+
+fields:
+    - ServiceName
+    - ImagePath
+    - ServiceType
+    - StartType

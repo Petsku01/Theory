@@ -1,0 +1,85 @@
+title: PowerShell Download Cradle Execution
+id: 8d3e9f6a-4b5c-4d0e-9f2a-3b6c7d8e0f1a
+status: stable
+description: |
+    Detects PowerShell download cradles used to fetch and execute remote payloads.
+    These are commonly used in initial access and payload delivery stages of attacks.
+    Includes detection for IEX, Invoke-Expression, DownloadString, DownloadFile,
+    and other common download techniques.
+references:
+    - https://attack.mitre.org/techniques/T1059/001/
+    - https://attack.mitre.org/techniques/T1105/
+    - https://lolbas-project.github.io/
+author: Security Operations Team
+date: 2025/08/10
+modified: 2026/01/22
+
+logsource:
+    product: windows
+    category: process_creation
+
+detection:
+    selection_powershell:
+        Image|endswith:
+            - '\powershell.exe'
+            - '\pwsh.exe'
+    
+    selection_download_methods:
+        CommandLine|contains:
+            - 'Net.WebClient'
+            - 'DownloadString'
+            - 'DownloadFile'
+            - 'DownloadData'
+            - 'Invoke-WebRequest'
+            - 'iwr '
+            - 'wget '
+            - 'curl '
+            - 'Start-BitsTransfer'
+            - 'Net.HttpWebRequest'
+            - '[Net.ServicePointManager]'
+            - 'Invoke-RestMethod'
+            - 'irm '
+    
+    selection_execution:
+        CommandLine|contains:
+            - 'IEX'
+            - 'Invoke-Expression'
+            - '| iex'
+            - '|iex'
+            - '.Invoke('
+            - 'Invoke-Command'
+    
+    selection_one_liners:
+        CommandLine|contains:
+            - "IEX(New-Object Net.WebClient).DownloadString"
+            - "IEX (New-Object Net.WebClient).DownloadString"
+            - "(New-Object Net.WebClient).DownloadString" 
+            - "(New-Object System.Net.WebClient).DownloadString"
+
+    filter_legitimate_updates:
+        CommandLine|contains:
+            - 'chocolatey'
+            - 'nuget'
+            - 'PSGallery'
+            - 'powershellgallery.com'
+
+    condition: selection_powershell and ((selection_download_methods and selection_execution) or selection_one_liners) and not filter_legitimate_updates
+
+falsepositives:
+    - Package managers (Chocolatey, NuGet)
+    - PowerShell Gallery module installation
+    - Legitimate administrative scripts downloading from internal repositories
+    - Development tools updating dependencies
+
+level: high
+
+tags:
+    - attack.t1059.001
+    - attack.t1105
+
+fields:
+    - CommandLine
+    - ParentImage
+    - ParentCommandLine
+    - User
+    - Computer

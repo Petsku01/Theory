@@ -1,0 +1,67 @@
+title: DCSync Attack Detection via Directory Replication
+id: bf6c2d9e-7f8a-4b3c-2d5e-6f9a0b1c3d4e
+status: stable
+description: |
+    Detects DCSync attacks by monitoring for directory replication requests
+    from non-domain controller machines. DCSync uses the Microsoft Directory
+    Replication Service Remote Protocol to impersonate a DC and request
+    password data replication. This is a critical credential access technique.
+references:
+    - https://attack.mitre.org/techniques/T1003/006/
+    - https://adsecurity.org/?p=1729
+    - https://blog.stealthbits.com/what-is-dcsync-an-introduction/
+author: Security Operations Team
+date: 2025/08/25
+modified: 2026/01/22
+
+logsource:
+    product: windows
+    service: security
+
+detection:
+    selection_event:
+        EventID: 4662                      # An operation was performed on an object
+    
+    selection_replication_properties:
+        Properties|contains:
+            - '1131f6aa-9c07-11d1-f79f-00c04fc2dcd2'  # DS-Replication-Get-Changes
+            - '1131f6ad-9c07-11d1-f79f-00c04fc2dcd2'  # DS-Replication-Get-Changes-All
+            - '89e95b76-444d-4c62-991a-0facbeda640c'  # DS-Replication-Get-Changes-In-Filtered-Set
+    
+    filter_domain_controllers:
+        # IMPORTANT: Replace with your actual DC names or use a lookup
+        # This pattern assumes DCs have 'DC' in their name - adjust for your naming
+        SubjectUserName|endswith: '$'
+        # Use one of these approaches:
+        # Option 1: Explicit DC list (recommended)
+        # SubjectUserName:
+        #     - 'DC01$'
+        #     - 'DC02$'
+        # Option 2: Pattern match (if your DCs follow naming convention)
+        SubjectUserName|contains: 'DC'
+    
+    filter_system_accounts:
+        SubjectUserSid:
+            - 'S-1-5-18'                   # SYSTEM
+            - 'S-1-5-19'                   # LOCAL SERVICE
+            - 'S-1-5-20'                   # NETWORK SERVICE
+
+    condition: selection_event and selection_replication_properties and not (filter_domain_controllers or filter_system_accounts)
+
+falsepositives:
+    - Azure AD Connect synchronization
+    - Legitimate replication tools
+    - Domain controller promotion
+    - Directory synchronization software
+
+level: critical
+
+tags:
+    - attack.t1003.006
+
+fields:
+    - SubjectUserName
+    - SubjectDomainName
+    - ObjectServer
+    - ObjectType
+    - Properties

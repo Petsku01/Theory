@@ -1,0 +1,48 @@
+title: Execution from NTFS Alternate Data Stream
+id: 123e4567-e89b-12d3-a456-426614174001
+description: |
+    Detects execution from NTFS alternate data streams (ADS).
+    ADS can hide malicious payloads attached to legitimate files.
+    Note: This rule has high false positive rate due to colon in paths.
+    Requires tuning based on your environment.
+status: test
+author: -pk
+date: 2025/05/10
+modified: 2026/01/22
+references:
+    - https://attack.mitre.org/techniques/T1564/004/
+    - https://blog.malwarebytes.com/101/2015/07/introduction-to-alternate-data-streams/
+logsource:
+    category: process_creation
+    product: windows
+detection:
+    selection_ads_pattern:
+        CommandLine|re: '.*\.[a-zA-Z]{2,4}:[a-zA-Z].*'
+    
+    selection_known_ads_tools:
+        CommandLine|contains:
+            - 'type '
+            - 'more <'
+        CommandLine|re: '.*:.*\|.*'
+    
+    filter_drive_letters:
+        CommandLine|re: '^[A-Z]:\\.*'
+    
+    filter_time_format:
+        CommandLine|contains:
+            - 'T00:'
+            - 'T12:'
+            - ':00:'
+    
+    condition: (selection_ads_pattern or selection_known_ads_tools) and not (filter_drive_letters or filter_time_format)
+fields:
+    - CommandLine
+    - Image
+    - ParentImage
+falsepositives:
+    - Drive letter paths (C:\) - filtered
+    - Time stamps in commands - filtered
+    - Legitimate ADS usage (rare but possible)
+level: high
+tags:
+    - attack.t1564.004

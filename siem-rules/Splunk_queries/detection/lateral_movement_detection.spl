@@ -1,0 +1,68 @@
+`comment("
+================================================================================
+Lateral Movement Detection
+================================================================================
+Description: Detects lateral movement techniques including PsExec, WMI,
+             WinRM, and RDP-based movement
+Author: Security Operations Team
+Date: 2026-01-22
+MITRE ATT&CK: T1021 (Remote Services)
+Severity: High
+================================================================================
+")`
+
+| multisearch
+    `comment("PsExec Detection")`
+    [| search index=windows source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational"
+       ((EventCode=1 Image="*\\PSEXESVC.exe") OR
+        (EventCode=17 PipeName="\\PSEXESVC*") OR
+        (EventCode=13 TargetObject="*\\Services\\PSEXESVC*"))
+     | eval technique="PsExec"
+     | eval mitre="T1021.002"]
+    
+    `comment("WMI Lateral Movement")`
+    [| search index=windows source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" EventCode=1
+       ParentImage="*\\WmiPrvSE.exe" 
+       (Image="*\\cmd.exe" OR Image="*\\powershell.exe")
+     | eval technique="WMI"
+     | eval mitre="T1047"]
+    
+    `comment("WinRM/PowerShell Remoting")`
+    [| search index=windows source="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational" EventCode=1
+       (ParentImage="*\\wsmprovhost.exe" OR
+        CommandLine="*Invoke-Command*" OR CommandLine="*Enter-PSSession*" OR
+        CommandLine="*New-PSSession*")
+     | eval technique="WinRM"
+     | eval mitre="T1021.006"]
+    
+    `comment("Remote Service Installation")`
+    [| search index=windows sourcetype=WinEventLog:System EventCode=7045
+     | eval technique="Service Creation"
+     | eval mitre="T1021.002"]
+    
+    `comment("RDP Connections")`
+    [| search index=windows sourcetype=WinEventLog:Security EventCode=4624 LogonType=10
+     | eval technique="RDP"
+     | eval mitre="T1021.001"]
+
+| stats count earliest(_time) as first_seen latest(_time) as last_seen 
+        values(technique) as techniques
+        values(mitre) as mitre_techniques
+        values(Image) as processes
+        values(CommandLine) as commands
+        dc(Computer) as unique_targets
+        by User, src_ip
+
+| where unique_targets > 1 OR count > 5
+
+| eval risk_score = case(
+    unique_targets >= 5 AND count >= 10, 90,
+    unique_targets >= 3, 75,
+    count >= 10, 60,
+    1=1, 40
+)
+
+| sort - risk_score
+
+| table User, src_ip, techniques, mitre_techniques, unique_targets, count,
+        first_seen, last_seen, risk_score

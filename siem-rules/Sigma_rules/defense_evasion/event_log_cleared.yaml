@@ -1,0 +1,82 @@
+title: Windows Security Event Log Cleared
+id: cf7d3e0f-8a9b-4c4d-3e6f-7a0b1c2d4e5f
+status: stable
+description: |
+    Detects clearing of Windows Security event logs, which is a common
+    defense evasion technique used by attackers to cover their tracks.
+    Legitimate clearing of security logs should be extremely rare and
+    requires administrative privileges.
+references:
+    - https://attack.mitre.org/techniques/T1070/001/
+    - https://docs.microsoft.com/en-us/windows/security/threat-protection/auditing/event-1102
+author: Security Operations Team
+date: 2025/05/10
+modified: 2026/01/22
+
+logsource:
+    product: windows
+    service: security
+
+detection:
+    selection_cleared:
+        EventID: 1102                      # Security log cleared
+
+    condition: selection_cleared
+
+falsepositives:
+    - Legitimate log maintenance by IT administrators
+    - Automated log rotation scripts (rare for security logs)
+    - System recovery procedures
+
+level: high
+
+tags:
+    - attack.t1070.001
+
+fields:
+    - SubjectUserName
+    - SubjectDomainName
+    - SubjectLogonId
+---
+title: Event Log Service Stopped
+id: df8e4f1a-9b0c-4d5e-4f7a-8b1c2d3e5f6a
+status: stable
+description: |
+    Detects when the Windows Event Log service is stopped, which may indicate
+    an attacker attempting to prevent logging of malicious activities.
+references:
+    - https://attack.mitre.org/techniques/T1070/001/
+author: Security Operations Team
+date: 2025/05/10
+modified: 2026/01/22
+
+logsource:
+    product: windows
+    service: system
+
+detection:
+    selection_service_stop:
+        EventID: 7036
+        param1: 'Windows Event Log'
+        param2: 'stopped'
+    
+    selection_alternative:
+        EventID: 7040
+        param1: 'Windows Event Log'
+
+    condition: selection_service_stop or selection_alternative
+
+falsepositives:
+    - System maintenance
+    - Windows updates
+    - Legitimate troubleshooting
+
+level: high
+
+tags:
+    - attack.t1070.001
+
+fields:
+    - param1
+    - param2
+    - EventRecordId

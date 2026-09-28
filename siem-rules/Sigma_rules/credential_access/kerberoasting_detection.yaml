@@ -1,0 +1,61 @@
+title: Kerberoasting Service Ticket Request
+id: af5b1c8d-6e7f-4a2b-1c4d-5e8f9a0b2c3d
+status: stable
+description: |
+    Detects Kerberoasting attacks by monitoring for TGS (Ticket Granting Service)
+    requests with RC4 encryption for service accounts. Kerberoasting is used to
+    extract service account hashes for offline cracking. Attackers request service
+    tickets with weak encryption to crack passwords offline.
+references:
+    - https://attack.mitre.org/techniques/T1558/003/
+    - https://www.crowdstrike.com/blog/how-to-detect-kerberoasting-activity/
+    - https://adsecurity.org/?p=2293
+author: Security Operations Team
+date: 2025/09/05
+modified: 2026/01/22
+
+logsource:
+    product: windows
+    service: security
+
+detection:
+    selection_event:
+        EventID: 4769                     # Kerberos Service Ticket Request
+    
+    selection_encryption:
+        TicketEncryptionType: '0x17'      # RC4_HMAC_MD5 (weak encryption)
+    
+    selection_success:
+        Status: '0x0'                      # Success only
+    
+    filter_machine_accounts:
+        # Computer accounts request tickets normally
+        ServiceName|endswith: '$'
+    
+    filter_krbtgt:
+        # krbtgt tickets are normal
+        ServiceName|startswith: 'krbtgt'
+    
+    filter_local_accounts:
+        # Filter local service accounts if needed
+        TargetUserName|endswith: '$'
+
+    condition: selection_event and selection_encryption and selection_success and not (filter_machine_accounts or filter_krbtgt or filter_local_accounts)
+
+falsepositives:
+    - Legacy applications requiring RC4 encryption
+    - Misconfigured service accounts
+    - Old domain controllers
+    - Specific legacy Kerberos implementations
+
+level: high
+
+tags:
+    - attack.t1558.003
+
+fields:
+    - ServiceName
+    - TargetUserName
+    - IpAddress
+    - TicketEncryptionType
+    - TicketOptions

@@ -1,0 +1,129 @@
+title: Suspicious PowerShell Execution Patterns
+id: 7c2d8e5f-3a4b-4c9d-8e1f-2a5b6c7d8e9f
+status: test
+description: |
+    Detects suspicious PowerShell execution including encoded commands,
+    download cradles, and common obfuscation techniques.
+    
+    Note: Encoded commands alone are not always malicious (SCCM uses them).
+    Combine with other indicators for higher fidelity.
+references:
+    - https://attack.mitre.org/techniques/T1059/001/
+    - https://attack.mitre.org/techniques/T1027/
+    - https://www.fireeye.com/blog/threat-research/2016/02/greater_visibility_t.html
+author: Security Operations Team
+date: 2025/06/15
+modified: 2026/01/22
+
+logsource:
+    product: windows
+    category: process_creation
+
+detection:
+    # Base selection - PowerShell process
+    selection_ps:
+        Image|endswith:
+            - '\powershell.exe'
+            - '\pwsh.exe'
+    
+    # Technique 1: Encoded commands
+    suspicious_encoded:
+        CommandLine|contains:
+            - '-enc'
+            - '-ec '
+            - '-encodedcommand'
+            - '-e '
+    
+    # Technique 2: Download cradles
+    suspicious_download:
+        CommandLine|contains:
+            - 'IEX'
+            - 'Invoke-Expression'
+            - 'DownloadString'
+            - 'DownloadFile'
+            - 'Net.WebClient'
+            - 'Start-BitsTransfer'
+            - 'Invoke-WebRequest'
+            - 'iwr '
+            - 'curl '
+            - 'wget '
+    
+    # Technique 3: Evasion flags
+    suspicious_evasion:
+        CommandLine|contains:
+            - '-nop'
+            - '-noni'
+            - '-w hidden'
+            - '-window hidden'
+            - '-windowstyle h'
+            - '-ep bypass'
+            - '-exec bypass'
+            - '-executionpolicy bypass'
+            - 'bypass'
+            - '-sta'
+    
+    # Technique 4: In-memory execution
+    suspicious_memory:
+        CommandLine|contains:
+            - '[System.Reflection.Assembly]::Load'
+            - '[Reflection.Assembly]::Load'
+            - 'FromBase64String'
+            - 'Invoke-Mimikatz'
+            - 'Invoke-TokenManipulation'
+            - 'Invoke-CredentialInjection'
+    
+    # Technique 5: Suspicious parent processes
+    suspicious_parent:
+        ParentImage|endswith:
+            - '\winword.exe'
+            - '\excel.exe'
+            - '\powerpnt.exe'
+            - '\outlook.exe'
+            - '\mshta.exe'
+            - '\wscript.exe'
+            - '\cscript.exe'
+            - '\rundll32.exe'
+            - '\regsvr32.exe'
+    
+    # SCCM/Intune - verify these paths match your environment
+    filter_sccm:
+        ParentImage|contains:
+            - '\ccm\\'
+            - 'Configuration Manager'
+        CommandLine|contains: 'Microsoft\\ConfigMgr'
+    
+    filter_intune:
+        ParentImage|contains: 'Microsoft Intune'
+        CommandLine|contains: 'IntuneManagementExtension'
+    
+    # DSC operations
+    filter_dsc:
+        ParentImage|endswith: '\WmiPrvSE.exe'
+        CommandLine|contains: 'DSCConfiguration'
+    
+    # TUNE: Add your automation tools after validation
+    filter_environment:
+        ParentImage|startswith:
+            - 'C:\Program Files\YourAutomation\'  # Replace with your tools
+
+    condition: >
+        selection_ps and 
+        (
+            (suspicious_encoded and (suspicious_evasion or suspicious_download)) or
+            (suspicious_download and suspicious_evasion) or
+            suspicious_memory or
+            (suspicious_parent and (suspicious_encoded or suspicious_download or suspicious_evasion))
+        ) and 
+        not (filter_sccm or filter_intune or filter_dsc or filter_environment)
+
+falsepositives:
+    - SCCM/Configuration Manager - verify ParentImage path
+    - Microsoft Intune management
+    - Legitimate automation (Chef, Puppet, Ansible) - add to filter_environment
+    - DSC configurations
+
+level: high
+
+tags:
+    - attack.t1059.001
+    - attack.t1027

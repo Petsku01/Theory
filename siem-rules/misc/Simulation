@@ -1,0 +1,28 @@
+#!/usr/bin/env python
+import os
+import time
+
+def simulate_ransomware():
+    test_dir = "./test_files"
+    os.makedirs(test_dir, exist_ok=True)
+    
+    # Create dummy files
+    for i in range(100):
+        with open(f"{test_dir}/file{i}.txt", "w") as f:
+            f.write("Test content")
+    
+    # Simulate encryption (rename files)
+    for filename in os.listdir(test_dir):
+        os.rename(
+            f"{test_dir}/{filename}",
+            f"{test_dir}/{filename}.encrypted"
+        )
+        print(f"Encrypted: {filename}")
+    
+    # Simulate ransom note
+    with open(f"{test_dir}/RANSOM_NOTE.txt", "w") as f:
+        f.write("Your files are encrypted! Pay 1 BTC to decrypt.")
+
+if __name__ == "__main__":
+    print("Simulating ransomware behavior...")
+    simulate_ransomware()

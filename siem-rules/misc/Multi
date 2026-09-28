@@ -1,0 +1,43 @@
+Multi
+
+#Deployment
+
+    Saved Search: Save this as a scheduled search in Splunk (e.g., run every 15 minutes) with an alert action (e.g., email, Slack) for risk_score > 50.
+    Dashboard: Add to a SOC dashboard with a table visualization, filtering by risk_score for real-time monitoring.
+    Performance: For large datasets, consider accelerating underlying data models (e.g., Network_Traffic, Authentication) and swapping stats for tstats where possible.
+
+| multisearch 
+    [search index=web sourcetype=access_combined action="GET" 
+     | rex "User-Agent:\s(?<user_agent>[^\r\n]+)" 
+     | rare user_agent 
+     | eval stage="recon" 
+     | fields _time, src_ip, user_agent, stage] 
+    [search index=security sourcetype=auth action=failure 
+     | streamstats count as auth_attempts window=100 by src_ip, dest_host 
+     | where auth_attempts > 5 
+     | eval stage="lateral" 
+     | fields _time, src_ip, dest_host, auth_attempts, stage] 
+    [search index=network sourcetype=firewall direction=outbound 
+     | eventstats avg(bytes) as avg_bytes by src_ip 
+     | eval bytes_deviation = if(bytes > avg_bytes * 3, "high", "normal") 
+     | where bytes_deviation="high" 
+     | eval stage="exfil" 
+     | fields _time, src_ip, dest_ip, bytes, bytes_deviation, stage] 
+| eval event_id = _time + "_" + src_ip 
+| stats values(stage) as stages, 
+        values(user_agent) as recon_user_agent, 
+        values(dest_host) as lateral_hosts, 
+        values(auth_attempts) as lateral_attempts, 
+        values(dest_ip) as exfil_dest, 
+        values(bytes) as exfil_bytes, 
+        count as event_count by src_ip 
+| eval stage_count = mvcount(stages) 
+| where stage_count >= 2 
+| lookup threat_intel ip AS src_ip OUTPUT threat_name 
+| eval risk_score = case(
+    stage_count=3, 90,
+    stage_count=2 AND isnotnull(threat_name), 75,
+    stage_count=2, 50,
+    1=1, 0) 
+| table src_ip, stages, stage_count, recon_user_agent, lateral_hosts, lateral_attempts, exfil_dest, exfil_bytes, threat_name, risk_score 
+| sort -risk_score

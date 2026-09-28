@@ -1,0 +1,33 @@
+Done in 2023
+
+Identify users with excessive failed logins, enriched with threat intel, in a readable table
+
+index=security sourcetype=auth action=failed 
+| rex "user=(?<username>\w+)" 
+| eval risk_score = if(status="locked", 10, 5) 
+| stats count by username, risk_score 
+| where count > 10 
+| lookup threat_users user AS username OUTPUT threat_category 
+| table username, count, risk_score, threat_category
+
+
+Visualize hourly traffic spikes from IPs linked to malware
+
+index=security sourcetype=firewall 
+| rex "src_ip=(?<source_ip>\d+\.\d+\.\d+\.\d+)" 
+| eval bytes_mb = bytes / 1024 / 1024 
+| timechart span=1h sum(bytes_mb) by source_ip 
+| where sum(bytes_mb) > 100 
+| lookup malware_ips ip AS source_ip OUTPUT malware_name 
+| table _time, source_ip, sum(bytes_mb), malware_name
+
+
+Correlate proxy logs with IOCs and summarize high-risk destinations.
+
+index=security sourcetype=proxy 
+| rex "dest=(?<destination>\S+)" 
+| eval is_error = if(http_status >= 400, "yes", "no") 
+| stats count by destination, is_error 
+| where count > 50 AND is_error="yes" 
+| lookup ioc_list domain AS destination OUTPUT threat_type 
+| table destination, count, is_error, threat_type
