@@ -5,6 +5,7 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import {
   createSoftCircleTexture,
+  seededRandom,
   setParticleWasmStatus,
   ensureCortexWasm,
   isCortexWasmReady,
@@ -84,10 +85,11 @@ export function FlowFieldParticles({
       new THREE.Color(SPECIES_COLORS[1] ?? "#FF6B35"),
       new THREE.Color(SPECIES_COLORS[2] ?? "#39FF88"),
     ];
+    const random = seededRandom(42);
     for (let i = 0; i < count; i++) {
-      pos[i * 3] = (Math.random() - 0.5) * 24;
-      pos[i * 3 + 1] = (Math.random() - 0.5) * 24;
-      pos[i * 3 + 2] = (Math.random() - 0.5) * 24;
+      pos[i * 3] = (random() - 0.5) * 24;
+      pos[i * 3 + 1] = (random() - 0.5) * 24;
+      pos[i * 3 + 2] = (random() - 0.5) * 24;
       const species = i % 3;
       const c = speciesColorObjs[species];
       col[i * 3] = c.r;
@@ -156,7 +158,7 @@ export function FlowFieldParticles({
         attractorPtrRef.current = 0;
       }
     };
-  }, [count, attractorData.length]);
+  }, [count, attractorData]);
 
   // Cleanup material + texture
   useEffect(() => {

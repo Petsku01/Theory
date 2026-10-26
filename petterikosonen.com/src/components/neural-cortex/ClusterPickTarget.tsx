@@ -16,7 +16,7 @@ export function ClusterPickTarget({
   onClusterHover,
 }: ClusterPickTargetProps) {
   const handleClick = useCallback(
-    (key: string) => (e: any) => {
+    (key: string) => (e: { stopPropagation(): void }) => {
       e.stopPropagation();
       onClusterSelect(key);
     },
@@ -24,7 +24,7 @@ export function ClusterPickTarget({
   );
 
   const handleHover = useCallback(
-    (key: string | null) => (e: any) => {
+    (key: string | null) => (e: { stopPropagation(): void }) => {
       if (e) e.stopPropagation();
       onClusterHover(key);
       if (key) {

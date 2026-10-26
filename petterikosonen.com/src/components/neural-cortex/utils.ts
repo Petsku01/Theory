@@ -3,11 +3,11 @@ import { clusterPositions, type CortexNode } from "@/lib/cortex-data";
 
 // -- Per-cluster colour scheme --
 export const CLUSTER_COLORS: Record<string, string> = {
-  core: "#00f0ff",
-  projects: "#a855f7",
-  skills: "#22d3ee",
-  experience: "#f59e0b",
-  research: "#ef4444",
+  core: "#22D3EE",
+  projects: "#FF6B35",
+  skills: "#FF6B35",
+  experience: "#39FF88",
+  research: "#22D3EE",
 };
 
 // -- SYMBIOOSIS: Species base colors --
@@ -230,10 +230,7 @@ export function getCortexWasm(): CortexWasmExports | null {
   return cortexWasm;
 }
 
-// Kick off WASM load immediately on client
-if (typeof window !== "undefined") {
-  ensureCortexWasm();
-}
+// Consumers explicitly request WASM on mount; importing helpers must not start a fetch.
 
 // ── Write Uint32Array into WASM memory via wasm_alloc ──
 export function writeU32ToWasm(wasm: CortexWasmExports, data: Uint32Array): number {

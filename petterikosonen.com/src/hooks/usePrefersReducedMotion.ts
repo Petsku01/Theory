@@ -7,7 +7,8 @@ import { useEffect, useState } from "react";
  * Updates live when the user changes their system preference.
  */
 export function usePrefersReducedMotion(): boolean {
-  const [reduced, setReduced] = useState(false);
+  // Conservative SSR/hydration default: never start an animation before checking preferences.
+  const [reduced, setReduced] = useState(true);
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");

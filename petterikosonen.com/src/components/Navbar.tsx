@@ -20,13 +20,8 @@ export default function Navbar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  // Track client-side mount to avoid hydration mismatch
-  useEffect(() => { setMounted(true); }, []);
-
-  // isHome is only reliable after mount (SSG renders all pages with pathname="/")
-  const isHome = mounted && pathname === "/";
+  // The content-first home now uses the same visible navigation as other routes.
+  const isHome = false;
   const navRef = useRef<HTMLElement>(null);
 
   // RAF-throttled scroll handler

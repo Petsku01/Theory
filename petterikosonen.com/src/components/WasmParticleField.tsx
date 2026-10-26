@@ -46,7 +46,7 @@ export default function WasmParticleField({ particleCount = 1200, className = ""
   const sizeRef = useRef({ w: 0, h: 0 });
   const [ready, setReady] = useState(false);
 
-  const render = useCallback(() => {
+  const render = useCallback(function render() {
     const wasm = getCortexWasm() as unknown as ParticleField2DExports | null;
     const canvas = canvasRef.current;
     if (!wasm || !canvas || !fieldPtr.current) return;

@@ -1,250 +1,75 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Html } from "@react-three/drei";
-import { OrbitControls as OrbitControlsImpl } from "three-stdlib";
-import { EffectComposer, Bloom } from "@react-three/postprocessing";
+import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import * as THREE from "three";
 import { clusterPositions } from "@/lib/cortex-data";
-import { CLUSTER_COLORS } from "@/components/neural-cortex/utils";
-import { CameraController } from "@/components/neural-cortex/CameraController";
-import { FlowFieldParticles } from "@/components/neural-cortex/FlowFieldParticles";
+import { CLUSTER_COLORS } from "./utils";
+import { CameraController } from "./CameraController";
+import { FlowFieldParticles } from "./FlowFieldParticles";
 
-// ── SYMBIOOSIS: Cursor = navigation, no traditional navbar ──
-// Particles respond to cursor position via raycaster.
-// NO ClusterMarkers — the organism IS the particles.
-// Invisible click-target spheres handle cluster selection.
+const labels: Record<string, string> = { core: "Core", projects: "Projects", skills: "Skills", experience: "Experience", research: "Research" };
 
-const CLUSTER_KEYS = ["core", "projects", "skills", "experience", "research"] as const;
-
-const CLUSTER_LABELS: Record<string, string> = {
-  core: "Core",
-  projects: "Projects",
-  skills: "Skills",
-  experience: "Experience",
-  research: "Research",
-};
-
-// ── Invisible click-target sphere for one cluster ──
-function ClickTarget({
-  clusterKey,
-  position,
-  color,
-  label,
-  isActive,
-  onClick,
-}: {
-  clusterKey: string;
-  position: [number, number, number];
-  color: string;
-  label: string;
-  isActive: boolean;
-  onClick: () => void;
+function ClickTarget({ position, color, label, active, onClick, running }: {
+  position: [number, number, number]; color: string; label: string; active: boolean;
+  onClick: () => void; running: boolean;
 }) {
-  const [hovered, setHovered] = useState(false);
-  const colorObj = useMemo(() => new THREE.Color(color), [color]);
-
-  return (
-    <group position={position}>
-      {/* Invisible click-target sphere — visible=false but still raycastable */}
-      <mesh
-        visible={false}
-        onClick={(e) => {
-          e.stopPropagation();
-          onClick();
-        }}
-        onPointerOver={(e) => {
-          e.stopPropagation();
-          setHovered(true);
-          document.body.style.cursor = "pointer";
-        }}
-        onPointerOut={() => {
-          setHovered(false);
-          document.body.style.cursor = "default";
-        }}
-      >
-        <sphereGeometry args={[2.5, 16, 16]} />
-        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
-      </mesh>
-
-      {/* Html label — always visible, brighter on hover/active */}
-      <Html
-        position={[0, 1.8, 0]}
-        center
-        distanceFactor={10}
-        zIndexRange={[10, 0]}
-        style={{
-          pointerEvents: "none",
-          userSelect: "none",
-        }}
-      >
-        <div
-          style={{
-            fontFamily: "monospace",
-            fontSize: "11px",
-            fontWeight: isActive ? "bold" : "normal",
-            color: isActive ? color : hovered ? color : "rgba(203, 213, 225, 0.72)",
-            textShadow: `0 0 8px ${color}80`,
-            whiteSpace: "nowrap",
-            letterSpacing: "0.1em",
-            textTransform: "uppercase",
-            transition: "all 0.2s ease",
-            opacity: isActive ? 1 : hovered ? 0.82 : 0.38,
-          }}
-        >
-          {label}
-        </div>
-      </Html>
-
-      {/* Subtle glow ring when active (no mesh sphere, just a faint ring) */}
-      {isActive && (
-        <mesh rotation={[Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[1.2, 1.4, 32]} />
-          <meshBasicMaterial
-            color={colorObj}
-            transparent
-            opacity={0.3}
-            depthWrite={false}
-            blending={THREE.AdditiveBlending}
-          />
-        </mesh>
-      )}
-    </group>
-  );
+  return <group position={position}>
+    <mesh onClick={(event) => { event.stopPropagation(); if (running) onClick(); }}>
+      <sphereGeometry args={[2.5, 12, 12]} />
+      <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+    </mesh>
+    <Html position={[0, 1.8, 0]} center distanceFactor={10} zIndexRange={[10, 0]} style={{ pointerEvents: "none", userSelect: "none" }}>
+      <span style={{ fontFamily: "monospace", fontSize: "12px", color: active ? color : "#b5c5d3", whiteSpace: "nowrap", letterSpacing: ".1em", textTransform: "uppercase" }}>{label}</span>
+    </Html>
+    {active && <mesh rotation={[Math.PI / 2, 0, 0]}>
+      <ringGeometry args={[1.2, 1.3, 32]} /><meshBasicMaterial color={color} transparent opacity={.35} depthWrite={false} />
+    </mesh>}
+  </group>;
 }
 
-export function CortexScene({
-  activeCluster,
-  onClusterSelect,
-  shakeTimestamp,
-  particleCount = 5000,
-  bloomIntensity = 2.2,
-  isMobile = false,
-  reducedMotion = false,
-}: {
-  activeCluster: string | null;
-  onClusterSelect: (cluster: string | null) => void;
-  shakeTimestamp: number;
-  particleCount?: number;
-  bloomIntensity?: number;
-  isMobile?: boolean;
-  reducedMotion?: boolean;
+export function CortexScene({ activeCluster, onClusterSelect, shakeTimestamp, particleCount = 5000, isMobile = false, reducedMotion = false, running = true }: {
+  activeCluster: string | null; onClusterSelect: (cluster: string | null) => void;
+  shakeTimestamp: number; particleCount?: number; isMobile?: boolean; reducedMotion?: boolean; running?: boolean;
 }) {
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const groupRef = useRef<THREE.Group>(null);
-  const { raycaster, camera, pointer } = useThree();
-
-  // Cursor 3D position — the user's "juuret" in the organism
-  const cursorWorldRef = useRef<THREE.Vector3>(new THREE.Vector3());
-
-  // Compute hover target from cursor position
-  const hoverTarget = !reducedMotion && !isMobile ? cursorWorldRef.current : null;
-
-  // Cluster center for camera target
+  const { raycaster, camera, gl } = useThree();
+  // Mutable Three objects live in stable state, not a ref read during render.
+  const [cursorWorld] = useState(() => new THREE.Vector3());
   const targetPosition = useMemo(() => {
-    if (!activeCluster) return null;
-    const pos = clusterPositions[activeCluster];
-    if (!pos) return null;
-    return new THREE.Vector3(pos[0], pos[1], pos[2]);
+    const pos = activeCluster ? clusterPositions[activeCluster] : null;
+    return pos ? new THREE.Vector3(...pos) : null;
   }, [activeCluster]);
 
-  // Build click-target data
-  const clickTargets = useMemo(() => {
-    return CLUSTER_KEYS.map((key) => {
-      const pos = clusterPositions[key] ?? [0, 0, 0];
-      const color = CLUSTER_COLORS[key] ?? "#00f0ff";
-      const label = CLUSTER_LABELS[key] ?? key;
-      return { key, position: pos as [number, number, number], color, label };
-    });
-  }, []);
-
-  // Track cursor position in 3D via raycaster — this IS the navigation
   useEffect(() => {
-    if (reducedMotion || isMobile) return;
-    const handlePointerMove = (e: PointerEvent) => {
-      pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
-      pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
-      // Raycast from camera through pointer into scene
+    if (reducedMotion || isMobile || !running) return;
+    const pointer = new THREE.Vector2();
+    const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+    const onMove = (event: PointerEvent) => {
+      const bounds = gl.domElement.getBoundingClientRect();
+      pointer.set(((event.clientX - bounds.left) / bounds.width) * 2 - 1, -((event.clientY - bounds.top) / bounds.height) * 2 + 1);
       raycaster.setFromCamera(pointer, camera);
-      // Project onto z=0 plane for a 3D hover target
-      const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
-      const intersect = new THREE.Vector3();
-      raycaster.ray.intersectPlane(plane, intersect);
-      if (intersect) {
-        cursorWorldRef.current.copy(intersect);
-      }
+      raycaster.ray.intersectPlane(plane, cursorWorld);
     };
-    window.addEventListener("pointermove", handlePointerMove, { passive: true });
-    return () => window.removeEventListener("pointermove", handlePointerMove);
-  }, [raycaster, camera, pointer, reducedMotion, isMobile]);
+    gl.domElement.addEventListener("pointermove", onMove, { passive: true });
+    return () => gl.domElement.removeEventListener("pointermove", onMove);
+  }, [raycaster, camera, gl, cursorWorld, reducedMotion, isMobile, running]);
 
-  // Breathing cycle for the whole group
   useFrame((state) => {
-    if (reducedMotion) return;
-    if (groupRef.current) {
-      const time = state.clock.elapsedTime;
-      const breath = 1.0 + Math.sin(time * 0.15) * 0.03;
-      groupRef.current.scale.set(breath, breath, breath);
-    }
+    if (!running || reducedMotion || !groupRef.current) return;
+    const breath = 1 + Math.sin(state.clock.elapsedTime * .15) * .03;
+    groupRef.current.scale.setScalar(breath);
   });
 
-  useEffect(() => {
-    return () => {
-      document.body.style.cursor = "default";
-    };
-  }, []);
-
-  return (
-    <>
-      <ambientLight intensity={0.1} />
-      <pointLight position={[10, 10, 10]} intensity={0.4} color="#00f0ff" />
-      <pointLight position={[-10, -5, -10]} intensity={0.3} color="#22d3ee" />
-
-      <group ref={groupRef}>
-        <FlowFieldParticles
-          count={particleCount}
-          activeCluster={activeCluster}
-          hoverTarget={hoverTarget}
-          reducedMotion={reducedMotion}
-        />
-
-        {/* Invisible click-targets + Html labels (no visible mesh spheres) */}
-        {clickTargets.map((t) => (
-          <ClickTarget
-            key={t.key}
-            clusterKey={t.key}
-            position={t.position}
-            color={t.color}
-            label={t.label}
-            isActive={activeCluster === t.key}
-            onClick={() => {
-              if (activeCluster === t.key) {
-                onClusterSelect(null);
-              } else {
-                onClusterSelect(t.key);
-              }
-            }}
-          />
-        ))}
-      </group>
-
-      <CameraController
-        target={targetPosition}
-        controlsRef={controlsRef}
-        shakeTimestamp={reducedMotion ? 0 : shakeTimestamp}
-      />
-      <OrbitControls
-        ref={controlsRef}
-        enableDamping
-        dampingFactor={0.08}
-        minDistance={3}
-        maxDistance={25}
-        enablePan
-        autoRotate={!activeCluster && !reducedMotion}
-        autoRotateSpeed={0.3}
-      />
-
-    </>
-  );
+  return <>
+    <group ref={groupRef}>
+      <FlowFieldParticles count={particleCount} activeCluster={activeCluster} hoverTarget={!reducedMotion && !isMobile ? cursorWorld : null} reducedMotion={reducedMotion || !running} />
+      {Object.entries(labels).map(([key, label]) => <ClickTarget key={key} position={clusterPositions[key]} color={CLUSTER_COLORS[key]} label={label} active={activeCluster === key} running={running} onClick={() => onClusterSelect(activeCluster === key ? null : key)} />)}
+    </group>
+    <CameraController target={targetPosition} controlsRef={controlsRef} shakeTimestamp={reducedMotion ? 0 : shakeTimestamp} />
+    <OrbitControls ref={controlsRef} enabled={running} enableDamping dampingFactor={.08} minDistance={3} maxDistance={25} enablePan autoRotate={running && !activeCluster && !reducedMotion} autoRotateSpeed={.3} />
+  </>;
 }

@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import {
   ensureCortexWasm,
-  isCortexWasmReady,
   getCortexWasm,
 } from "@/components/neural-cortex/utils";
 
@@ -17,7 +16,6 @@ const GRID_SPACING = 64;
 export function CyberGrid() {
   const textureRef = useRef<THREE.DataTexture | THREE.CanvasTexture | null>(null);
   const gridPtr = useRef<number>(0);
-  const [, setWasmReadyFlag] = useState(false);
 
   const createCanvasTexture = () => {
     const canvas = document.createElement("canvas");
@@ -88,25 +86,16 @@ export function CyberGrid() {
     }
   };
 
-  const texture = useMemo(() => {
-    if (typeof document === "undefined") return null;
-
-    if (isCortexWasmReady()) {
-      const tex = generateWasmTexture();
-      if (tex) {
-        textureRef.current = tex;
-        return tex;
-      }
-    }
-
-    return createCanvasTexture();
-  }, []);
-
+  const [texture, setTexture] = useState<THREE.Texture | null>(null);
   useEffect(() => {
-    if (isCortexWasmReady()) return;
+    let cancelled = false;
     ensureCortexWasm().then((ok) => {
-      if (ok) setWasmReadyFlag(true);
+      if (cancelled) return;
+      const next = (ok ? generateWasmTexture() : null) ?? createCanvasTexture();
+      textureRef.current = next;
+      setTexture(next);
     });
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
