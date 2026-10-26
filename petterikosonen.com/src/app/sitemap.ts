@@ -1,45 +1,9 @@
-import { MetadataRoute } from "next";
+import type { MetadataRoute } from "next";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = "https://petterikosonen.com";
-  const now = new Date();
-  
-  return [
-    {
-      url: baseUrl,
-      lastModified: now,
-      changeFrequency: "monthly",
-      priority: 1,
-    },
-    {
-      url: `${baseUrl}/about`,
-      lastModified: now,
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/projects`,
-      lastModified: now,
-      changeFrequency: "weekly",
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/blog`,
-      lastModified: now,
-      changeFrequency: "weekly",
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/research`,
-      lastModified: now,
-      changeFrequency: "weekly",
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/labs`,
-      lastModified: now,
-      changeFrequency: "weekly",
-      priority: 0.7,
-    },
-  ];
+  return ["", "/about", "/projects", "/blog", "/research", "/contact", "/kuu", "/labs", "/labs/security", "/labs/llm"].map((path) => ({
+    url: `https://petterikosonen.com${path}`,
+    changeFrequency: path === "/blog" ? "weekly" : "monthly",
+    priority: path === "" ? 1 : 0.7,
+  }));
 }

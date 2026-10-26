@@ -3,7 +3,8 @@ import { blogPosts } from "@/lib/data";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Blog - Petteri Kosonen",
+  alternates: { canonical: "/blog" },
+  title: "Blog",
   description: "Commentary, analysis, and observations on AI, security, and the tech stack.",
 };
 
@@ -18,7 +19,7 @@ export default function Blog() {
 
       <SectionFrame command="/blog --daily" title="Blog Posts" description="Timely analysis and commentary on AI, security, and the industry.">
         <div className="space-y-3">
-          {[...blogPosts].reverse().map((post) => (
+          {[...blogPosts].sort((a, b) => b.date.localeCompare(a.date)).map((post) => (
             <a
               key={post.link}
               href={post.link}

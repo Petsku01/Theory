@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Security Demos - Petteri Kosonen",
+  alternates: { canonical: "/labs/security" },
+  title: "Security Demos",
   description: "Interactive client-side security demonstrations: XSS, SQL injection, hashing, password analysis, JWT decoding, and encoding tools.",
 };
 
