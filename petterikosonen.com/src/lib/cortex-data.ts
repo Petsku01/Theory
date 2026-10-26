@@ -325,10 +325,10 @@ export const edges: CortexEdge[] = [
 // Cluster centers for layout (will be spread around these)
 export const clusterPositions: Record<string, [number, number, number]> = {
   core: [0, 0, 0],
-  projects: [6, 2.5, -5],
-  skills: [-6, -2, -5],
-  experience: [-5, 3, 5],
-  research: [5, -1.5, 5],
+  projects: [5.5, 2.4, -3],
+  skills: [-5.8, -1.6, -2],
+  experience: [-5, 2.8, 2],
+  research: [5.2, -2, 2.5],
 };
 
 // ── SYMBIOOSIS: Cluster pulse frequencies and species weights ──

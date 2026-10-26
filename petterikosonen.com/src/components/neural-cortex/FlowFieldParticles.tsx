@@ -156,6 +156,11 @@ export function FlowFieldParticles({
     };
   }, [material, texture]);
 
+  // Activation is a network-wide species signal, not only a nearest-cluster tint.
+  const networkPalette = useMemo(() => [0, 1, 2].map((i) => new THREE.Color(SPECIES_COLORS[i])), []);
+  const networkMix = useMemo(() => new THREE.Color(), []);
+  const updates = useRef(0);
+
   // Animation loop
   useFrame((state) => {
     if (typeof document !== "undefined" && document.hidden) return;
@@ -287,6 +292,27 @@ export function FlowFieldParticles({
 
       posAttr.needsUpdate = true;
       colorAttr.needsUpdate = true;
+    }
+    const weights = clusterSymbiosis[activeCluster ?? "core"].speciesWeights;
+    networkMix.setRGB(0, 0, 0);
+    networkPalette.forEach((color, i) => {
+      networkMix.r += color.r * weights[i];
+      networkMix.g += color.g * weights[i];
+      networkMix.b += color.b * weights[i];
+    });
+    const col = colorAttr.array as Float32Array;
+    for (let i = 0; i < count; i++) {
+      const species = networkPalette[i % 3];
+      const influence = .2 + weights[i % 3] * .6;
+      col[i * 3] = col[i * 3] * (1 - influence) + (species.r * .6 + networkMix.r * .4) * influence;
+      col[i * 3 + 1] = col[i * 3 + 1] * (1 - influence) + (species.g * .6 + networkMix.g * .4) * influence;
+      col[i * 3 + 2] = col[i * 3 + 2] * (1 - influence) + (species.b * .6 + networkMix.b * .4) * influence;
+    }
+    updates.current++;
+    if (updates.current % 30 === 0) {
+      state.gl.domElement.dataset.particleUpdates = String(updates.current);
+      state.gl.domElement.dataset.particleSample = Array.from(posAttr.array.slice(0, 6)).join(",");
+      state.gl.domElement.dataset.particleEngine = wasmReady.current ? "wasm" : "js";
     }
   });
 

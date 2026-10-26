@@ -152,3 +152,83 @@ Ei pushia, deployta tai main-haaran muutoksia. Fyysisen mobiililaitteen,
 Firefoxin ja koko sivuston visuaalinen regressiokierros jää erikseen tehtäväksi.
 Palautus: käytä alkuperäisiä feature-haaroja; yhdistäminen on omassa työpuussaan
 `cache/scratch/website-final`, eikä lähtöhaarojen committeja muutettu.
+
+## Artistical (P6) — symbioosin tilallinen partituuri
+
+Haara `website/cortex-artistical`, varmennettu pohja `f574cad` (WASM-slice-korjaus).
+Annettu uusi työpuu puuttui, joten se luotiin tästä commitista; paikallinen main
+oli yhä `fdef6e1`, eikä sitä päivitetty tai muutettu. Suunnitelma ennen toteutusta:
+[`DESIGN-CORTEX-ARTISTICAL.md`](DESIGN-CORTEX-ARTISTICAL.md).
+
+### Visuaalinen ja toiminnallinen diff
+
+- **A / Verkoston väri:** uusi `SymbiosisThreads.tsx` piirtää kahdeksan kaarevaa,
+  suljettua yhteysreittiä sekä 24 liikkuvaa viestipistettä. Klusterit vaihtavat
+  signaaleja Coren ja naapurin kanssa ilman kaikkien välistä viivasotkua.
+  Aktivoinnin Human/Machine/Nature-painot värittävät kaikkia yhteyksiä ja koko
+  partikkelikenttää myös WASM-polulla, eivät vain lähintä klusteria.
+- **B / Kosketus ja hiiri:** Canvasin passiiviset `pointermove` ja `touchmove`
+  kuuntelijat vertaavat osoitinta kameralla projisoituihin klusterikeskuksiin.
+  Läheisyysraja 65 CSS-pikseliä / mobile 80; pointerleave, touchend ja touchcancel
+  purkavat korostuksen. Läheisyys ei siirrä kameraa eikä vaihda sisältöpaneelia;
+  klikkaus ja saavutettavat painikkeet tekevät pysyvän valinnan.
+- **C / Rajattu jälkikäsittely:** uusi `CortexFinish.tsx`: yksi HalfFloat-render-target,
+  yksi fullscreen-outputpass, yhdeksän näytteen kynnystetty halo ja yksi filmic
+  tone-map lineaarisen komposition jälkeen. Ei EffectComposeria, Bloom-importtia,
+  uutta riippuvuutta tai globaalia CSS-hehkua. Render-target skaalautuu Canvasin
+  kokoon ja DPR-rajaan; GPU-resurssit vapautuvat unmountissa. Three-rendererin
+  tone-mapping ohitetaan scene-passissa, jotta sävykartoitusta ei tehdä kahdesti.
+- **D / Tilallinen sommittelu:** `cortex-data.ts` porrastaa viiden alueen syvyydet
+  uudelleen. Scene käyttää ohuita orbitaaleja massiivisten glow-pallojen sijaan.
+  3D-ankkuroitu typografia: Space Grotesk 20/26px klustereille, IBM Plex Mono 9px
+  indekseille, Georgia italic 30px lajien nimille. Fonttimuuttujat tarkistettiin
+  selaimen computed stylesta. Koko ekologia pysyy kuvassa: automaattinen
+  lähizoomaus ja hengitysskaalaus poistettiin, OrbitControls jää käyttäjälle.
+- **E / Rajat säilyvät:** etusivun muu tausta ja laiska Launch-portti ennallaan;
+  5000/2000 partikkelia, desktop DPR ≤1.5, mobile DPR 1. Reduced-motion ei
+  mounttaa Canvasia eikä postprocessingia. Offscreen pysäyttää renderöinnin ja
+  fysiikan. `ClusterMarkers`, `ClusterLabels` ja `CyberGrid` luettiin mutta niitä
+  ei tuotu takaisin käyttöreitille. Rust, WASM-binääri, loader ja erityisesti
+  kutsukohtainen `writeF32ToWasm`-allokaatio jäivät ennalleen.
+
+Canvasin `data-particle-updates`, `data-particle-sample`, `data-cortex-frames`,
+`data-particle-engine`, `data-proximity`, `data-activation` ja `data-species-mix`
+ovat testattavia tilahavaintoja, eivät näkyvää keksittyä telemetriaa. Laskurit
+päivittyvät 30 kehyksen välein; lajipainot ovat käsitteellisiä, eivät mittareita.
+
+### Varmennus tuotantobuildillä
+
+- pnpm **11.4.0** löytyi asennettuna Node-toolsin alta, vaikka PATHista puuttui
+  pnpm/corepack. Käytetty `node .../pnpm/bin/pnpm.cjs`; ei globaalia asennusta.
+- Frozen-lockfile install **PASS**, ei lockfile- tai package-muutoksia.
+- `pnpm build` **PASS**, exit 0, Next 16.2.6, TypeScript ja 15 staattista sivua.
+- `pnpm lint` **PASS**, exit 0: 0 virhettä, 14 ennestään ollutta varoitusta.
+  Buildin DEP0205 / MODULE_TYPELESS_PACKAGE_JSON -varoitukset eivät estäneet ajoa.
+- Scrapling headless Chromium, production-palvelin `127.0.0.1:3216`: lopullisen
+  version yhtäjaksoinen **69132.5 ms** seuranta, **0 runtime-virhettä**.
+  `error`, `unhandledrejection` ja `console.error` kerättiin ennen Launchia.
+  WASM käytössä; havaintolaskurit 450 → 1200 → 1440 ja partikkelien
+  sijaintanäytteet vaihtuivat jokaisessa havainnossa: partikkelit eivät jäätyneet.
+  DPR 1.5 (selaimen deviceScaleFactor 2). Myös ennen fonttimuuttujakorjausta
+  tehty 68147.8 ms ajo oli virheetön.
+- Desktop-pointer aktivoi Projects-klusterin: koko verkon lajijakauma vaihtui
+  `0.34,0.33,0.33` → `0.2,0.5,0.3`. Aito browser mousemove testattiin lisäksi.
+  Viisi natiivipainiketta päivittivät `aria-pressed`-tilan ja sisältöotsikon oikein.
+- 390×844 touch-emulaatio: DPR 1, WASM, ei vaakaylivuotoa eikä runtime-virheitä;
+  `TouchEvent('touchmove')` Projects-keskuksen lähellä aktivoi saman globaalin
+  lajivasteen. Tämä on emuloitu kosketus, ei fyysisen laitteen testi.
+- Offscreen: 2.2 sekunnin tarkkailussa sekä partikkeli- että render-laskuri
+  pysyivät samoina; palatessa molemmat jatkuivat. Lopullinen testi PASS.
+- Reduced-motion 390×844: **0 Canvasia, 0 WASM-pyyntöä**, viisi klusteria
+  toimivat ja vaakaylivuotoa ei ollut. Postprocessingia ei näin käynnistetty.
+- `git diff --check` PASS; ei main-pushia, deployta, index- tai MISTAKES-muutosta.
+
+Kuvat: [desktop](docs/cortex-p6/desktop.png),
+[mobile](docs/cortex-p6/mobile.png),
+[reduced motion](docs/cortex-p6/reduced-motion.png).
+Build/lint-lokit: HERMES_HOME `cache/scratch/cortex-p6-build.log` ja
+`cache/scratch/cortex-p6-lint.log`.
+
+Jäljellä: fyysinen mobiililaite, Firefox/GPU-yhteensopivuuden laajempi kierros ja
+Petskun taiteellinen katselmointi. Headless-ajo ei ole FPS-/CWV-parannusväite.
+Palautus: revert tämän feature-haaran commit; pohja `f574cad` säilyy.
