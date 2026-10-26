@@ -17,7 +17,7 @@ export const blogPosts: BlogPost[] = [
   {
     title: "Hyprlock lock client death: a full repro of a closed-lid monitor power-off fallback bug",
     date: "2026-10-26",
-    desc: "Hyprland and hyprlock 0.9.6 die with `unknown object (19), message attach(?oii)` when the only physical monitor loses power with the lid closed. Full repro chain, a one-variable `AMD_DEBUG=nodcc` workaround that survives a 5-hour DP-3 absence, and open root-cause questions.",
+    desc: "Hyprland and hyprlock 0.9.6 die with `unknown object (19), message attach(?oii)` when the only physical monitor loses power with the lid closed (AMD+iGPU hybrid laptop, external DisplayPort monitor; exact hardware redacted). Full repro chain, a one-variable `AMD_DEBUG=nodcc` workaround that survives a 5-hour display absence, and open root-cause questions.",
     link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-10-26.md"
   },
   {
