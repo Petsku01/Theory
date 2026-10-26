@@ -103,3 +103,52 @@ Lähteet (toteutusversiot Next 16.2.6, R3F 9.5.0):
 Tämä muutos ei väitä Core Web Vitals-/FPS-parannusta mitatuksi.
 Fyysisen mobiililaitteen ja Firefoxin laajaa visuaalista regressiokierrosta
 sekä tuotantomittausta ei korvata paikallisella buildillä.
+
+## Yhdistäminen: website/final (2026-10-26)
+
+Tämä osio korvaa yllä olevat etusivun sommittelua ja lataushetkeä koskevat
+kuvaukset yhdistetyssä haarassa. Lähtöcommitit ovat Cortex `afca7d6` ja
+professional-base `8424142`; yhteinen pohja on `fdef6e1`.
+
+### Konfliktiratkaisut
+
+Alkuperäiset konfliktimerkintöjen rivit ennen ratkaisua:
+- `src/app/page.tsx`: 4–17 ja 22–86. Valittu professional-base kokonaan:
+  server-renderöity portfolio, SelectedWork, yhteydenotto ja sivukohtainen metadata.
+- `src/components/Navbar.tsx`: 14–76. Valittu professional-base: kevyt,
+  aina näkyvä navigaatio ilman vanhoja scroll-/underline-efektejä.
+- `src/components/WasmParticleField.tsx`: 48–52. Valittu professional-base:
+  nimetty `renderFrame`-callback vastaa RAF-kutsua, ei vanhaa `render`-nimeä.
+
+Ilman tekstikonfliktia yhdistyneet, erikseen tarkistetut rajapinnat:
+- `layout.tsx` ja `HomeClient.tsx`: professional-base; ei globaaleja
+  partikkeliefektejä. Cortex ladataan vasta Launch-painikkeesta client-wrapperissa.
+- `neural-cortex/utils.ts` ja muut Cortex-komponentit: Cortex-redesign;
+  ei moduulin evaluoinnin aikaista WASM-fetchiä, splash-porttia tai vanhaa sceneä.
+- Professional-basen muut sivut, canonical/OG/Twitter-metatiedot ja sitemap
+  säilytetty. Tehtävän P4-nimelle ei löytynyt erillistä määritelmää koodista;
+  professional-basen koko muutosjoukko on mukana, ei vain etusivu.
+- Semanttinen integraatiokorjaus `portfolio.css`: vanhan fullscreen-Cortexin
+  kiinteä korkeus ja overflow-leikkaus poistettu. Uusi atlas ja sisältöpaneeli
+  kasvattavat kokeilualueen korkeutta myös mobiilissa.
+
+### Yhdistetyn version varmennus
+
+- `pnpm install --frozen-lockfile`: PASS, lukitustiedosto ennallaan.
+- `pnpm build`: PASS (exit 0), Next 16.2.6 ja TypeScript; 15 staattista sivua.
+- `pnpm lint`: PASS (exit 0), 0 virhettä ja 14 varoitusta. Ei sääntövaimennuksia.
+- Buildissä Node DEP0205- ja MODULE_TYPELESS_PACKAGE_JSON-varoitukset; eivät estä ajoa.
+- Paikallinen production-palvelin: `/`, `/sitemap.xml`, `/opengraph-image` HTTP 200.
+- Chromium 390×844 / reduced-motion: viisi klusteria toimii, 0 Canvasia,
+  0 WASM-pyyntöä, ei vaakaylivuotoa; sisältöpaneeli ei leikkaudu.
+- Chromium 1440×900: ennen Launchia 0 Canvasia / 0 WASM-pyyntöä;
+  käynnistyksen jälkeen 1 Canvas / 1 WASM-pyyntö, DPR 1.5.
+  Skip pysäyttää running-tilan; Close poistaa Canvasin. Ei vaakaylivuotoa.
+- Konfliktimerkkihaku ja `git diff --check`: PASS.
+
+Testilokit: `cache/scratch/website-final-build.log` ja
+`cache/scratch/website-final-lint.log` HERMES_HOME:n alla.
+Ei pushia, deployta tai main-haaran muutoksia. Fyysisen mobiililaitteen,
+Firefoxin ja koko sivuston visuaalinen regressiokierros jää erikseen tehtäväksi.
+Palautus: käytä alkuperäisiä feature-haaroja; yhdistäminen on omassa työpuussaan
+`cache/scratch/website-final`, eikä lähtöhaarojen committeja muutettu.

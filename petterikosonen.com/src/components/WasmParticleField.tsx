@@ -12,7 +12,6 @@ import {
 // Replaces the old standalone particles.wasm.
 
 const STRIDE = 12; // f32s per particle in ParticleField2D
-const F32 = 4;
 
 interface ParticleField2DExports {
   particlefield2d_new(): number;
@@ -46,7 +45,7 @@ export default function WasmParticleField({ particleCount = 1200, className = ""
   const sizeRef = useRef({ w: 0, h: 0 });
   const [ready, setReady] = useState(false);
 
-  const render = useCallback(function render() {
+  const render = useCallback(function renderFrame() {
     const wasm = getCortexWasm() as unknown as ParticleField2DExports | null;
     const canvas = canvasRef.current;
     if (!wasm || !canvas || !fieldPtr.current) return;
@@ -98,7 +97,7 @@ export default function WasmParticleField({ particleCount = 1200, className = ""
       }
     }
 
-    rafRef.current = requestAnimationFrame(() => render());
+    rafRef.current = requestAnimationFrame(renderFrame);
   }, []);
 
   useEffect(() => {

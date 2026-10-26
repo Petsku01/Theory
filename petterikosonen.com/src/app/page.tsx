@@ -1,29 +1,60 @@
-import HomeClient from "@/components/HomeClient";
+import type { Metadata } from "next";
 import Link from "next/link";
+import HomeClient from "@/components/HomeClient";
+import SelectedWork from "@/components/SelectedWork";
 
-export const metadata = {
-  title: "Petteri Kosonen — Application Specialist + AI Researcher",
-  description: "Building tools that make AI safer. LLM fine-tuning, prompt security, and trustworthy automation.",
+export const metadata: Metadata = {
+  title: { absolute: "Petteri Kosonen — IT operations, security & applied AI" },
+  description: "Application Specialist at 2M-IT and cybersecurity engineering student. Practical IT operations, LLM fine-tuning and software-agent evaluation, with open-source work to inspect.",
+  alternates: { canonical: "/" },
 };
 
 export default function Home() {
   return (
-    <>
-      <header className="pt-8 md:pt-16">
-        <p className="mb-6 font-mono text-xs uppercase tracking-[.18em] text-text-1">Petteri Kosonen / Application Specialist + AI Researcher</p>
-        <h1 className="max-w-4xl font-display text-[clamp(2.8rem,7vw,5.5rem)] font-medium leading-[1.04] tracking-[-.05em]">
-          Human judgment.<br /><span className="text-accent-cyan">Machine possibility.</span>
-        </h1>
-        <div className="mt-8 flex flex-col justify-between gap-6 md:flex-row md:items-end">
-          <p className="max-w-lg text-base leading-relaxed text-text-1 md:text-lg">I build tools for safer AI — from prompt security and fine-tuning to trustworthy automation. Explore how the work connects.</p>
-          <div className="flex flex-wrap gap-5 text-sm">
-            <Link href="/projects" className="focus-outline border-b border-accent-cyan pb-2">Selected projects ↗</Link>
-            <Link href="/contact" className="focus-outline border-b border-line-1 pb-2">Start a conversation ↗</Link>
+    <div className="portfolio">
+      <section className="portfolio-hero" aria-labelledby="home-title">
+        <div>
+          <p className="eyebrow">Petteri Kosonen / Turku, Finland</p>
+          <h1 id="home-title">Practical systems.<br /><span>Inspectable work.</span></h1>
+          <p className="hero-intro">I work where IT operations, security and applied AI meet.</p>
+          <p className="hero-description">Application Specialist at 2M-IT. B.Eng. student in cybersecurity. Outside day-to-day support, I build tools and investigate how AI systems behave — with code and evidence you can examine.</p>
+          <div className="portfolio-actions">
+            <a className="primary-link" href="#selected-work">Explore selected work <span aria-hidden="true">↘</span></a>
+            <Link className="text-link" href="/contact">Get in touch ↗</Link>
           </div>
         </div>
-      </header>
+        <aside className="practice-note" aria-label="Areas of practice">
+          <p className="eyebrow">Areas of practice</p>
+          <ol>
+            <li><span>01</span> IT operations & diagnostics</li>
+            <li><span>02</span> Identity & cybersecurity</li>
+            <li><span>03</span> LLM fine-tuning & evaluation</li>
+          </ol>
+          <Link href="/about" className="text-link">Background & technical skills ↗</Link>
+        </aside>
+      </section>
+
+      <section id="selected-work" className="portfolio-section" aria-labelledby="work-title">
+        <header className="section-heading"><p className="eyebrow">01 / Selected work</p><h2 id="work-title">From question to implementation.</h2><p>Three ways I approach practical engineering. The source is part of the story.</p></header>
+        <SelectedWork />
+        <Link href="/projects" className="text-link">Browse all projects ↗</Link>
+      </section>
+
+      <section className="portfolio-section skills-section" aria-labelledby="skills-title">
+        <header className="section-heading"><p className="eyebrow">02 / Technical focus</p><h2 id="skills-title">Operations inform the experiments.</h2></header>
+        <dl className="skills-list">
+          <div><dt>Operations & identity</dt><dd>Microsoft 365, Entra ID, Intune, Active Directory, PowerShell and troubleshooting.</dd></div>
+          <div><dt>AI engineering</dt><dd>Python, QLoRA, Unsloth, HuggingFace, prompt security and agent evaluation.</dd></div>
+        </dl>
+        <Link href="/research" className="text-link">Read research & engineering notes ↗</Link>
+      </section>
+
       <HomeClient />
-      <noscript><p className="mt-6">The static atlas is available without JavaScript. Browse <a href="/projects">projects</a>, <a href="/research">research</a> and <a href="/about">experience</a> using the navigation.</p></noscript>
-    </>
+
+      <section className="portfolio-section contact-strip" aria-labelledby="contact-title">
+        <div><p className="eyebrow">04 / Contact</p><h2 id="contact-title">Let’s talk about the work.</h2><p>IT operations, security or practical AI engineering.</p></div>
+        <a className="primary-link" href="mailto:petteri.a.kosonen@proton.me">Email Petteri ↗</a>
+      </section>
+    </div>
   );
 }

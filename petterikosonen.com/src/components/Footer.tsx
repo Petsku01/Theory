@@ -15,10 +15,10 @@ export default function Footer() {
           <div className="max-w-md">
             <div className="flex items-center gap-2 mb-3">
               <span className="h-1.5 w-1.5 rounded-full bg-accent-cyan/60" aria-hidden="true" />
-              <p className="font-mono text-[0.68rem] uppercase tracking-widest text-text-2">terminal.signature</p>
+              <p className="font-mono text-[0.68rem] uppercase tracking-widest text-text-2">Open-source work &amp; engineering notes</p>
             </div>
             <p className="text-sm leading-relaxed text-text-1">
-              Built with a security-first mindset, measured motion, WebAssembly physics, and open-source tooling.
+              Practical IT operations, cybersecurity and applied AI — with source code and research notes to explore.
             </p>
           </div>
 

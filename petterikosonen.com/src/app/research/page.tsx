@@ -3,7 +3,8 @@ import { researchPosts } from "@/lib/data";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Research - Petteri Kosonen",
+  alternates: { canonical: "/research" },
+  title: "Research",
   description: "Papers, security analyses, and engineering guides.",
 };
 

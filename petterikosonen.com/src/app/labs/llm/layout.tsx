@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "LLM Labs - Petteri Kosonen",
+  alternates: { canonical: "/labs/llm" },
+  title: "LLM Labs",
   description: "Interactive LLM security demos, prompt engineering tools, and AI safety experiments.",
 };
 

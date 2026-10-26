@@ -1,37 +1,36 @@
-import SectionFrame from "@/components/SectionFrame";
-import StatusPill from "@/components/StatusPill";
-import TerminalProjectCard from "@/components/TerminalProjectCard";
+import SelectedWork from "@/components/SelectedWork";
 import { projects } from "@/lib/data";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Projects - Petteri Kosonen",
-  description: "Open source security tools, scripts, and experiments by Petteri Kosonen.",
+  title: "Projects",
+  description: "Selected engineering work and open-source tools: the problem, implementation and evidence.",
+  alternates: { canonical: "/projects" },
 };
 
 export default function Projects() {
   return (
-    <div className="space-y-8">
-      <section className="rounded-2xl border border-line-0 bg-bg-1/90 px-5 py-10 shadow-terminal sm:px-8">
-        <span className="section-label">/projects --all</span>
-        <h1 className="mt-4 text-4xl font-bold text-text-0 sm:text-5xl">Project Terminal</h1>
-        <p className="mt-3 max-w-3xl text-text-1">
-          Open-source projects from my GitHub focused on cybersecurity, diagnostics, automation, and practical AI workflows.
-        </p>
-        <div className="mt-5 flex flex-wrap gap-2">
-          <StatusPill label="security tools" variant="green" />
-          <StatusPill label="prompt engineering" variant="violet" />
-          <StatusPill label="automation" variant="cyan" />
-        </div>
+    <div className="portfolio">
+      <header className="section-heading py-10">
+        <p className="eyebrow">Engineering / Open source</p>
+        <h1 className="mt-4 text-4xl sm:text-6xl">Work you can inspect.</h1>
+        <p className="mt-5">Practical tools and experiments across AI, cybersecurity and IT operations. Start with the question, then follow the implementation.</p>
+      </header>
+      <section aria-labelledby="selected-title">
+        <h2 id="selected-title" className="eyebrow mb-5">Selected case notes</h2>
+        <SelectedWork />
       </section>
-
-      <SectionFrame title="Repository Index" command="/projects --cards">
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <section className="portfolio-section" aria-labelledby="all-title">
+        <header className="section-heading"><p className="eyebrow">Further exploration</p><h2 id="all-title">Repository index</h2></header>
+        <ul className="project-index">
           {projects.map((project) => (
-            <TerminalProjectCard key={project.link} project={project} />
+            <li key={project.link}>
+              <div><h3><a className="text-link" href={project.link}>{project.name} ↗</a></h3><p>{project.desc}</p></div>
+              <span className="eyebrow">{project.tech}</span>
+            </li>
           ))}
-        </div>
-      </SectionFrame>
+        </ul>
+      </section>
     </div>
   );
 }

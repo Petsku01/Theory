@@ -1,12 +1,12 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Manrope, Space_Grotesk } from "next/font/google";
 import "./globals.css";
+import "./portfolio.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Analytics from "@/components/Analytics";
 import ErrorBoundary from "@/components/ErrorBoundary";
-import AmbientBackground from "@/components/AmbientBackground";
-import ClientEffects from "@/components/ClientEffects";
+
 
 const ibmPlexMono = IBM_Plex_Mono({
   subsets: ["latin"],
@@ -30,7 +30,7 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#05070A",
+  themeColor: "#101410",
   width: "device-width",
   initialScale: 1,
 };
@@ -65,6 +65,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Petteri Kosonen — Application Specialist",
     description: "Cybersecurity, AI research, and prompt engineering",
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "Petteri Kosonen — practical systems, inspectable work" }],
   },
   robots: { index: true, follow: true },
 };
@@ -78,9 +79,6 @@ export default function RootLayout({
     <html lang="en" className={`${manrope.variable} ${ibmPlexMono.variable} ${spaceGrotesk.variable}`}>
       <head />
       <body className="relative min-h-screen overflow-x-hidden">
-        {/* Background layers */}
-        <AmbientBackground />
-        <ClientEffects />
         <Analytics />
 
         <a
