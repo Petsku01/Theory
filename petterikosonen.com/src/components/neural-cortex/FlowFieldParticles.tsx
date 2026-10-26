@@ -12,7 +12,6 @@ import {
   getCortexWasm,
   CLUSTER_COLORS,
   writeF32ToWasm,
-  freeWasmPtr,
 } from "@/components/neural-cortex/utils";
 import { clusterPositions, clusterSymbiosis, SPECIES_COLORS } from "@/lib/cortex-data";
 
@@ -43,8 +42,6 @@ export function FlowFieldParticles({
   const wasmReady = useRef(false);
   const particlePtr = useRef<number>(0);
   const wasmDataRef = useRef<Float32Array | null>(null);
-  const attractorPtrRef = useRef<number>(0);
-  const attractorWasmViewRef = useRef<Float32Array | null>(null);
 
   // Build static attractor data (positions, colors, strengths, pulse params)
   const attractorData = useMemo(() => {
@@ -129,9 +126,6 @@ export function FlowFieldParticles({
       if (!wasm) return;
       const ptr = wasm.particlesystem_new(count, 12, 12, 12);
       particlePtr.current = ptr;
-      const attractorPtr = writeF32ToWasm(wasm, attractorData);
-      attractorPtrRef.current = attractorPtr;
-      attractorWasmViewRef.current = new Float32Array(wasm.memory.buffer, attractorPtr, attractorData.length);
       wasmReady.current = true;
       setParticleWasmStatus("wasm");
     };
@@ -149,13 +143,6 @@ export function FlowFieldParticles({
       if (particlePtr.current) {
         try { getCortexWasm()?.__wbg_particlesystem_free(particlePtr.current, 0); } catch {}
         particlePtr.current = 0;
-      }
-      if (attractorPtrRef.current) {
-        try {
-          const wasm = getCortexWasm();
-          if (wasm) freeWasmPtr(wasm, attractorPtrRef.current, attractorData.length * 4);
-        } catch {}
-        attractorPtrRef.current = 0;
       }
     };
   }, [count, attractorData]);
@@ -187,12 +174,7 @@ export function FlowFieldParticles({
 
       const activeIdx = activeCluster ? CLUSTER_KEYS.indexOf(activeCluster as typeof CLUSTER_KEYS[number]) : -1;
       const wasm2 = getCortexWasm();
-      if (!wasm2 || !attractorPtrRef.current) return;
-
-      const attractorWasmView = attractorWasmViewRef.current;
-      if (!attractorWasmView || attractorWasmView.buffer !== wasm2.memory.buffer) {
-        attractorWasmViewRef.current = new Float32Array(wasm2.memory.buffer, attractorPtrRef.current, attractorData.length);
-      }
+      if (!wasm2) return;
 
       // Cursor hover tulee CortexScenestä
       const hasHover = !reducedMotion && hoverTarget !== null;
@@ -200,11 +182,13 @@ export function FlowFieldParticles({
       const hy = hoverTarget?.y ?? 0;
       const hz = hoverTarget?.z ?? 0;
 
+      // wasm-bindgen consumes this slice; allocate a fresh copy for every call.
+      const attractorPtr = writeF32ToWasm(wasm2, attractorData);
       // Call update_clusters with cursor as hover attractor
       wasm2.particlesystem_update_clusters(
         ptr,
         time,
-        attractorPtrRef.current,
+        attractorPtr,
         attractorData.length,
         CLUSTER_KEYS.length,
         activeIdx,
