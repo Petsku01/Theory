@@ -15,6 +15,12 @@ export interface Project {
 // Daily blog posts -- commentary, analysis, opinion pieces
 export const blogPosts: BlogPost[] = [
   {
+    title: "Hyprlock lock client death: a full repro of a closed-lid monitor power-off fallback bug",
+    date: "2026-10-26",
+    desc: "Hyprland and hyprlock 0.9.6 die with `unknown object (19), message attach(?oii)` when the only physical monitor loses power with the lid closed. Full repro chain, a one-variable `AMD_DEBUG=nodcc` workaround that survives a 5-hour DP-3 absence, and open root-cause questions.",
+    link: "https://github.com/Petsku01/Theory/blob/main/Analyses/Blog/blog-2026-10-26.md"
+  },
+  {
     title: "The liability pivot in AI agent supply chains",
     date: "2026-08-31",
     desc: "Agent plugin ecosystems are becoming the npm/PyPI of AI: composer-style supply chains where plugins expand the attack surface beyond any single maintainer's audit capacity. Debian's AI policy vote shows the emerging answer — liability pinned to the human reviewer.",
