@@ -112,6 +112,22 @@ void main() {
   col += uGreen * veins * 0.42 * (1.0 - ribbonMask);
   col += uViolet * ribbonMask * 0.85;
 
+  // Growth knots: vertical field bands at ~28/118/208/298 deg, not geometry.
+  // Luminance from the field itself; slow undulation rides uTime/flow (t).
+  float az = atan(vWorldPos.z, vWorldPos.x);
+  float knot = 0.0;
+  float dAz;
+  dAz = atan(sin(az - (0.488692 + 0.055 * sin(t * 2.4 + 0.4))), cos(az - (0.488692 + 0.055 * sin(t * 2.4 + 0.4))));
+  knot += exp(-dAz * dAz * 28.0);
+  dAz = atan(sin(az - (2.059489 + 0.055 * sin(t * 2.1 + 1.7))), cos(az - (2.059489 + 0.055 * sin(t * 2.1 + 1.7))));
+  knot += exp(-dAz * dAz * 28.0);
+  dAz = atan(sin(az - (3.630285 + 0.055 * sin(t * 2.6 + 2.9))), cos(az - (3.630285 + 0.055 * sin(t * 2.6 + 2.9))));
+  knot += exp(-dAz * dAz * 28.0);
+  dAz = atan(sin(az - (5.201081 + 0.055 * sin(t * 2.2 + 4.1))), cos(az - (5.201081 + 0.055 * sin(t * 2.2 + 4.1))));
+  knot += exp(-dAz * dAz * 28.0);
+  knot = min(knot, 1.0);
+  col *= (1.0 + knot * mix(0.10, 0.18, 0.5 + 0.5 * sin(t * 1.6)));
+
   gl_FragColor = vec4(col, 1.0);
 }
 `;
