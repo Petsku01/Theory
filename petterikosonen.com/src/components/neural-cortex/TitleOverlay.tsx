@@ -2,31 +2,13 @@
 
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import ScrambleText from "@/components/ScrambleText";
 
-// ── Kinetic typography: characters fade in with stagger ──
-function KineticTitle({ text, delay = 0 }: { text: string; delay?: number }) {
-  return (
-    <span className="inline-flex overflow-hidden">
-      {text.split("").map((char, i) => (
-        <motion.span
-          key={`${char}-${i}`}
-          initial={{ opacity: 1, y: 0 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{
-            duration: 0.2,
-            delay: delay + i * 0.018,
-            ease: [0.25, 0.46, 0.45, 0.94],
-          }}
-          className="inline-block"
-        >
-          {char === " " ? "\u00A0" : char}
-        </motion.span>
-      ))}
-    </span>
-  );
-}
+const NAME = "Petteri Kosonen";
+const TITLE = "NEURAL CORTEX";
+const TAGLINE = "Interactive Portfolio";
+const FOOTNOTE = "signal: ready · source: pk-1";
 
-// ── Title overlay with kinetic typography ──
 export function TitleOverlay({
   hasInteracted,
 }: {
@@ -42,27 +24,42 @@ export function TitleOverlay({
           exit={{ opacity: 0, scale: 0.95, filter: "blur(8px)" }}
           transition={{ duration: 0.8 }}
           className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center"
+          aria-label="Hero transmission: Petteri Kosonen, Neural Cortex, Interactive Portfolio"
         >
           <div className="text-center">
-            <h1 className="mb-3 text-4xl font-bold tracking-tight text-slate-100 font-mono md:text-5xl">
-              <KineticTitle text="NEURAL CORTEX" delay={0} />
-            </h1>
-            <motion.p
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 0.6, y: 0 }}
-              transition={{ duration: 0.35, delay: 0.15 }}
+            <ScrambleText
+              as="p"
+              text={NAME}
+              durationMs={1200}
+              delayMs={0}
+              cursor={false}
+              ariaLabel="Petteri Kosonen"
+              className="mb-2 font-mono text-sm tracking-[0.22em] text-slate-300 md:text-base"
+            />
+            <ScrambleText
+              as="h1"
+              text={TITLE}
+              durationMs={1200}
+              delayMs={40}
+              cursor
+              ariaLabel="NEURAL CORTEX"
+              className="mb-3 text-4xl font-bold tracking-tight text-slate-100 font-mono md:text-5xl"
+            />
+            <ScrambleText
+              as="p"
+              text={TAGLINE}
+              durationMs={1200}
+              delayMs={80}
+              cursor={false}
+              ariaLabel="Interactive Portfolio"
               className="text-sm tracking-[0.3em] text-slate-400 font-mono uppercase"
+            />
+            <p
+              className="mt-6 font-mono text-[10px] tracking-[0.18em] text-slate-500"
+              aria-label="signal ready, source pk-1"
             >
-              Interactive Portfolio
-            </motion.p>
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.4 }}
-              transition={{ duration: 0.3, delay: 0.35 }}
-              className="mt-6 text-xs text-slate-500 font-mono"
-            >
-              Click a node or use the cluster buttons below
-            </motion.p>
+              <span aria-hidden="true">{FOOTNOTE}</span>
+            </p>
           </div>
         </motion.div>
       )}

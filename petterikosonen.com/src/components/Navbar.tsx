@@ -1,19 +1,16 @@
 "use client";
 
-import GlitchText from "@/components/GlitchText";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const links = [
-  { href: "/", label: "Home" },
-  { href: "/projects", label: "Projects" },
-  { href: "/blog", label: "Blog" },
-  { href: "/research", label: "Research" },
-  { href: "/about", label: "About" },
-  { href: "/labs", label: "Labs" },
-  { href: "/kuu", label: "Kuu" },
-  { href: "/contact", label: "Contact" },
+const hudLinks = [
+  { href: "/projects", n: "01", label: "projects" },
+  { href: "/blog", n: "02", label: "blog" },
+  { href: "/research", n: "03", label: "research" },
+  { href: "/labs", n: "04", label: "labs" },
+  { href: "/kuu", n: "05", label: "kuu" },
+  { href: "/about", n: "06", label: "about" },
 ] as const;
 
 export default function Navbar() {
@@ -22,14 +19,13 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  // Track client-side mount to avoid hydration mismatch
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-  // isHome is only reliable after mount (SSG renders all pages with pathname="/")
   const isHome = mounted && pathname === "/";
   const navRef = useRef<HTMLElement>(null);
 
-  // RAF-throttled scroll handler
   useEffect(() => {
     let ticking = false;
     const onScroll = () => {
@@ -45,13 +41,11 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Close menu on route change
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- legitimate: sync menu closed state to route change
     setOpen((prev) => (prev ? false : prev));
   }, [pathname]);
 
-  // Close on Escape
   const onKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === "Escape") setOpen(false);
   }, []);
@@ -63,150 +57,200 @@ export default function Navbar() {
     }
   }, [open, onKeyDown]);
 
-  // Animated underline position tracking
-  const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 });
-  const linksRef = useRef<(HTMLAnchorElement | null)[]>([]);
-  const listRef = useRef<HTMLUListElement>(null);
-
-  useEffect(() => {
-    const idx = links.findIndex((l) => l.href === pathname || (l.href !== "/" && pathname.startsWith(l.href + "/")));
-    const el = linksRef.current[idx];
-    const list = listRef.current;
-    if (el && list) {
-      const listRect = list.getBoundingClientRect();
-      const elRect = el.getBoundingClientRect();
-      setIndicatorStyle({
-        left: elRect.left - listRect.left,
-        width: elRect.width,
-      });
-    }
-  }, [pathname]);
-
-
   return (
-    <header className={`sticky top-0 z-40 ${isHome ? "pt-1" : "pt-3"}`}>
+    <header className={`sticky top-0 z-40 ${isHome ? "pt-1" : "pt-2"}`}>
       <nav
         ref={navRef}
         aria-label="Main navigation"
-        className={`relative rounded-2xl border px-5 py-3 transition-all duration-500 ease-standard ${
+        className={`hud-bar relative px-3 py-2 transition-all duration-500 ease-standard max-[375px]:px-2 max-[375px]:py-1.5 ${
           isHome
-            ? "border-transparent bg-transparent backdrop-blur-none shadow-none"
+            ? "border-cyan-400/20 bg-[rgba(5,7,10,0.55)] backdrop-blur-md"
             : scrolled
-              ? "border-line-0/60 bg-bg-0/80 shadow-terminal-lg backdrop-blur-2xl"
-              : "border-line-0/30 bg-bg-1/40 backdrop-blur-lg"
+              ? "border-cyan-400/25 bg-[rgba(5,7,10,0.82)] shadow-terminal-lg backdrop-blur-2xl"
+              : "border-cyan-400/15 bg-[rgba(5,7,10,0.62)] backdrop-blur-lg"
         }`}
       >
-        <div className="flex items-center justify-between gap-3">
-          {/* Logo */}
+        <div className="flex min-w-0 items-center justify-between gap-2">
           <Link
             href="/"
-            className="focus-outline group inline-flex items-center gap-2.5 rounded-lg px-1 py-1 font-display text-sm font-semibold text-text-0"
+            aria-label="Petteri Kosonen — home"
+            className="focus-outline group inline-flex min-w-0 items-center gap-2 rounded-sm px-0.5 py-1 font-mono text-sm font-semibold text-text-0 max-[375px]:text-[0.7rem]"
           >
-            <span className="relative flex h-2.5 w-2.5" aria-hidden="true">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent-green/40" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-accent-green shadow-glowGreen" />
+            <span
+              className="hud-glyphs flex shrink-0 items-center gap-[3px] font-mono text-[9px] leading-none text-cyan-400/55"
+              aria-hidden="true"
+            >
+              <span>◈</span>
+              <span className="text-accent-green/80">◆</span>
+              <span>⌁</span>
             </span>
-            <span className={isHome ? 'invisible' : ''}>
-              <GlitchText>Petteri Kosonen</GlitchText>
-            </span>
+            <span className="hud-name truncate whitespace-nowrap">Petteri Kosonen</span>
           </Link>
 
-          {/* Mobile toggle */}
           <button
             type="button"
             aria-label={open ? "Close menu" : "Open menu"}
             aria-expanded={open}
             onClick={() => setOpen((p) => !p)}
-            className="focus-outline relative flex h-9 w-9 items-center justify-center rounded-lg border border-line-1/60 transition-colors hover:border-accent-cyan/40 md:hidden"
+            className="focus-outline relative flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border border-cyan-400/25 transition-colors hover:border-accent-cyan/50 md:hidden"
           >
-            <span className="flex w-4 flex-col items-center gap-[5px]" aria-hidden="true">
+            <span className="flex w-3.5 flex-col items-center gap-[4px]" aria-hidden="true">
               <span
                 className={`block h-[1.5px] w-full rounded-full bg-text-1 transition-all duration-300 ${
-                  open ? "translate-y-[3.5px] rotate-45" : ""
+                  open ? "translate-y-[2.75px] rotate-45" : ""
                 }`}
               />
               <span
-                className={`block h-[1.5px] w-3 rounded-full bg-text-1 transition-all duration-300 ${
+                className={`block h-[1.5px] w-2.5 rounded-full bg-text-1 transition-all duration-300 ${
                   open ? "scale-x-0 opacity-0" : ""
                 }`}
               />
               <span
                 className={`block h-[1.5px] w-full rounded-full bg-text-1 transition-all duration-300 ${
-                  open ? "-translate-y-[3.5px] -rotate-45" : ""
+                  open ? "-translate-y-[2.75px] -rotate-45" : ""
                 }`}
               />
             </span>
           </button>
 
-          {/* Desktop links */}
-          <ul ref={listRef} className="relative hidden items-center gap-0.5 md:flex">
-            {/* Animated active indicator */}
-            <li
-              className="absolute -bottom-1 h-0.5 rounded-full bg-accent-cyan shadow-[0_0_10px_rgba(34,211,238,0.5)] transition-all duration-300 ease-emphasis"
-              style={{ left: indicatorStyle.left, width: indicatorStyle.width }}
-              aria-hidden="true"
-            />
-            {links.map((link, i) => {
-              const active = pathname === link.href || (link.href !== "/" && pathname.startsWith(link.href + "/"));
+          <ul className="relative hidden min-w-0 flex-1 items-center justify-center gap-x-1 overflow-hidden font-mono text-[11px] lowercase tracking-wide lg:flex">
+            {hudLinks.map((link, i) => {
+              const active =
+                pathname === link.href || pathname.startsWith(`${link.href}/`);
               return (
-                <li key={link.href}>
+                <li key={link.href} className="flex items-center gap-x-1">
+                  {i > 0 ? (
+                    <span className="text-slate-600" aria-hidden="true">
+                      /
+                    </span>
+                  ) : null}
                   <Link
-                    ref={(el) => { linksRef.current[i] = el; }}
                     href={link.href}
-                    className={`focus-outline block rounded-lg px-3 py-1.5 text-[0.82rem] font-medium transition-colors duration-200 ${
-                      active
-                        ? "text-text-0"
-                        : "text-text-2 hover:bg-bg-3/40 hover:text-text-0"
+                    aria-label={`${link.n} ${link.label}`}
+                    aria-current={active ? "page" : undefined}
+                    className={`focus-outline group inline-flex items-center gap-1 rounded-sm px-1.5 py-1 transition-colors duration-200 ${
+                      active ? "text-cyan-300" : "text-slate-400 hover:text-slate-100"
                     }`}
                   >
-                    {link.label}
+                    <span
+                      aria-hidden="true"
+                      className={`text-[9px] transition-colors ${
+                        active
+                          ? "text-accent-cyan"
+                          : "text-slate-600 group-hover:text-accent-cyan"
+                      }`}
+                    >
+                      ▸
+                    </span>
+                    <span className="tabular-nums text-slate-500 group-hover:text-accent-cyan">
+                      {link.n}
+                    </span>
+                    <span>{link.label}</span>
                   </Link>
                 </li>
               );
             })}
           </ul>
 
-          {/* CTA */}
+          <ul className="relative hidden min-w-0 flex-1 flex-wrap items-center justify-center gap-x-1 font-mono text-[10px] lowercase tracking-wide md:flex lg:hidden">
+            {hudLinks.map((link, i) => {
+              const active =
+                pathname === link.href || pathname.startsWith(`${link.href}/`);
+              return (
+                <li key={link.href} className="flex items-center gap-x-1">
+                  {i > 0 ? (
+                    <span className="text-slate-600" aria-hidden="true">
+                      /
+                    </span>
+                  ) : null}
+                  <Link
+                    href={link.href}
+                    aria-label={`${link.n} ${link.label}`}
+                    aria-current={active ? "page" : undefined}
+                    className={`focus-outline group inline-flex items-center gap-0.5 rounded-sm px-1 py-0.5 transition-colors ${
+                      active ? "text-cyan-300" : "text-slate-400 hover:text-slate-100"
+                    }`}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={`text-[8px] ${
+                        active
+                          ? "text-accent-cyan"
+                          : "text-slate-600 group-hover:text-accent-cyan"
+                      }`}
+                    >
+                      ▸
+                    </span>
+                    <span className="tabular-nums text-slate-500 group-hover:text-accent-cyan">
+                      {link.n}
+                    </span>
+                    <span>{link.label}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+
           <Link
             href="/contact"
-            className="focus-outline hidden items-center gap-2 rounded-xl border border-accent-cyan/30 bg-accent-cyan/6 px-4 py-2 text-xs font-mono uppercase tracking-wider text-accent-cyan transition-all duration-300 hover:border-accent-cyan/50 hover:bg-accent-cyan/12 hover:shadow-glowCyan md:inline-flex"
+            aria-label="Contact — open channel"
+            className="focus-outline hidden shrink-0 items-center gap-2 rounded-sm border border-accent-cyan/30 bg-accent-cyan/6 px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider text-accent-cyan transition-all duration-300 hover:border-accent-cyan/50 hover:bg-accent-cyan/12 hover:shadow-glowCyan md:inline-flex"
           >
             <span className="h-1.5 w-1.5 rounded-full bg-accent-cyan" aria-hidden="true" />
             Contact
           </Link>
         </div>
 
-        {/* Mobile menu */}
         <div
           className={`grid transition-[grid-template-rows] duration-300 ease-emphasis md:hidden ${
             open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
           }`}
           {...(open ? {} : { inert: true, "aria-hidden": "true" })}
         >
-          <ul className="overflow-hidden">
+          <ul className="overflow-hidden font-mono text-[12px] lowercase">
             <li className="pt-3" aria-hidden="true">
               <div className="gradient-divider" />
             </li>
-            {links.map((link) => (
-              <li key={link.href}>
-                <Link
-                  href={link.href}
-                  onClick={() => setOpen(false)}
-                  className={`focus-outline block rounded-lg px-3 py-2.5 text-sm transition-colors duration-200 ${
-                    pathname === link.href || (link.href !== "/" && pathname.startsWith(link.href + "/"))
-                      ? "bg-accent-cyan/8 text-accent-cyan"
-                      : "text-text-1 hover:bg-bg-3/40 hover:text-text-0"
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              </li>
-            ))}
-            <li className="border-t border-line-0/40 pt-2 mt-1">
+            {hudLinks.map((link) => {
+              const active =
+                pathname === link.href || pathname.startsWith(`${link.href}/`);
+              return (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    aria-label={`${link.n} ${link.label}`}
+                    aria-current={active ? "page" : undefined}
+                    onClick={() => setOpen(false)}
+                    className={`focus-outline group flex items-center gap-2 rounded-sm px-3 py-2.5 transition-colors duration-200 ${
+                      active
+                        ? "bg-accent-cyan/8 text-accent-cyan"
+                        : "text-text-1 hover:bg-bg-3/40 hover:text-text-0"
+                    }`}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={`text-[10px] ${
+                        active
+                          ? "text-accent-cyan"
+                          : "text-slate-600 group-hover:text-accent-cyan"
+                      }`}
+                    >
+                      ▸
+                    </span>
+                    <span className="tabular-nums text-slate-500 group-hover:text-accent-cyan">
+                      {link.n}
+                    </span>
+                    <span>{link.label}</span>
+                  </Link>
+                </li>
+              );
+            })}
+            <li className="mt-1 border-t border-cyan-400/15 pt-2">
               <Link
                 href="/contact"
+                aria-label="Contact — open channel"
                 onClick={() => setOpen(false)}
-                className="focus-outline block rounded-lg px-3 py-2.5 text-sm font-medium text-accent-cyan"
+                className="focus-outline block rounded-sm px-3 py-2.5 text-sm font-medium text-accent-cyan"
               >
                 Contact
               </Link>

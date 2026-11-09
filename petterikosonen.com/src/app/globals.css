@@ -270,6 +270,47 @@ p, li {
 
 /* ── Reduced motion ─────────────────────────────── */
 
+/* ── HUD + RX transmission panels (2B content layer) ── */
+
+.hud-bar {
+  border: 1px solid rgba(34, 211, 238, 0.22);
+  background: rgba(5, 7, 10, 0.72);
+  border-radius: 4px;
+}
+
+.rx-panel {
+  z-index: 20;
+  border: 1px solid rgba(34, 211, 238, 0.28);
+  background: rgba(5, 7, 10, 0.82);
+  border-radius: 2px;
+}
+
+.rx-deck {
+  width: 100%;
+}
+
+@media (max-width: 375px) {
+  .hud-bar {
+    padding: 0.35rem 0.5rem;
+  }
+
+  .hud-name {
+    font-size: 0.7rem;
+    letter-spacing: 0.01em;
+  }
+
+  .hud-glyphs {
+    font-size: 8px;
+    gap: 2px;
+  }
+
+  .rx-deck {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

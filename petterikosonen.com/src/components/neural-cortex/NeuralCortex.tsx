@@ -50,18 +50,8 @@ function StaticCortexFallback({
 }) {
   return (
     <>
-      <div className="pointer-events-none absolute left-6 top-5 z-30 select-none">
-        <span className="text-sm font-bold tracking-wide text-slate-100 font-mono">
-          Petteri Kosonen
-        </span>
-      </div>
-      <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-8 px-6">
-        <h1 className="text-center font-mono text-3xl font-bold tracking-[0.25em] text-slate-100 sm:text-5xl">
-          NEURAL CORTEX
-        </h1>
-        <p className="font-mono text-sm uppercase tracking-[0.2em] text-slate-500">
-          Interactive Portfolio
-        </p>
+      <TitleOverlay hasInteracted={activeCluster !== null} />
+      <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-8 px-6 pt-36">
         <nav aria-label="Clusters" className="flex flex-wrap justify-center gap-3">
           {CLUSTER_KEYS.map((key) => {
             const active = activeCluster === key;
@@ -143,12 +133,6 @@ export default function NeuralCortex() {
 
           {entered && (
             <>
-              <div className="pointer-events-none absolute left-6 top-5 z-30 select-none">
-                <span className="text-sm font-bold tracking-wide text-slate-100 font-mono">
-                  Petteri Kosonen
-                </span>
-              </div>
-
               <CortexCanvas
                 activeCluster={activeCluster}
                 onClusterSelect={handleClusterSelect}

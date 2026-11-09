@@ -172,3 +172,86 @@ export function useScramble(text: string, isHovered: boolean): string {
 
   return display;
 }
+
+export type TransmissionScrambleOptions = {
+  /** Total scramble→decode duration. Default 1200 ms. */
+  durationMs?: number;
+  /** Wait before decoding starts. */
+  delayMs?: number;
+};
+
+/**
+ * Mount-triggered glyph scatter → decode. Skips animation when
+ * prefers-reduced-motion is set (final text immediately).
+ */
+export function useTransmissionScramble(
+  text: string,
+  options?: TransmissionScrambleOptions,
+): { display: string; complete: boolean } {
+  const durationMs = options?.durationMs ?? 1200;
+  const delayMs = options?.delayMs ?? 0;
+  const [display, setDisplay] = useState(text);
+  const [complete, setComplete] = useState(false);
+
+  useEffect(() => {
+    const reduced =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (reduced || text.length === 0) {
+      setDisplay(text);
+      setComplete(true);
+      return;
+    }
+
+    setComplete(false);
+    const length = text.length;
+    const revealed = new Array<boolean>(length).fill(false);
+    const revealEvery = Math.max(16, Math.floor(durationMs / Math.max(1, length)));
+
+    const paint = () => {
+      setDisplay(
+        text
+          .split("")
+          .map((char, i) => {
+            if (revealed[i]) return text[i];
+            if (char === " ") return " ";
+            return JS_CHARS[Math.floor(Math.random() * JS_CHARS.length)];
+          })
+          .join(""),
+      );
+    };
+
+    let interval: ReturnType<typeof setInterval> | null = null;
+    let revealTimer: ReturnType<typeof setTimeout> | null = null;
+    const startTimer = setTimeout(() => {
+      paint();
+      interval = setInterval(paint, 60);
+      let idx = 0;
+      const revealNext = () => {
+        if (idx < length) {
+          revealed[idx] = true;
+          idx += 1;
+          revealTimer = setTimeout(revealNext, revealEvery);
+        } else {
+          if (interval) {
+            clearInterval(interval);
+            interval = null;
+          }
+          setDisplay(text);
+          setComplete(true);
+        }
+      };
+      revealNext();
+    }, delayMs);
+
+    return () => {
+      clearTimeout(startTimer);
+      if (revealTimer) clearTimeout(revealTimer);
+      if (interval) clearInterval(interval);
+      setDisplay(text);
+    };
+  }, [text, durationMs, delayMs]);
+
+  return { display, complete };
+}
