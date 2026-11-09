@@ -6,7 +6,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 /**
  * Page chrome above the mycelium canvas.
  * Home: main is pointer-events-none so ClickTargets receive hits;
- * navbar/footer stay clickable. Other routes: main captures as usual.
+ * navbar stays clickable, footer hidden. Other routes: main+footer as usual.
  */
 export default function ContentShell({
   navbar,
@@ -32,7 +32,7 @@ export default function ContentShell({
           <ErrorBoundary>{children}</ErrorBoundary>
         </main>
       </div>
-      <div className="pointer-events-auto">{footer}</div>
+      {!isHome && <div className="pointer-events-auto">{footer}</div>}
     </div>
   );
 }

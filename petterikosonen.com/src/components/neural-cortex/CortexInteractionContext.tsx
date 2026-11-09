@@ -6,13 +6,18 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { usePathname } from "next/navigation";
 
+export type FlyToFn = (key: string) => void;
+
 type CortexInteractionValue = {
   activeCluster: string | null;
   selectCluster: (cluster: string | null) => void;
+  flyTo: FlyToFn;
+  registerFlyTo: (fn: FlyToFn | null) => void;
   shakeTimestamp: number;
   isMobile: boolean;
   interactive: boolean;
@@ -32,6 +37,7 @@ export function CortexInteractionProvider({
   const [activeCluster, setActiveCluster] = useState<string | null>(null);
   const [shakeTimestamp, setShakeTimestamp] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
+  const flyToImplRef = useRef<FlyToFn | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -46,10 +52,19 @@ export function CortexInteractionProvider({
     if (!interactive) setActiveCluster(null);
   }, [interactive]);
 
+  const registerFlyTo = useCallback((fn: FlyToFn | null) => {
+    flyToImplRef.current = fn;
+  }, []);
+
+  const flyTo = useCallback<FlyToFn>((key) => {
+    flyToImplRef.current?.(key);
+  }, []);
+
   const selectCluster = useCallback((cluster: string | null) => {
     setActiveCluster(cluster);
     if (cluster !== null) {
       setShakeTimestamp((prev) => prev + 1);
+      flyToImplRef.current?.(cluster);
     }
   }, []);
 
@@ -57,11 +72,13 @@ export function CortexInteractionProvider({
     () => ({
       activeCluster,
       selectCluster,
+      flyTo,
+      registerFlyTo,
       shakeTimestamp,
       isMobile,
       interactive,
     }),
-    [activeCluster, selectCluster, shakeTimestamp, isMobile, interactive],
+    [activeCluster, selectCluster, flyTo, registerFlyTo, shakeTimestamp, isMobile, interactive],
   );
 
   return (

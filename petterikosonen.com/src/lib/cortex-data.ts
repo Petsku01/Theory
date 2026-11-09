@@ -322,12 +322,12 @@ export const edges: CortexEdge[] = [
   { from: "llm-research", to: "ai-prompting", strength: 0.7 },
 ];
 
-// Cluster centers for layout (will be spread around these)
+// Cluster centers for layout (organic scatter, not a ring). Y kept from prior layout.
 export const clusterPositions: Record<string, [number, number, number]> = {
-  core: [0, 0, 0],
-  projects: [6, 2.5, -5],
-  skills: [-6, -2, -5],
-  experience: [-5, 3, 5],
+  core: [-6.5, 0, 2.0],
+  projects: [8.2, 2.5, -4.4],
+  skills: [3.1, -2, 9.3],
+  experience: [-9.0, 3, -6.8],
   research: [5, -1.5, 5],
 };
 

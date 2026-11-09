@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import * as THREE from "three";
@@ -10,6 +10,14 @@ import { CLUSTER_COLORS } from "@/components/neural-cortex/utils";
 import { CameraController } from "@/components/neural-cortex/CameraController";
 import { GlyphLayer } from "@/components/neural-cortex/GlyphLayer";
 import { MyceliumField } from "@/components/neural-cortex/MyceliumField";
+import { useCortexInteraction } from "@/components/neural-cortex/CortexInteractionContext";
+
+const FLY_MS = 1200;
+const FLY_DIST = 8;
+
+function easeInOutCubic(t: number) {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
 
 // ── SYMBIOOSIS: Cursor = navigation, no traditional navbar ──
 // Particles respond to cursor position via raycaster.
@@ -20,15 +28,17 @@ const CLUSTER_KEYS = ["core", "projects", "skills", "experience"] as const;
 
 // ── Invisible click-target sphere for one cluster ──
 function ClickTarget({
+  clusterKey,
   position,
   color,
   isActive,
   onClick,
 }: {
+  clusterKey: string;
   position: [number, number, number];
   color: string;
   isActive: boolean;
-  onClick: () => void;
+  onClick: (key: string) => void;
 }) {
   const colorObj = useMemo(() => new THREE.Color(color), [color]);
 
@@ -36,10 +46,12 @@ function ClickTarget({
     <group position={position}>
       {/* Invisible click-target sphere — visible=false but still raycastable */}
       <mesh
+        name={`click-target-${clusterKey}`}
+        userData={{ clusterKey }}
         visible={false}
         onClick={(e) => {
           e.stopPropagation();
-          onClick();
+          onClick(clusterKey);
         }}
         onPointerOver={(e) => {
           e.stopPropagation();
@@ -88,6 +100,10 @@ export function CortexScene({
 }) {
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const groupRef = useRef<THREE.Group>(null);
+  const flyRafRef = useRef(0);
+  const suspendLerpRef = useRef(false);
+  const { camera, gl } = useThree();
+  const { registerFlyTo } = useCortexInteraction();
 
   // Cluster center for camera target
   const targetPosition = useMemo(() => {
@@ -96,6 +112,58 @@ export function CortexScene({
     if (!pos) return null;
     return new THREE.Vector3(pos[0], pos[1], pos[2]);
   }, [activeCluster]);
+
+  // flyTo(key): rAF tween camera.position + OrbitControls target → ClickTarget (~1.2s ease).
+  // pointerdown on canvas interrupts. CameraController lerp suspended for the flight.
+  useEffect(() => {
+    const stopFly = () => {
+      if (flyRafRef.current) cancelAnimationFrame(flyRafRef.current);
+      flyRafRef.current = 0;
+      suspendLerpRef.current = false;
+      gl.domElement.removeEventListener("pointerdown", stopFly);
+    };
+
+    const flyTo = (key: string) => {
+      const pos = clusterPositions[key];
+      const controls = controlsRef.current;
+      if (!pos || !controls) return;
+
+      stopFly();
+      suspendLerpRef.current = true;
+
+      const startCam = camera.position.clone();
+      const startTarget = controls.target.clone();
+      const endTarget = new THREE.Vector3(pos[0], pos[1], pos[2]);
+      const offset = startCam.clone().sub(startTarget);
+      if (offset.lengthSq() < 1e-6) offset.set(0, 2, 8);
+      offset.setLength(FLY_DIST);
+      const endCam = endTarget.clone().add(offset);
+
+      const t0 = performance.now();
+      const tick = (now: number) => {
+        const u = Math.min(1, (now - t0) / FLY_MS);
+        const e = easeInOutCubic(u);
+        camera.position.lerpVectors(startCam, endCam, e);
+        controls.target.lerpVectors(startTarget, endTarget, e);
+        controls.update();
+        if (u < 1) {
+          flyRafRef.current = requestAnimationFrame(tick);
+        } else {
+          flyRafRef.current = 0;
+          gl.domElement.removeEventListener("pointerdown", stopFly);
+        }
+      };
+
+      gl.domElement.addEventListener("pointerdown", stopFly);
+      flyRafRef.current = requestAnimationFrame(tick);
+    };
+
+    registerFlyTo(flyTo);
+    return () => {
+      stopFly();
+      registerFlyTo(null);
+    };
+  }, [camera, gl, registerFlyTo]);
 
   // Build click-target data
   const clickTargets = useMemo(() => {
@@ -137,14 +205,15 @@ export function CortexScene({
           {clickTargets.map((t) => (
             <ClickTarget
               key={t.key}
+              clusterKey={t.key}
               position={t.position}
               color={t.color}
               isActive={activeCluster === t.key}
-              onClick={() => {
-                if (activeCluster === t.key) {
+              onClick={(key) => {
+                if (activeCluster === key) {
                   onClusterSelect(null);
                 } else {
-                  onClusterSelect(t.key);
+                  onClusterSelect(key);
                 }
               }}
             />
@@ -156,6 +225,7 @@ export function CortexScene({
         target={targetPosition}
         controlsRef={controlsRef}
         shakeTimestamp={reducedMotion ? 0 : shakeTimestamp}
+        suspendLerpRef={suspendLerpRef}
       />
       <OrbitControls
         ref={controlsRef}

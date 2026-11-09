@@ -1,3 +1,5 @@
+import { clusterPositions } from "@/lib/cortex-data";
+
 /** Shared 4-spot growth-knot gauss (per-patch anisotropic az×el). */
 
 export const KNOT_TIME_SCALE = 0.045;
@@ -23,11 +25,29 @@ type KnotShape = {
   kMul: number;
 };
 
+/** GLSL knotSample uses atan(n.z, n.x) + asin(n.y) — match ClickTarget cartesian. */
+function knotAzElFromPos(pos: [number, number, number]): { azDeg: number; el: number } {
+  const [x, y, z] = pos;
+  const len = Math.hypot(x, y, z) || 1;
+  let azDeg = (Math.atan2(z, x) * 180) / Math.PI;
+  if (azDeg < 0) azDeg += 360;
+  return { azDeg, el: Math.asin(y / len) };
+}
+
+export const KNOT_COLORS = {
+  core: "#B47CFF",
+  projects: "#FFB454",
+  skills: "#22D3EE",
+  experience: "#39FF88",
+} as const;
+
+export type KnotId = keyof typeof KNOT_COLORS;
+
 export const KNOTS = [
-  { id: "core", azDeg: 18, el: -0.35, r: 1.05, color: "#B47CFF", aspect: 1.0, kMul: 1.0 },
-  { id: "projects", azDeg: 122, el: -0.22, r: 0.85, color: "#FFB454", aspect: 2.2, kMul: 1.0 },
-  { id: "skills", azDeg: 205, el: -0.5, r: 0.644, color: "#22D3EE", aspect: 1.0, kMul: 1.0 },
-  { id: "experience", azDeg: 283, el: -0.44, r: 1.0, color: "#39FF88", aspect: 1.6, kMul: 0.62 },
+  { id: "core", ...knotAzElFromPos(clusterPositions.core), r: 1.05, color: KNOT_COLORS.core, aspect: 1.0, kMul: 1.0 },
+  { id: "projects", ...knotAzElFromPos(clusterPositions.projects), r: 0.85, color: KNOT_COLORS.projects, aspect: 2.2, kMul: 1.0 },
+  { id: "skills", ...knotAzElFromPos(clusterPositions.skills), r: 0.644, color: KNOT_COLORS.skills, aspect: 1.0, kMul: 1.0 },
+  { id: "experience", ...knotAzElFromPos(clusterPositions.experience), r: 1.0, color: KNOT_COLORS.experience, aspect: 1.6, kMul: 0.62 },
 ] as const satisfies ReadonlyArray<
   {
     id: string;

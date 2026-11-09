@@ -18,10 +18,12 @@ export function CameraController({
   target,
   controlsRef,
   shakeTimestamp,
+  suspendLerpRef,
 }: {
   target: THREE.Vector3 | null;
   controlsRef: React.RefObject<OrbitControlsImpl | null>;
   shakeTimestamp: number;
+  suspendLerpRef?: React.RefObject<boolean>;
 }) {
   // Shared state
   const shakeStartTime = useRef<number>(0);
@@ -133,6 +135,11 @@ export function CameraController({
   useFrame((_state, delta) => {
     const controls = controlsRef.current;
     if (!controls) return;
+
+    if (suspendLerpRef?.current) {
+      controls.update();
+      return;
+    }
 
     const now = performance.now() / 1000;
     const wasm = getCortexWasm();

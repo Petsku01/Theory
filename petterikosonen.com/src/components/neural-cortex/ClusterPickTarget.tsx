@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 import { clusterPositions } from "@/lib/cortex-data";
 
-const CLUSTER_KEYS = ["core", "projects", "skills", "experience", "research"] as const;
+const CLUSTER_KEYS = ["core", "projects", "skills", "experience"] as const;
 
 export interface ClusterPickTargetProps {
   activeCluster: string | null;

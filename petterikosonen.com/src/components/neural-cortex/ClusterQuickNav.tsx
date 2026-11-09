@@ -1,7 +1,7 @@
 "use client";
 
 import { useCortexInteraction } from "@/components/neural-cortex/CortexInteractionContext";
-import { KNOTS } from "@/components/neural-cortex/knotGauss";
+import { KNOTS, KNOT_COLORS, type KnotId } from "@/components/neural-cortex/knotGauss";
 
 /**
  * Compact right-edge cluster list. Same selectCluster toggle as CortexScene ClickTarget.
@@ -25,6 +25,7 @@ export function ClusterQuickNav() {
       >
         {KNOTS.map((k) => {
           const active = activeCluster === k.id;
+          const color = KNOT_COLORS[k.id as KnotId];
           return (
             <li key={k.id}>
               <button
@@ -39,15 +40,15 @@ export function ClusterQuickNav() {
                 }}
                 className="flex items-center gap-2 rounded px-1.5 py-0.5 font-mono text-[10px] lowercase tracking-wide text-slate-200 transition-colors hover:text-white"
                 style={{
-                  color: active ? k.color : undefined,
+                  color: active ? color : undefined,
                   textShadow: "0 1px 2px rgba(0,0,0,0.95), 0 0 6px rgba(0,0,0,0.7)",
                 }}
               >
                 <span
                   className="h-1.5 w-1.5 shrink-0 rounded-full"
                   style={{
-                    backgroundColor: k.color,
-                    boxShadow: active ? `0 0 6px ${k.color}` : undefined,
+                    backgroundColor: color,
+                    boxShadow: active ? `0 0 6px ${color}` : undefined,
                   }}
                   aria-hidden
                 />
