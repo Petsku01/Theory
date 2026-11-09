@@ -16,7 +16,6 @@
 # next.js
 /.next/
 /out/
-# next.config.csp.json committed (CSP hash seed; hydration blocker if absent — 10.11 root cause)
 
 # production
 /build

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { connection } from "next/server";
 import { IBM_Plex_Mono, Manrope, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import Analytics from "@/components/Analytics";
@@ -73,11 +74,14 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Nonces are request-specific and cannot be attached to prerendered HTML.
+  await connection();
+
   return (
     <html lang="en" className={`${manrope.variable} ${ibmPlexMono.variable} ${spaceGrotesk.variable}`}>
       <head />

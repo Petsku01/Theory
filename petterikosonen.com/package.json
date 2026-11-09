@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "postbuild": "node scripts/extract-csp-hashes.mjs",
     "build:wasm": "cd wasm-cortex && wasm-pack build --target web --out-dir pkg && cp pkg/wasm_cortex_bg.wasm ../public/wasm/",
     "start": "next start",
     "lint": "eslint"
