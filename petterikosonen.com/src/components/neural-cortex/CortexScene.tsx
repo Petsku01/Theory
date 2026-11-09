@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Html } from "@react-three/drei";
 import { OrbitControls as OrbitControlsImpl } from "three-stdlib";
-import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import * as THREE from "three";
 import { clusterPositions } from "@/lib/cortex-data";
 import { CLUSTER_COLORS } from "@/components/neural-cortex/utils";
@@ -119,7 +118,6 @@ export function CortexScene({
   onClusterSelect,
   shakeTimestamp,
   particleCount = 5000,
-  bloomIntensity = 2.2,
   isMobile = false,
   reducedMotion = false,
 }: {
@@ -127,7 +125,6 @@ export function CortexScene({
   onClusterSelect: (cluster: string | null) => void;
   shakeTimestamp: number;
   particleCount?: number;
-  bloomIntensity?: number;
   isMobile?: boolean;
   reducedMotion?: boolean;
 }) {

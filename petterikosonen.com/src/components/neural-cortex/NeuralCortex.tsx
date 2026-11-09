@@ -1,17 +1,30 @@
 "use client";
 
-import React, { Suspense, useCallback, useEffect, useState } from "react";
-import { Canvas } from "@react-three/fiber";
-import { CortexScene } from "@/components/neural-cortex/CortexScene";
+import React, { useCallback, useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 
 import { Scanlines, Vignette, CortexLoader } from "@/components/neural-cortex/Overlays";
 import { AccessibleNav } from "@/components/neural-cortex/AccessibleNav";
 
 import { SplashScreen } from "@/components/neural-cortex/SplashScreen";
-import { getUnifiedWasmStatus } from "@/components/neural-cortex/utils";
+import { CLUSTER_COLORS, getUnifiedWasmStatus } from "@/components/neural-cortex/utils";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { nodes } from "@/lib/cortex-data";
 import { ClusterInfoPanel } from "@/components/neural-cortex/ClusterInfoPanel";
+
+const CortexCanvas = dynamic(
+  () => import("@/components/neural-cortex/CortexCanvas"),
+  { ssr: false, loading: () => <CortexLoader /> }
+);
+
+const CLUSTER_KEYS = ["core", "projects", "skills", "experience", "research"] as const;
+const CLUSTER_LABELS: Record<string, string> = {
+  core: "Core",
+  projects: "Projects",
+  skills: "Skills",
+  experience: "Experience",
+  research: "Research",
+};
 
 // ── Global keyframes ──
 function GlobalStyles() {
@@ -22,6 +35,66 @@ function GlobalStyles() {
         100% { background-position: 0 100%; }
       }
     `}</style>
+  );
+}
+
+function StaticCortexFallback({
+  activeCluster,
+  onClusterSelect,
+  isMobile,
+}: {
+  activeCluster: string | null;
+  onClusterSelect: (cluster: string | null) => void;
+  isMobile: boolean;
+}) {
+  return (
+    <>
+      <div className="pointer-events-none absolute left-6 top-5 z-30 select-none">
+        <span className="text-sm font-bold tracking-wide text-slate-100 font-mono">
+          Petteri Kosonen
+        </span>
+      </div>
+      <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-8 px-6">
+        <h1 className="text-center font-mono text-3xl font-bold tracking-[0.25em] text-slate-100 sm:text-5xl">
+          NEURAL CORTEX
+        </h1>
+        <p className="font-mono text-sm uppercase tracking-[0.2em] text-slate-500">
+          Interactive Portfolio
+        </p>
+        <nav aria-label="Clusters" className="flex flex-wrap justify-center gap-3">
+          {CLUSTER_KEYS.map((key) => {
+            const active = activeCluster === key;
+            const color = CLUSTER_COLORS[key] ?? "#00f0ff";
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => onClusterSelect(active ? null : key)}
+                className="rounded-lg border px-4 py-2 font-mono text-xs uppercase tracking-[0.15em] transition-colors"
+                style={{
+                  borderColor: active ? color : "rgba(148,163,184,0.35)",
+                  color: active ? color : "rgb(203,213,225)",
+                  background: active ? `${color}14` : "transparent",
+                }}
+              >
+                {CLUSTER_LABELS[key]}
+              </button>
+            );
+          })}
+        </nav>
+      </div>
+      <ClusterInfoPanel
+        activeCluster={activeCluster}
+        isMobile={isMobile}
+        reducedMotion
+      />
+      <AccessibleNav
+        onSelect={(id) => {
+          const node = nodes.find((n) => n.id === id);
+          if (node) onClusterSelect(node.cluster);
+        }}
+      />
+    </>
   );
 }
 
@@ -44,95 +117,79 @@ export default function NeuralCortex() {
     return () => mq.removeEventListener("change", onChange);
   }, []);
 
-  // Mobile: fewer particles, lower bloom. Desktop defaults.
   const particleCount = isMobile ? 2000 : 5000;
-  const bloomIntensity = isMobile ? 1.2 : 2.2;
 
-  const handleClusterSelect = useCallback(
-    (cluster: string | null) => {
-      setActiveCluster(cluster);
-      if (cluster !== null) {
-        setShakeTimestamp((prev) => prev + 1);
-      }
-    },
-    []
-  );
+  const handleClusterSelect = useCallback((cluster: string | null) => {
+    setActiveCluster(cluster);
+    if (cluster !== null) {
+      setShakeTimestamp((prev) => prev + 1);
+    }
+  }, []);
 
   return (
     <div className="fixed inset-0 z-[5] overflow-hidden bg-[#05070A]">
       <GlobalStyles />
 
-      {/* Splash screen before entering */}
-      {!entered && <SplashScreen onEnter={() => setEntered(true)} />}
-
-      {/* Main 3D scene -- only renders after entering */}
-      {entered && (
+      {reducedMotion ? (
+        <StaticCortexFallback
+          activeCluster={activeCluster}
+          onClusterSelect={handleClusterSelect}
+          isMobile={isMobile}
+        />
+      ) : (
         <>
-          {/* Name overlay only — no Contact button (it's in the Navbar) */}
-          <div className="pointer-events-none absolute left-6 top-5 z-30 select-none">
-            <span className="text-sm font-bold tracking-wide text-slate-100 font-mono">
-              Petteri Kosonen
-            </span>
-          </div>
+          {!entered && <SplashScreen onEnter={() => setEntered(true)} />}
 
-          <Suspense fallback={<CortexLoader />}>
-            <Canvas
-              camera={{ position: [0, 8, 16], fov: 55, near: 0.1, far: 100 }}
-              gl={{
-                antialias: true,
-                alpha: false,
-                powerPreference: "high-performance",
-              }}
-              onPointerMissed={() => handleClusterSelect(null)}
-            >
-              <fog attach="fog" args={["#060818", 30, 80]} />
-              <CortexScene
+          {entered && (
+            <>
+              <div className="pointer-events-none absolute left-6 top-5 z-30 select-none">
+                <span className="text-sm font-bold tracking-wide text-slate-100 font-mono">
+                  Petteri Kosonen
+                </span>
+              </div>
+
+              <CortexCanvas
                 activeCluster={activeCluster}
                 onClusterSelect={handleClusterSelect}
                 shakeTimestamp={shakeTimestamp}
                 particleCount={particleCount}
-                bloomIntensity={bloomIntensity}
+                isMobile={isMobile}
+              />
+
+              <Scanlines />
+              <Vignette />
+
+              {activeCluster && (
+                <button
+                  onClick={() => handleClusterSelect(null)}
+                  className="pointer-events-auto absolute left-6 top-20 z-30 rounded-lg border border-slate-700/60 bg-[#0a0a0f]/90 px-3 py-1.5 font-mono text-xs text-slate-300 backdrop-blur-sm transition-colors hover:border-cyan-500/50 hover:text-cyan-400"
+                >
+                  Reset View
+                </button>
+              )}
+
+              <div className="pointer-events-none absolute bottom-6 left-1/2 z-20 -translate-x-1/2 select-none">
+                <span className="font-mono text-[10px] text-slate-500/70 tracking-wide">
+                  move cursor to explore · click areas to explore
+                </span>
+              </div>
+
+              <ClusterInfoPanel
+                activeCluster={activeCluster}
                 isMobile={isMobile}
                 reducedMotion={reducedMotion}
               />
-            </Canvas>
-          </Suspense>
 
-          <Scanlines />
-          <Vignette />
+              <AccessibleNav
+                onSelect={(id) => {
+                  const node = nodes.find((n) => n.id === id);
+                  if (node) handleClusterSelect(node.cluster);
+                }}
+              />
 
-          {activeCluster && (
-            <button
-              onClick={() => handleClusterSelect(null)}
-              className="pointer-events-auto absolute left-6 top-20 z-30 rounded-lg border border-slate-700/60 bg-[#0a0a0f]/90 px-3 py-1.5 font-mono text-xs text-slate-300 backdrop-blur-sm transition-colors hover:border-cyan-500/50 hover:text-cyan-400"
-            >
-              Reset View
-            </button>
+              <WasmBadge />
+            </>
           )}
-
-          {/* SYMBIOOSIS: No traditional navbar — cursor is navigation */}
-          {/* Hint text for the user */}
-          <div className="pointer-events-none absolute bottom-6 left-1/2 z-20 -translate-x-1/2 select-none">
-            <span className="font-mono text-[10px] text-slate-500/70 tracking-wide">
-              move cursor to explore · click areas to explore
-            </span>
-          </div>
-
-          {/* Cluster info panel — floating haze showing cluster contents */}
-          <ClusterInfoPanel
-            activeCluster={activeCluster}
-            isMobile={isMobile}
-            reducedMotion={reducedMotion}
-          />
-
-          <AccessibleNav onSelect={(id) => {
-            // Map node id to its cluster
-            const node = nodes.find((n) => n.id === id);
-            if (node) handleClusterSelect(node.cluster);
-          }} />
-
-          {/* WASM status badge */}
-          <WasmBadge />
         </>
       )}
     </div>
@@ -146,10 +203,17 @@ function WasmBadge() {
     return () => clearInterval(id);
   }, []);
   const label = status === "wasm" ? "WASM" : status === "js" ? "JS" : "...";
-  const color = status === "wasm" ? "text-emerald-400 border-emerald-500/40" : status === "js" ? "text-amber-400 border-amber-500/40" : "text-slate-500 border-slate-600/40";
+  const color =
+    status === "wasm"
+      ? "text-emerald-400 border-emerald-500/40"
+      : status === "js"
+        ? "text-amber-400 border-amber-500/40"
+        : "text-slate-500 border-slate-600/40";
   return (
     <div className="pointer-events-none absolute bottom-6 right-6 z-20 select-none">
-      <span className={`rounded border px-2 py-0.5 font-mono text-[10px] ${color} bg-[#0a0a0f]/80 backdrop-blur-sm`}>
+      <span
+        className={`rounded border px-2 py-0.5 font-mono text-[10px] ${color} bg-[#0a0a0f]/80 backdrop-blur-sm`}
+      >
         {label}
       </span>
     </div>
