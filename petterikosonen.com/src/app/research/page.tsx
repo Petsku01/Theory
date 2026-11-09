@@ -1,5 +1,5 @@
-import SectionFrame from "@/components/SectionFrame";
-import { researchPosts } from "@/lib/data";
+import ContentCodex from "@/components/ContentCodex";
+import { researchPosts, type BlogPost } from "@/lib/data";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -7,32 +7,42 @@ export const metadata: Metadata = {
   description: "Papers, security analyses, and engineering guides.",
 };
 
+function researchType(post: BlogPost): string {
+  const title = post.title.toLowerCase();
+  const link = post.link.toLowerCase();
+  if (link.endsWith(".pdf")) return "paper";
+  if (title.includes("prompt engineering")) return "guide";
+  if (
+    title.includes("analysis") ||
+    title.includes("investigation") ||
+    title.includes("vulnerability") ||
+    title.includes("breach") ||
+    title.includes("worm") ||
+    title.includes("malware") ||
+    title.includes("honeypot")
+  ) {
+    return "analysis";
+  }
+  return "research";
+}
+
 export default function Research() {
   return (
     <div className="space-y-8">
-      <section className="rounded-2xl border border-line-0 bg-bg-1/90 px-5 py-10 shadow-terminal sm:px-8">
+      <header>
         <span className="section-label">/research --list</span>
         <h1 className="mt-4 text-4xl font-bold text-text-0 sm:text-5xl">Research</h1>
         <p className="mt-3 max-w-3xl text-text-1">Papers, deep-dive analyses, security write-ups, and engineering guides.</p>
-      </section>
+      </header>
 
-      <SectionFrame command="/research --entries" title="Entries">
-        <div className="space-y-3">
-          {researchPosts.map((post) => (
-            <a
-              key={post.link}
-              href={post.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="focus-outline block rounded-xl border border-line-0 bg-bg-2/75 p-5 transition-colors hover:border-accent-cyan/45"
-            >
-              <p className="font-mono text-xs uppercase tracking-[0.05em] text-text-2">{post.date}</p>
-              <h2 className="mt-1 text-xl font-semibold text-text-0">{post.title}</h2>
-              <p className="mt-1 text-sm text-text-1">{post.desc}</p>
-            </a>
-          ))}
-        </div>
-      </SectionFrame>
+      <ContentCodex
+        entries={researchPosts.map((post) => ({
+          href: post.link,
+          primary: `${post.date.slice(0, 4)} · ${researchType(post)} · ${post.title}`,
+          description: post.desc,
+          external: true,
+        }))}
+      />
     </div>
   );
 }
