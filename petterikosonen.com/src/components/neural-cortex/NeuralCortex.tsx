@@ -141,8 +141,6 @@ export default function NeuralCortex() {
                 isMobile={isMobile}
               />
 
-              <TitleOverlay hasInteracted={activeCluster !== null} />
-
               <Scanlines />
               <Vignette />
 

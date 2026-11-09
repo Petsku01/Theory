@@ -11,7 +11,6 @@ export default function Home() {
     <>
       {/* Accessible text fallback for screen readers */}
       <div className="sr-only" aria-label="Petteri Kosonen, Application Specialist and AI Researcher. Building tools for safer AI.">
-        <h1>Petteri Kosonen</h1>
         <p>Application Specialist + AI Researcher</p>
         <p>Building tools that make AI safer: LLM fine-tuning, prompt security, and trustworthy automation.</p>
       </div>

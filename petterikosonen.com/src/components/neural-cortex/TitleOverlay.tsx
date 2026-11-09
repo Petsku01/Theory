@@ -37,7 +37,7 @@ export function TitleOverlay({
               className="mb-2 font-mono text-sm tracking-[0.22em] text-slate-300 md:text-base"
             />
             <ScrambleText
-              as="h1"
+              as="p"
               text={TITLE}
               durationMs={1200}
               delayMs={40}

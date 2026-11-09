@@ -24,6 +24,10 @@ const CLUSTER_KEYS = ["core", "projects", "skills", "experience", "research"] as
 // [pos_x, pos_y, pos_z, color_r, color_g, color_b, strength, pulse_freq, pulse_amp, boost, species_human, species_machine, species_nature]
 const ATTRACTOR_STRIDE = 13;
 
+// WASM pillar belt (dist_xz to nearest attractor). Skip these in the GPU copy.
+const PILLAR_ZONE_MIN_SQ = 1.2 * 1.2;
+const PILLAR_ZONE_MAX_SQ = 4.2 * 4.2;
+
 export interface FlowFieldParticlesProps {
   count?: number;
   activeCluster: string | null;
@@ -208,21 +212,37 @@ export function FlowFieldParticles({
         wasmDataRef.current = wasmData;
       }
 
-      // Copy position + color data to GPU buffers
+      // Compact copy: skip pillar-belt particles (no per-frame alloc).
       const pos = posAttr.array as Float32Array;
       const col = colorAttr.array as Float32Array;
+      const nAttr = CLUSTER_KEYS.length;
+      let written = 0;
 
       for (let i = 0; i < len; i++) {
         const src = i * stride;
-        const dst = i * 3;
-        pos[dst] = wasmData[src];
+        const px = wasmData[src];
+        const pz = wasmData[src + 2];
+        let minDistSq = Infinity;
+        for (let a = 0; a < nAttr; a++) {
+          const o = a * ATTRACTOR_STRIDE;
+          const dx = px - attractorData[o];
+          const dz = pz - attractorData[o + 2];
+          const dSq = dx * dx + dz * dz;
+          if (dSq < minDistSq) minDistSq = dSq;
+        }
+        if (minDistSq >= PILLAR_ZONE_MIN_SQ && minDistSq <= PILLAR_ZONE_MAX_SQ) continue;
+
+        const dst = written * 3;
+        pos[dst] = px;
         pos[dst + 1] = wasmData[src + 1];
-        pos[dst + 2] = wasmData[src + 2];
+        pos[dst + 2] = pz;
         col[dst] = wasmData[src + 8];
         col[dst + 1] = wasmData[src + 9];
         col[dst + 2] = wasmData[src + 10];
+        written++;
       }
 
+      geo.setDrawRange(0, written);
       posAttr.needsUpdate = true;
       colorAttr.needsUpdate = true;
     } else {
@@ -283,6 +303,7 @@ export function FlowFieldParticles({
         col[idx + 2] = cc.b + (c.b - cc.b) * speciesMix;
       }
 
+      geo.setDrawRange(0, count);
       posAttr.needsUpdate = true;
       colorAttr.needsUpdate = true;
     }

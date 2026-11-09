@@ -93,7 +93,11 @@ export default function Navbar() {
               <span className="text-accent-green/80">◆</span>
               <span>⌁</span>
             </span>
-            <span className="hud-name truncate whitespace-nowrap">Petteri Kosonen</span>
+            {pathname === "/" ? (
+              <h1 className="hud-name truncate whitespace-nowrap">Petteri Kosonen</h1>
+            ) : (
+              <span className="hud-name truncate whitespace-nowrap">Petteri Kosonen</span>
+            )}
           </Link>
 
           <button

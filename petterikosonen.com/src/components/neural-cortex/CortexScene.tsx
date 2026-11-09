@@ -11,6 +11,7 @@ import { CameraController } from "@/components/neural-cortex/CameraController";
 import { FlowFieldParticles } from "@/components/neural-cortex/FlowFieldParticles";
 import { GlyphLayer } from "@/components/neural-cortex/GlyphLayer";
 import { MyceliumField } from "@/components/neural-cortex/MyceliumField";
+import { BackgroundPillars } from "@/components/neural-cortex/BackgroundPillars";
 
 // ── SYMBIOOSIS: Cursor = navigation, no traditional navbar ──
 // Particles respond to cursor position via raycaster.
@@ -204,6 +205,7 @@ export function CortexScene({
     <>
       {/* Reduced-motion does not gate these — Canvas is swapped out upstream. */}
       <MyceliumField density={1.45} flow={1.35} mobile={isMobile} />
+      <BackgroundPillars />
 
       <ambientLight intensity={0.1} />
       <pointLight position={[10, 10, 10]} intensity={0.4} color="#00f0ff" />
