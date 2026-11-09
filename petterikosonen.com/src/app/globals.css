@@ -217,6 +217,56 @@ p, li {
   outline-color: var(--accent-cyan);
 }
 
+@media (max-width: 767px) {
+  /* Tailwind `hidden` is display:none (drops tab), but keep an explicit win
+     against later utilities; JS also sets aria-hidden + tabIndex=-1. */
+  .nav-contact-desktop {
+    display: none !important;
+  }
+
+  .cortex-html-label {
+    max-width: 90vw !important;
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+  }
+}
+
+/* Hero fallback nav: sr-only until focused, then skip-link treatment + cyan ring. */
+.hero-a11y-link {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+.hero-a11y-link:focus-visible {
+  position: fixed;
+  left: 1rem;
+  top: 4.5rem;
+  z-index: 50;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 0.5rem 1rem;
+  overflow: visible;
+  clip: auto;
+  white-space: nowrap;
+  border-radius: 0.5rem;
+  background: var(--accent-cyan);
+  color: var(--text-inverse);
+  font-size: 0.875rem;
+  font-weight: 700;
+  outline-color: var(--accent-cyan);
+}
+
 /* ── Glow text hover ────────────────────────────── */
 
 .glow-text-hover {
@@ -269,6 +319,47 @@ p, li {
 }
 
 /* ── Reduced motion ─────────────────────────────── */
+
+/* ── HUD + RX transmission panels (2B content layer) ── */
+
+.hud-bar {
+  border: 1px solid rgba(34, 211, 238, 0.22);
+  background: rgba(5, 7, 10, 0.72);
+  border-radius: 4px;
+}
+
+.rx-panel {
+  z-index: 20;
+  border: 1px solid rgba(34, 211, 238, 0.28);
+  background: rgba(5, 7, 10, 0.82);
+  border-radius: 2px;
+}
+
+.rx-deck {
+  width: 100%;
+}
+
+@media (max-width: 375px) {
+  .hud-bar {
+    padding: 0.35rem 0.5rem;
+  }
+
+  .hud-name {
+    font-size: 0.7rem;
+    letter-spacing: 0.01em;
+  }
+
+  .hud-glyphs {
+    font-size: 8px;
+    gap: 2px;
+  }
+
+  .rx-deck {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
   html {

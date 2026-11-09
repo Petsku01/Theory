@@ -1,15 +1,16 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Html } from "@react-three/drei";
 import { OrbitControls as OrbitControlsImpl } from "three-stdlib";
-import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import * as THREE from "three";
 import { clusterPositions } from "@/lib/cortex-data";
 import { CLUSTER_COLORS } from "@/components/neural-cortex/utils";
 import { CameraController } from "@/components/neural-cortex/CameraController";
 import { FlowFieldParticles } from "@/components/neural-cortex/FlowFieldParticles";
+import { GlyphLayer } from "@/components/neural-cortex/GlyphLayer";
+import { MyceliumField } from "@/components/neural-cortex/MyceliumField";
 
 // ── SYMBIOOSIS: Cursor = navigation, no traditional navbar ──
 // Particles respond to cursor position via raycaster.
@@ -34,6 +35,7 @@ function ClickTarget({
   label,
   isActive,
   onClick,
+  isMobile = false,
 }: {
   clusterKey: string;
   position: [number, number, number];
@@ -41,6 +43,7 @@ function ClickTarget({
   label: string;
   isActive: boolean;
   onClick: () => void;
+  isMobile?: boolean;
 }) {
   const [hovered, setHovered] = useState(false);
   const colorObj = useMemo(() => new THREE.Color(color), [color]);
@@ -72,11 +75,13 @@ function ClickTarget({
       <Html
         position={[0, 1.8, 0]}
         center
-        distanceFactor={10}
+        {...(isMobile ? {} : { distanceFactor: 10 })}
         zIndexRange={[10, 0]}
+        wrapperClass="cortex-html-label"
         style={{
           pointerEvents: "none",
           userSelect: "none",
+          maxWidth: "90vw",
         }}
       >
         <div
@@ -86,7 +91,10 @@ function ClickTarget({
             fontWeight: isActive ? "bold" : "normal",
             color: isActive ? color : hovered ? color : "rgba(203, 213, 225, 0.72)",
             textShadow: `0 0 8px ${color}80`,
-            whiteSpace: "nowrap",
+            whiteSpace: isMobile ? "normal" : "nowrap",
+            overflowWrap: "break-word",
+            wordWrap: "break-word",
+            maxWidth: "90vw",
             letterSpacing: "0.1em",
             textTransform: "uppercase",
             transition: "all 0.2s ease",
@@ -119,7 +127,6 @@ export function CortexScene({
   onClusterSelect,
   shakeTimestamp,
   particleCount = 5000,
-  bloomIntensity = 2.2,
   isMobile = false,
   reducedMotion = false,
 }: {
@@ -127,7 +134,6 @@ export function CortexScene({
   onClusterSelect: (cluster: string | null) => void;
   shakeTimestamp: number;
   particleCount?: number;
-  bloomIntensity?: number;
   isMobile?: boolean;
   reducedMotion?: boolean;
 }) {
@@ -137,6 +143,8 @@ export function CortexScene({
 
   // Cursor 3D position — the user's "juuret" in the organism
   const cursorWorldRef = useRef<THREE.Vector3>(new THREE.Vector3());
+  const pointerPlaneRef = useRef(new THREE.Plane(new THREE.Vector3(0, 0, 1), 0));
+  const pointerHitRef = useRef(new THREE.Vector3());
 
   // Compute hover target from cursor position
   const hoverTarget = !reducedMotion && !isMobile ? cursorWorldRef.current : null;
@@ -168,11 +176,8 @@ export function CortexScene({
       // Raycast from camera through pointer into scene
       raycaster.setFromCamera(pointer, camera);
       // Project onto z=0 plane for a 3D hover target
-      const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
-      const intersect = new THREE.Vector3();
-      raycaster.ray.intersectPlane(plane, intersect);
-      if (intersect) {
-        cursorWorldRef.current.copy(intersect);
+      if (raycaster.ray.intersectPlane(pointerPlaneRef.current, pointerHitRef.current)) {
+        cursorWorldRef.current.copy(pointerHitRef.current);
       }
     };
     window.addEventListener("pointermove", handlePointerMove, { passive: true });
@@ -197,6 +202,9 @@ export function CortexScene({
 
   return (
     <>
+      {/* Reduced-motion does not gate these — Canvas is swapped out upstream. */}
+      <MyceliumField density={1.45} flow={1.35} mobile={isMobile} />
+
       <ambientLight intensity={0.1} />
       <pointLight position={[10, 10, 10]} intensity={0.4} color="#00f0ff" />
       <pointLight position={[-10, -5, -10]} intensity={0.3} color="#22d3ee" />
@@ -218,6 +226,7 @@ export function CortexScene({
             color={t.color}
             label={t.label}
             isActive={activeCluster === t.key}
+            isMobile={isMobile}
             onClick={() => {
               if (activeCluster === t.key) {
                 onClusterSelect(null);
@@ -245,6 +254,7 @@ export function CortexScene({
         autoRotateSpeed={0.3}
       />
 
+      <GlyphLayer cellSize={isMobile ? 16 : 14} intensity={0.85} contrast={1.38} />
     </>
   );
 }

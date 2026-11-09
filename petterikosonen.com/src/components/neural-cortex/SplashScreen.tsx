@@ -1,14 +1,39 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-// ── Splash screen: dark void with title + enter button ──
+// ── Splash screen: dark void with title + enter (ESC / click / 6s auto) ──
 export function SplashScreen({
   onEnter,
 }: {
   onEnter: () => void;
 }) {
+  const enteredRef = useRef(false);
+  const enter = () => {
+    if (enteredRef.current) return;
+    enteredRef.current = true;
+    onEnter();
+  };
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target;
+      if (el instanceof Element && el.closest("a[href]")) return;
+      const space = e.key === " " || e.key === "Spacebar" || e.code === "Space";
+      if (e.key === "Escape" || e.key === "Enter" || space) {
+        e.preventDefault();
+        enter();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    const timer = window.setTimeout(enter, 6000);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.clearTimeout(timer);
+    };
+  }, []);
+
   return (
     <AnimatePresence>
       <motion.div
@@ -17,7 +42,8 @@ export function SplashScreen({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0, scale: 1.05, filter: "blur(12px)" }}
         transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
-        className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#05070A]"
+        className="fixed inset-0 z-50 flex cursor-pointer flex-col items-center justify-center bg-[#05070A]"
+        onClick={enter}
       >
         {/* Subtle grid pattern */}
         <div
@@ -64,10 +90,15 @@ export function SplashScreen({
 
           {/* Enter button */}
           <motion.button
+            type="button"
+            aria-label="Enter site"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 1.4 }}
-            onClick={onEnter}
+            onClick={(e) => {
+              e.stopPropagation();
+              enter();
+            }}
             className="group relative mt-6 cursor-pointer border border-cyan-500/30 bg-transparent px-8 py-3 font-mono text-sm tracking-[0.15em] text-cyan-400 transition-all hover:border-cyan-400/60 hover:bg-cyan-500/10 hover:text-cyan-300 hover:shadow-[0_0_30px_rgba(0,240,255,0.15)]"
           >
             <span className="relative z-10">[ ENTER ]</span>
@@ -86,7 +117,7 @@ export function SplashScreen({
             transition={{ duration: 0.5, delay: 2.2 }}
             className="text-[0.65rem] text-slate-600 font-mono"
           >
-            Click a node to explore
+            ESC · click · auto 6s
           </motion.p>
         </div>
       </motion.div>
