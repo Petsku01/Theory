@@ -7,6 +7,7 @@ import { Scanlines, Vignette, CortexLoader } from "@/components/neural-cortex/Ov
 import { AccessibleNav } from "@/components/neural-cortex/AccessibleNav";
 
 import { SplashScreen } from "@/components/neural-cortex/SplashScreen";
+import { TitleOverlay } from "@/components/neural-cortex/TitleOverlay";
 import { CLUSTER_COLORS, getUnifiedWasmStatus } from "@/components/neural-cortex/utils";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { nodes } from "@/lib/cortex-data";
@@ -155,6 +156,8 @@ export default function NeuralCortex() {
                 particleCount={particleCount}
                 isMobile={isMobile}
               />
+
+              <TitleOverlay hasInteracted={activeCluster !== null} />
 
               <Scanlines />
               <Vignette />

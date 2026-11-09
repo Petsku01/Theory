@@ -9,6 +9,8 @@ import { clusterPositions } from "@/lib/cortex-data";
 import { CLUSTER_COLORS } from "@/components/neural-cortex/utils";
 import { CameraController } from "@/components/neural-cortex/CameraController";
 import { FlowFieldParticles } from "@/components/neural-cortex/FlowFieldParticles";
+import { GlyphLayer } from "@/components/neural-cortex/GlyphLayer";
+import { MyceliumField } from "@/components/neural-cortex/MyceliumField";
 
 // ── SYMBIOOSIS: Cursor = navigation, no traditional navbar ──
 // Particles respond to cursor position via raycaster.
@@ -194,6 +196,9 @@ export function CortexScene({
 
   return (
     <>
+      {/* Reduced-motion does not gate these — Canvas is swapped out upstream. */}
+      <MyceliumField density={1.45} flow={1.35} />
+
       <ambientLight intensity={0.1} />
       <pointLight position={[10, 10, 10]} intensity={0.4} color="#00f0ff" />
       <pointLight position={[-10, -5, -10]} intensity={0.3} color="#22d3ee" />
@@ -242,6 +247,7 @@ export function CortexScene({
         autoRotateSpeed={0.3}
       />
 
+      <GlyphLayer cellSize={isMobile ? 16 : 14} intensity={0.82} contrast={1.65} />
     </>
   );
 }
