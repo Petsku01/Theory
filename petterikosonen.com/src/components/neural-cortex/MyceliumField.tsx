@@ -84,9 +84,14 @@ void main() {
   float hypha = max(ridges * 0.65, veins) * 0.62;
 
   vec3 col = uBg;
-  col += uCyan * (hypha * 0.95 + mist);
-  col += uGreen * (veins * 0.26 + ridges * 0.12);
-  col += uViolet * (ridges * 0.48 + hypha * 0.20);
+  float ribbon = pow(ridges, 2.05);
+  float ribbonMask = clamp(ribbon, 0.0, 1.0);
+  // Cyan add only off-ribbon; mix+add was washing #7C8CFF toward cyan.
+  col += uCyan * (hypha * 0.78 + mist) * (1.0 - ribbonMask);
+  col += uGreen * (veins * 0.22 + ridges * 0.06) * (1.0 - ribbonMask);
+  // Alpha-valley violet on top (luma 0.34–0.50 → visible ~60–80/255).
+  float vA = mix(0.34, 0.50, ribbonMask);
+  col = col * (1.0 - ribbonMask) + uViolet * vA * ribbonMask;
 
   gl_FragColor = vec4(col, 1.0);
 }

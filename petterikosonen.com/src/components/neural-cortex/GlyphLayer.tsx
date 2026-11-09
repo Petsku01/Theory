@@ -55,11 +55,12 @@ float luma(vec3 c) {
 
 vec3 palette(float t, vec3 src) {
   float x = clamp(t, 0.0, 1.0);
-  vec3 lo = mix(uCyan, uGreen, 0.38);
-  vec3 crest = mix(uViolet, mix(uCyan, uGreen, 0.42), 0.4);
-  vec3 pal = mix(lo, crest, smoothstep(0.22, 0.92, x));
-  pal *= 0.78 + 0.95 * x;
-  return pal;
+  vec3 lo = mix(uCyan, uGreen, 0.32);
+  float crest = smoothstep(0.40, 0.82, x);
+  vec3 body = mix(uBg, lo, 0.34 + 0.16 * x);
+  // Alpha-valley violet on top (luma 0.34–0.50 → ~60–80/255); no cyan mix on crests.
+  float vA = mix(0.34, 0.50, crest);
+  return mix(body, uViolet * vA, crest);
 }
 
 void main() {
@@ -71,16 +72,20 @@ void main() {
   vec4 src = texture2D(tScene, sceneUv);
 
   float lum = luma(src.rgb);
-  lum = max(0.0, lum - 0.045);
   lum = clamp(pow(lum, max(uContrast, 0.2)), 0.0, 1.0);
 
   float idx = floor(min(lum, 0.9999) * uCharsetCount);
   vec2 local = fract(fragPx / cell);
-  vec2 atlasUv = vec2((idx + local.x) / uCharsetCount, local.y);
-  float glyph = texture2D(tAtlas, atlasUv).r;
+  // 1-row atlas, square cells: map the full cell onto the full atlas cell.
+  // Half-texel inset on U avoids neighbour bleed; V uses nearly the full row
+  // so glyphs aren't clipped into horizontal bars.
+  vec2 gLocal = mix(vec2(0.03, 0.02), vec2(0.97, 0.98), local);
+  vec2 atlasUv = vec2((idx + gLocal.x) / uCharsetCount, gLocal.y);
+  float glyph = dot(texture2D(tAtlas, atlasUv).rgb, vec3(0.299, 0.587, 0.114));
 
   vec3 pal = palette(lum, src.rgb);
-  float ink = glyph * smoothstep(0.05, 0.22, lum);
+  // Floor + ink gate only on glyph ink — do not crush whole-field luma.
+  float ink = glyph * smoothstep(0.03, 0.13, max(0.0, lum - 0.04));
   vec3 asciiCol = mix(uBg, pal, ink);
 
   vec3 outCol = mix(src.rgb, asciiCol, clamp(uIntensity, 0.0, 1.0));
@@ -98,22 +103,36 @@ function createGlyphAtlas(): THREE.CanvasTexture {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = "#fff";
   ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
+  ctx.imageSmoothingEnabled = false;
 
   const fromCss =
     typeof document !== "undefined"
       ? getComputedStyle(document.documentElement).getPropertyValue("--font-mono").trim()
       : "";
   const family = fromCss || `"IBM Plex Mono", ui-monospace, monospace`;
-  ctx.font = `${Math.floor(ATLAS_CELL * 0.72)}px ${family}`;
+  ctx.font = `${ATLAS_CELL}px ${family}`;
 
   for (let i = 0; i < count; i++) {
-    ctx.fillText(GLYPH_RAMP[i] ?? " ", (i + 0.5) * ATLAS_CELL, ATLAS_CELL * 0.55);
+    const ch = GLYPH_RAMP[i] ?? " ";
+    if (ch === " ") continue;
+    const m = ctx.measureText(ch);
+    const ascent = m.actualBoundingBoxAscent || ATLAS_CELL * 0.8;
+    const descent = m.actualBoundingBoxDescent || ATLAS_CELL * 0.2;
+    const gw = Math.max(m.width, 1);
+    const gh = Math.max(ascent + descent, 1);
+    const scale = Math.min((ATLAS_CELL * 0.9) / gw, (ATLAS_CELL * 0.92) / gh);
+    ctx.save();
+    ctx.translate((i + 0.5) * ATLAS_CELL, ATLAS_CELL * 0.5);
+    ctx.scale(scale, scale);
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText(ch, 0, (ascent - descent) * 0.5);
+    ctx.restore();
   }
 
   const tex = new THREE.CanvasTexture(canvas);
-  tex.minFilter = THREE.NearestFilter;
-  tex.magFilter = THREE.NearestFilter;
+  tex.flipY = true;
+  tex.minFilter = THREE.LinearFilter;
+  tex.magFilter = THREE.LinearFilter;
   tex.generateMipmaps = false;
   tex.wrapS = THREE.ClampToEdgeWrapping;
   tex.wrapT = THREE.ClampToEdgeWrapping;
@@ -132,9 +151,9 @@ export type GlyphLayerProps = {
 };
 
 export function GlyphLayer({
-  intensity = 0.82,
+  intensity = 0.85,
   cellSize = 14,
-  contrast = 1.65,
+  contrast = 1.45,
 }: GlyphLayerProps) {
   const { gl, scene, camera } = useThree();
   const intensityRef = useRef(intensity);
@@ -166,8 +185,8 @@ export function GlyphLayer({
       uResolution: { value: new THREE.Vector2(1, 1) },
       uCellSize: { value: 14 },
       uCharsetCount: { value: GLYPH_RAMP.length },
-      uIntensity: { value: 0.82 },
-      uContrast: { value: 1.65 },
+      uIntensity: { value: 0.85 },
+      uContrast: { value: 1.45 },
       uBg: { value: BG.clone() },
       uCyan: { value: CYAN.clone() },
       uGreen: { value: GREEN.clone() },
