@@ -206,49 +206,45 @@ export function useTransmissionScramble(
 
     setComplete(false);
     const length = text.length;
-    const revealed = new Array<boolean>(length).fill(false);
-    const revealEvery = Math.max(16, Math.floor(durationMs / Math.max(1, length)));
+    let raf = 0;
+    const t0 = performance.now();
 
-    const paint = () => {
+    const paint = (nReveal: number) => {
       setDisplay(
         text
           .split("")
           .map((char, i) => {
-            if (revealed[i]) return text[i];
+            if (i < nReveal) return text[i]!;
             if (char === " ") return " ";
-            return JS_CHARS[Math.floor(Math.random() * JS_CHARS.length)];
+            return JS_CHARS[Math.floor(Math.random() * JS_CHARS.length)]!;
           })
           .join(""),
       );
     };
 
-    let interval: ReturnType<typeof setInterval> | null = null;
-    let revealTimer: ReturnType<typeof setTimeout> | null = null;
-    const startTimer = setTimeout(() => {
-      paint();
-      interval = setInterval(paint, 60);
-      let idx = 0;
-      const revealNext = () => {
-        if (idx < length) {
-          revealed[idx] = true;
-          idx += 1;
-          revealTimer = setTimeout(revealNext, revealEvery);
-        } else {
-          if (interval) {
-            clearInterval(interval);
-            interval = null;
-          }
-          setDisplay(text);
-          setComplete(true);
-        }
-      };
-      revealNext();
-    }, delayMs);
+    const tick = (now: number) => {
+      const elapsed = now - t0 - delayMs;
+      if (elapsed < 0) {
+        raf = requestAnimationFrame(tick);
+        return;
+      }
+      const nReveal = Math.min(
+        length,
+        Math.floor((elapsed / Math.max(durationMs, 1)) * length),
+      );
+      if (nReveal >= length) {
+        setDisplay(text);
+        setComplete(true);
+        return;
+      }
+      paint(nReveal);
+      raf = requestAnimationFrame(tick);
+    };
+
+    raf = requestAnimationFrame(tick);
 
     return () => {
-      clearTimeout(startTimer);
-      if (revealTimer) clearTimeout(revealTimer);
-      if (interval) clearInterval(interval);
+      cancelAnimationFrame(raf);
       setDisplay(text);
     };
   }, [text, durationMs, delayMs]);

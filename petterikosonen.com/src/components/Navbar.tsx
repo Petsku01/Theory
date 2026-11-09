@@ -18,9 +18,18 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [mdUp, setMdUp] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const apply = () => setMdUp(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
   }, []);
 
   const isHome = mounted && pathname === "/";
@@ -194,7 +203,9 @@ export default function Navbar() {
           <Link
             href="/contact"
             aria-label="Contact — open channel"
-            className="focus-outline hidden shrink-0 items-center gap-2 rounded-sm border border-accent-cyan/30 bg-accent-cyan/6 px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider text-accent-cyan transition-all duration-300 hover:border-accent-cyan/50 hover:bg-accent-cyan/12 hover:shadow-glowCyan md:inline-flex"
+            aria-hidden={mdUp ? undefined : true}
+            tabIndex={mdUp ? undefined : -1}
+            className="nav-contact-desktop focus-outline hidden shrink-0 items-center gap-2 rounded-sm border border-accent-cyan/30 bg-accent-cyan/6 px-3 py-1.5 text-[10px] font-mono uppercase tracking-wider text-accent-cyan transition-all duration-300 hover:border-accent-cyan/50 hover:bg-accent-cyan/12 hover:shadow-glowCyan md:inline-flex"
           >
             <span className="h-1.5 w-1.5 rounded-full bg-accent-cyan" aria-hidden="true" />
             Contact

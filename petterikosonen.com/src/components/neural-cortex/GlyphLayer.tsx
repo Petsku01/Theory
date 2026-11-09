@@ -24,11 +24,28 @@ const VIOLET = new THREE.Color("#B47CFF");
 const GLYPH_RAMP = ".:-=+#";
 const ATLAS_CELL = 64;
 
+const HIST_SIZE = 64;
+
 const VERT = /* glsl */ `
 varying vec2 vUv;
 void main() {
   vUv = uv;
   gl_Position = vec4(position.xy, 0.0, 1.0);
+}
+`;
+
+const HIST_FRAG = /* glsl */ `
+precision highp float;
+uniform sampler2D tScene;
+uniform float uContrast;
+varying vec2 vUv;
+float luma(vec3 c) {
+  return dot(c, vec3(0.299, 0.587, 0.114));
+}
+void main() {
+  vec3 c = texture2D(tScene, vUv).rgb;
+  float lum = clamp(pow(max(luma(c), 0.0), max(uContrast, 0.2)), 0.0, 1.0);
+  gl_FragColor = vec4(lum, lum, lum, 1.0);
 }
 `;
 
@@ -179,10 +196,11 @@ export function GlyphLayer({
   contrastRef.current = contrast;
 
   const scratch = useMemo(() => new THREE.Vector2(), []);
+  const clearColorScratch = useMemo(() => new THREE.Color(), []);
   const histAtRef = useRef(0);
-  const histBufRef = useRef<Uint8Array | null>(null);
-  const HIST_W = 96;
-  const HIST_H = 54;
+  const histFrameRef = useRef(0);
+  const histBufRef = useRef(new Uint8Array(HIST_SIZE * HIST_SIZE * 4));
+  const histBinsRef = useRef(new Uint32Array(256));
 
   const resources = useMemo(() => {
     const atlas =
@@ -197,6 +215,17 @@ export function GlyphLayer({
       format: THREE.RGBAFormat,
     });
     rt.texture.colorSpace = THREE.NoColorSpace;
+
+    const histRT = new THREE.WebGLRenderTarget(HIST_SIZE, HIST_SIZE, {
+      minFilter: THREE.LinearFilter,
+      magFilter: THREE.LinearFilter,
+      generateMipmaps: false,
+      stencilBuffer: false,
+      depthBuffer: false,
+      type: THREE.UnsignedByteType,
+      format: THREE.RGBAFormat,
+    });
+    histRT.texture.colorSpace = THREE.NoColorSpace;
 
     const uniforms = {
       tScene: { value: rt.texture },
@@ -230,18 +259,53 @@ export function GlyphLayer({
     passScene.add(quad);
     const passCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
 
-    return { atlas, rt, uniforms, material, quad, passScene, passCamera };
+    const histUniforms = {
+      tScene: { value: rt.texture },
+      uContrast: { value: 1.38 },
+    };
+    const histMaterial = new THREE.ShaderMaterial({
+      uniforms: histUniforms,
+      vertexShader: VERT,
+      fragmentShader: HIST_FRAG,
+      depthTest: false,
+      depthWrite: false,
+      toneMapped: false,
+      fog: false,
+    });
+    const histQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), histMaterial);
+    histQuad.frustumCulled = false;
+    const histScene = new THREE.Scene();
+    histScene.add(histQuad);
+
+    return {
+      atlas,
+      rt,
+      histRT,
+      uniforms,
+      material,
+      quad,
+      passScene,
+      passCamera,
+      histUniforms,
+      histMaterial,
+      histQuad,
+      histScene,
+    };
   }, []);
 
   useEffect(() => {
     return () => {
       resources.rt.dispose();
+      resources.histRT.dispose();
       resources.material.dispose();
+      resources.histMaterial.dispose();
       resources.quad.geometry.dispose();
+      resources.histQuad.geometry.dispose();
       resources.atlas?.dispose();
     };
   }, [resources]);
 
+  // priority > 0: R3F skips default scene render. We own: 1 scene→RT, 1 blit quad.
   useFrame(() => {
     if (!resources.atlas) return;
 
@@ -253,7 +317,6 @@ export function GlyphLayer({
       resources.rt.setSize(w, h);
     }
 
-    // Cell size in physical pixels = CSS px * dpr → same visual cell on any dpr.
     const cssCell = Math.max(8, cellSizeRef.current);
     resources.uniforms.uCellSize.value = cssCell * dpr;
     resources.uniforms.uResolution.value.set(w, h);
@@ -263,32 +326,39 @@ export function GlyphLayer({
 
     const prevTarget = gl.getRenderTarget();
     const prevAutoClear = gl.autoClear;
+    const prevClearAlpha = gl.getClearAlpha();
+    gl.getClearColor(clearColorScratch);
+
     gl.autoClear = true;
-    gl.setRenderTarget(resources.rt);
     gl.setClearColor(BG, 1);
+    gl.setRenderTarget(resources.rt);
     gl.clear();
     gl.render(scene, camera);
 
+    const frameN = ++histFrameRef.current;
     const now =
       typeof performance !== "undefined" ? performance.now() : Date.now();
-    if (now - histAtRef.current >= 500) {
+    if (frameN > 1 && now - histAtRef.current >= 500) {
       histAtRef.current = now;
-      const hw = Math.min(HIST_W, w);
-      const hh = Math.min(HIST_H, h);
-      const need = hw * hh * 4;
-      if (!histBufRef.current || histBufRef.current.length !== need) {
-        histBufRef.current = new Uint8Array(need);
-      }
-      const ox = Math.max(0, Math.floor((w - hw) / 2));
-      const oy = Math.max(0, Math.floor((h - hh) / 2));
-      gl.readRenderTargetPixels(resources.rt, ox, oy, hw, hh, histBufRef.current);
+      resources.histUniforms.tScene.value = resources.rt.texture;
+      resources.histUniforms.uContrast.value = contrastRef.current;
+      gl.setRenderTarget(resources.histRT);
+      gl.clear();
+      gl.render(resources.histScene, resources.passCamera);
+      gl.readRenderTargetPixels(
+        resources.histRT,
+        0,
+        0,
+        HIST_SIZE,
+        HIST_SIZE,
+        histBufRef.current,
+      );
       const buf = histBufRef.current;
-      const bins = new Uint32Array(256);
+      const bins = histBinsRef.current;
+      bins.fill(0);
       let count = 0;
       for (let i = 0; i < buf.length; i += 4) {
-        const L =
-          0.299 * buf[i]! + 0.587 * buf[i + 1]! + 0.114 * buf[i + 2]!;
-        bins[Math.min(255, L | 0)]++;
+        bins[buf[i]!]++;
         count++;
       }
       const pick = (p: number) => {
@@ -311,6 +381,7 @@ export function GlyphLayer({
     gl.setRenderTarget(null);
     gl.render(resources.passScene, resources.passCamera);
     gl.setRenderTarget(prevTarget);
+    gl.setClearColor(clearColorScratch, prevClearAlpha);
     gl.autoClear = prevAutoClear;
   }, 1);
 

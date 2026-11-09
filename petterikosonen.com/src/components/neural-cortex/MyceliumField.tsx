@@ -26,6 +26,7 @@ precision highp float;
 uniform float uTime;
 uniform float uDensity;
 uniform float uFlow;
+uniform float uMobile;
 uniform vec3 uBg;
 uniform vec3 uCyan;
 uniform vec3 uGreen;
@@ -51,10 +52,22 @@ float noise(vec2 p) {
 float fbm(vec2 p) {
   float v = 0.0;
   float a = 0.5;
-  for (int i = 0; i < 5; i++) {
+  v += a * noise(p);
+  p = p * 2.07 + vec2(1.7, 9.2);
+  a *= 0.5;
+  v += a * noise(p);
+  p = p * 2.07 + vec2(1.7, 9.2);
+  a *= 0.5;
+  v += a * noise(p);
+  p = p * 2.07 + vec2(1.7, 9.2);
+  a *= 0.5;
+  if (uMobile < 0.5) {
     v += a * noise(p);
     p = p * 2.07 + vec2(1.7, 9.2);
     a *= 0.5;
+    v += a * noise(p);
+  } else {
+    v += a * 0.5;
   }
   return v;
 }
@@ -81,13 +94,17 @@ void main() {
   veins = pow(max(0.0, veins * 1.22 - 0.40), 1.65);
 
   float hyphaRaw = max(ridges * 0.92, veins);
-  // Local max-normalization of this field (3-tap), independent of scene luma.
-  float nA = fbm(st + 2.3 * r + vec2(0.22, 0.08));
-  float nB = fbm(st + 2.3 * r + vec2(-0.14, 0.19));
-  float rA = pow(1.0 - abs(nA * 2.0 - 1.0), 2.55);
-  float rB = pow(1.0 - abs(nB * 2.0 - 1.0), 2.55);
-  float localMax = max(hyphaRaw, max(rA, rB));
-  float hyphaNorm = hyphaRaw / max(localMax, 1e-4);
+  float hyphaNorm;
+  if (uMobile < 0.5) {
+    float nA = fbm(st + 2.3 * r + vec2(0.22, 0.08));
+    float nB = fbm(st + 2.3 * r + vec2(-0.14, 0.19));
+    float rA = pow(1.0 - abs(nA * 2.0 - 1.0), 2.55);
+    float rB = pow(1.0 - abs(nB * 2.0 - 1.0), 2.55);
+    float localMax = max(hyphaRaw, max(rA, rB));
+    hyphaNorm = hyphaRaw / max(localMax, 1e-4);
+  } else {
+    hyphaNorm = clamp(hyphaRaw * 1.12, 0.0, 1.0);
+  }
 
   vec3 col = uBg;
   float ribbonMask = smoothstep(0.55, 0.85, hyphaNorm);
@@ -103,26 +120,38 @@ export type MyceliumFieldProps = {
   density?: number;
   flow?: number;
   radius?: number;
+  mobile?: boolean;
 };
 
 export function MyceliumField({
   density = 1.45,
   flow = 1.35,
   radius = 48,
+  mobile = false,
 }: MyceliumFieldProps) {
   const matRef = useRef<THREE.ShaderMaterial>(null);
+
+  const mobileLod = useMemo(() => {
+    if (mobile) return true;
+    if (typeof window === "undefined") return false;
+    return (
+      window.matchMedia("(pointer: coarse)").matches ||
+      window.matchMedia("(max-width: 767px)").matches
+    );
+  }, [mobile]);
 
   const uniforms = useMemo(
     () => ({
       uTime: { value: 0 },
       uDensity: { value: density },
       uFlow: { value: flow },
+      uMobile: { value: mobileLod ? 1 : 0 },
       uBg: { value: new THREE.Color("#05070A") },
       uCyan: { value: new THREE.Color("#22D3EE") },
       uGreen: { value: new THREE.Color("#39FF88") },
       uViolet: { value: new THREE.Color("#B47CFF") },
     }),
-    // Stable object — density/flow are written each frame.
+    // Stable object — density/flow/lod are written each frame.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   );
@@ -133,6 +162,7 @@ export function MyceliumField({
     mat.uniforms.uTime.value = clock.elapsedTime;
     mat.uniforms.uDensity.value = density;
     mat.uniforms.uFlow.value = flow;
+    mat.uniforms.uMobile.value = mobileLod ? 1 : 0;
   });
 
   return (

@@ -18,7 +18,10 @@ export function SplashScreen({
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" || e.key === "Enter") {
+      const el = e.target;
+      if (el instanceof Element && el.closest("a[href]")) return;
+      const space = e.key === " " || e.key === "Spacebar" || e.code === "Space";
+      if (e.key === "Escape" || e.key === "Enter" || space) {
         e.preventDefault();
         enter();
       }
@@ -41,9 +44,6 @@ export function SplashScreen({
         transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
         className="fixed inset-0 z-50 flex cursor-pointer flex-col items-center justify-center bg-[#05070A]"
         onClick={enter}
-        role="button"
-        tabIndex={0}
-        aria-label="Enter site"
       >
         {/* Subtle grid pattern */}
         <div
@@ -91,6 +91,7 @@ export function SplashScreen({
           {/* Enter button */}
           <motion.button
             type="button"
+            aria-label="Enter site"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 1.4 }}

@@ -14,15 +14,32 @@ export default function Home() {
         <h1>Petteri Kosonen</h1>
         <p>Application Specialist + AI Researcher</p>
         <p>Building tools that make AI safer: LLM fine-tuning, prompt security, and trustworthy automation.</p>
-        <nav aria-label="Main sections">
-          <ul>
-            <li><a href="#projects">Projects</a></li>
-            <li><a href="#research">Research</a></li>
-            <li><a href="#about">About</a></li>
-            <li><a href="/contact">Contact</a></li>
-          </ul>
-        </nav>
       </div>
+      {/* Outside sr-only so :focus reveal is not clipped; same pattern as skip-link. */}
+      <nav aria-label="Main sections">
+        <ul>
+          <li>
+            <a href="#projects" className="hero-a11y-link">
+              Projects
+            </a>
+          </li>
+          <li>
+            <a href="#research" className="hero-a11y-link">
+              Research
+            </a>
+          </li>
+          <li>
+            <a href="#about" className="hero-a11y-link">
+              About
+            </a>
+          </li>
+          <li>
+            <a href="/contact" className="hero-a11y-link">
+              Contact
+            </a>
+          </li>
+        </ul>
+      </nav>
 
       <HomeClient />
     </>

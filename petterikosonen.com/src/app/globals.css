@@ -217,6 +217,56 @@ p, li {
   outline-color: var(--accent-cyan);
 }
 
+@media (max-width: 767px) {
+  /* Tailwind `hidden` is display:none (drops tab), but keep an explicit win
+     against later utilities; JS also sets aria-hidden + tabIndex=-1. */
+  .nav-contact-desktop {
+    display: none !important;
+  }
+
+  .cortex-html-label {
+    max-width: 90vw !important;
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+  }
+}
+
+/* Hero fallback nav: sr-only until focused, then skip-link treatment + cyan ring. */
+.hero-a11y-link {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+.hero-a11y-link:focus-visible {
+  position: fixed;
+  left: 1rem;
+  top: 4.5rem;
+  z-index: 50;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 0.5rem 1rem;
+  overflow: visible;
+  clip: auto;
+  white-space: nowrap;
+  border-radius: 0.5rem;
+  background: var(--accent-cyan);
+  color: var(--text-inverse);
+  font-size: 0.875rem;
+  font-weight: 700;
+  outline-color: var(--accent-cyan);
+}
+
 /* ── Glow text hover ────────────────────────────── */
 
 .glow-text-hover {
