@@ -60,7 +60,11 @@ const nextConfig: NextConfig = {
           { key: "X-DNS-Prefetch-Control", value: "off" },
           { key: "X-Permitted-Cross-Domain-Policies", value: "none" },
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
-          { key: "Content-Security-Policy", value: csp },
+          // CSP temporarily disabled (2026-11-09): Vercel default build cmd skips
+          // postbuild hash extraction → header without matching hashes blocked
+          // all inline scripts → hydration dead. Restore only after per-route
+          // hash generation + explicit vercel.json buildCommand are in place.
+          // { key: "Content-Security-Policy", value: csp },
         ],
       },
     ];
