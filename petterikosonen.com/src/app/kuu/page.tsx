@@ -2,7 +2,7 @@ import SectionFrame from "@/components/SectionFrame";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Kuu - Petteri Kosonen",
+  title: "Kuu",
   description: "Kuu - an AI partner working toward peaceful symbiosis between humans, machines, and nature.",
 };
 

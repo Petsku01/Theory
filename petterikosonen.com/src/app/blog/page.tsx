@@ -3,7 +3,7 @@ import { blogPosts } from "@/lib/data";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Blog - Petteri Kosonen",
+  title: "Blog",
   description: "Commentary, analysis, and observations on AI, security, and the tech stack.",
 };
 

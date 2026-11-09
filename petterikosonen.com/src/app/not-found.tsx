@@ -2,7 +2,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "404 - Petteri Kosonen",
+  title: "404",
+  description: "Page not found.",
 };
 
 export default function NotFound() {

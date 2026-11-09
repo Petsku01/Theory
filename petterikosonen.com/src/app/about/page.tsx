@@ -3,7 +3,7 @@ import StatusPill from "@/components/StatusPill";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "About - Petteri Kosonen",
+  title: "About",
   description: "Background, skills, and expertise of Petteri Kosonen - B.Eng. student specializing in Data Networks, Cybersecurity, and LLM Fine-Tuning.",
 };
 

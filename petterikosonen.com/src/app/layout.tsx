@@ -62,11 +62,13 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: "https://petterikosonen.com",
+    images: ["/og.png"],
   },
   twitter: {
     card: "summary_large_image",
     title: "Petteri Kosonen — Application Specialist",
     description: "Cybersecurity, AI research, and prompt engineering",
+    images: ["/og.png"],
   },
   robots: { index: true, follow: true },
 };

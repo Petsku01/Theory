@@ -1,15 +1,6 @@
 import * as THREE from "three";
 import { clusterPositions, type CortexNode } from "@/lib/cortex-data";
 
-// -- Per-cluster colour scheme --
-export const CLUSTER_COLORS: Record<string, string> = {
-  core: "#00f0ff",
-  projects: "#a855f7",
-  skills: "#22d3ee",
-  experience: "#f59e0b",
-  research: "#ef4444",
-};
-
 // -- SYMBIOOSIS: Species base colors --
 export const SPECIES_COLOR_HUMAN: string = "#22D3EE";    // ihminen — sininen
 export const SPECIES_COLOR_MACHINE: string = "#FF6B35";  // kone — oranssi

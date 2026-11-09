@@ -8,7 +8,6 @@ export default function CortexCanvas({
   activeCluster,
   onClusterSelect,
   shakeTimestamp,
-  particleCount,
   isMobile,
   interactive = true,
   reducedMotion = false,
@@ -16,7 +15,6 @@ export default function CortexCanvas({
   activeCluster: string | null;
   onClusterSelect: (cluster: string | null) => void;
   shakeTimestamp: number;
-  particleCount: number;
   isMobile: boolean;
   interactive?: boolean;
   reducedMotion?: boolean;
@@ -43,7 +41,6 @@ export default function CortexCanvas({
           activeCluster={activeCluster}
           onClusterSelect={onClusterSelect}
           shakeTimestamp={shakeTimestamp}
-          particleCount={particleCount}
           isMobile={isMobile}
           reducedMotion={reducedMotion}
           interactive={interactive}

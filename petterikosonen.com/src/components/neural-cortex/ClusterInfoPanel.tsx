@@ -3,15 +3,14 @@
 import { useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { nodes, type CortexNode } from "@/lib/cortex-data";
-import { CLUSTER_COLORS } from "@/components/neural-cortex/utils";
+import { KNOT_COLORS, type KnotId } from "@/components/neural-cortex/knotGauss";
 
 // ── Cluster labels ──
-const CLUSTER_LABELS: Record<string, string> = {
+const CLUSTER_LABELS: Record<KnotId, string> = {
   core: "Core",
   projects: "Projects",
   skills: "Skills",
   experience: "Experience",
-  research: "Research",
 };
 
 // ── Core intro text (special case: core has only one node) ──
@@ -35,13 +34,15 @@ export function ClusterInfoPanel({
     return nodes.filter((n) => n.cluster === activeCluster);
   }, [activeCluster]);
 
-  const clusterColor = activeCluster
-    ? CLUSTER_COLORS[activeCluster] ?? "#00f0ff"
-    : "#00f0ff";
+  const clusterColor =
+    activeCluster && activeCluster in KNOT_COLORS
+      ? KNOT_COLORS[activeCluster as KnotId]
+      : KNOT_COLORS.core;
 
-  const clusterLabel = activeCluster
-    ? CLUSTER_LABELS[activeCluster] ?? activeCluster
-    : "";
+  const clusterLabel =
+    activeCluster && activeCluster in CLUSTER_LABELS
+      ? CLUSTER_LABELS[activeCluster as KnotId]
+      : activeCluster ?? "";
 
   // Animation variants — respect reducedMotion
   const panelVariants = reducedMotion

@@ -9,7 +9,6 @@ type CanvasProps = {
   activeCluster: string | null;
   onClusterSelect: (cluster: string | null) => void;
   shakeTimestamp: number;
-  particleCount: number;
   isMobile: boolean;
   interactive?: boolean;
   reducedMotion?: boolean;
@@ -59,7 +58,6 @@ export default function MyceliumBackground() {
             activeCluster={interactive ? activeCluster : null}
             onClusterSelect={interactive ? selectCluster : noop}
             shakeTimestamp={interactive ? shakeTimestamp : 0}
-            particleCount={isMobile ? 2000 : 5000}
             isMobile={isMobile}
             interactive={interactive}
             reducedMotion={reducedMotion}

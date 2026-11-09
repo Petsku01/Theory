@@ -133,21 +133,7 @@ p, li {
     inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
-/* ── Hero gradient text (CSS @property animated) ── */
-
-.hero-gradient-text {
-  background: linear-gradient(
-    var(--gradient-angle),
-    var(--accent-cyan),
-    var(--accent-violet),
-    var(--accent-cyan)
-  );
-  background-size: 300% 100%;
-  background-clip: text;
-  -webkit-background-clip: text;
-  color: transparent;
-  animation: hero-gradient-rotate 6s ease infinite;
-}
+/* ── Hero gradient text ── */
 
 .hero-gradient-text-green {
   background: linear-gradient(
@@ -160,12 +146,6 @@ p, li {
   -webkit-background-clip: text;
   color: transparent;
   animation: gradient-shift 4s ease infinite;
-}
-
-@keyframes hero-gradient-rotate {
-  0% { --gradient-angle: 0deg; background-position: 0% 50%; }
-  50% { --gradient-angle: 180deg; background-position: 100% 50%; }
-  100% { --gradient-angle: 360deg; background-position: 0% 50%; }
 }
 
 /* ── Animated scan line ─────────────────────────── */
@@ -288,17 +268,6 @@ p, li {
   );
 }
 
-/* ── Pulse glow animation ───────────────────────── */
-
-.animate-pulse-glow {
-  animation: pulse-glow 2.4s ease-in-out infinite;
-}
-
-@keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.2), 0 0 20px rgba(34, 211, 238, 0.15); }
-  50% { box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.4), 0 0 32px rgba(34, 211, 238, 0.25); }
-}
-
 /* ── Keyframes ──────────────────────────────────── */
 
 @keyframes scan {
@@ -313,23 +282,12 @@ p, li {
 
 /* ── Reduced motion ─────────────────────────────── */
 
-/* ── HUD + RX transmission panels (2B content layer) ── */
+/* ── HUD ── */
 
 .hud-bar {
   border: 1px solid rgba(34, 211, 238, 0.22);
   background: rgba(5, 7, 10, 0.72);
   border-radius: 4px;
-}
-
-.rx-panel {
-  z-index: 20;
-  border: 1px solid rgba(34, 211, 238, 0.28);
-  background: rgba(5, 7, 10, 0.82);
-  border-radius: 2px;
-}
-
-.rx-deck {
-  width: 100%;
 }
 
 @media (max-width: 375px) {
@@ -345,12 +303,6 @@ p, li {
   .hud-glyphs {
     font-size: 8px;
     gap: 2px;
-  }
-
-  .rx-deck {
-    display: grid;
-    grid-template-columns: 1fr;
-    width: 100%;
   }
 }
 

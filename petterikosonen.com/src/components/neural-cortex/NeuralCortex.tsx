@@ -7,20 +7,20 @@ import { AccessibleNav } from "@/components/neural-cortex/AccessibleNav";
 
 import { SplashScreen } from "@/components/neural-cortex/SplashScreen";
 import { TitleOverlay } from "@/components/neural-cortex/TitleOverlay";
-import { CLUSTER_COLORS, getUnifiedWasmStatus } from "@/components/neural-cortex/utils";
+import { getUnifiedWasmStatus } from "@/components/neural-cortex/utils";
+import { KNOT_COLORS, type KnotId } from "@/components/neural-cortex/knotGauss";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { nodes } from "@/lib/cortex-data";
 import { ClusterInfoPanel } from "@/components/neural-cortex/ClusterInfoPanel";
 import { ClusterQuickNav } from "@/components/neural-cortex/ClusterQuickNav";
 import { useCortexInteraction } from "@/components/neural-cortex/CortexInteractionContext";
 
-const CLUSTER_KEYS = ["core", "projects", "skills", "experience", "research"] as const;
-const CLUSTER_LABELS: Record<string, string> = {
+const CLUSTER_KEYS = ["core", "projects", "skills", "experience"] as const satisfies readonly KnotId[];
+const CLUSTER_LABELS: Record<KnotId, string> = {
   core: "Core",
   projects: "Projects",
   skills: "Skills",
   experience: "Experience",
-  research: "Research",
 };
 
 // ── Global keyframes ──
@@ -51,7 +51,7 @@ function StaticCortexFallback({
         <nav aria-label="Clusters" className="flex flex-wrap justify-center gap-3">
           {CLUSTER_KEYS.map((key) => {
             const active = activeCluster === key;
-            const color = CLUSTER_COLORS[key] ?? "#00f0ff";
+            const color = KNOT_COLORS[key];
             return (
               <button
                 key={key}

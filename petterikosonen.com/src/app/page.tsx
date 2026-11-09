@@ -1,7 +1,7 @@
 import HomeClient from "@/components/HomeClient";
+import type { Metadata } from "next";
 
-export const metadata = {
-  title: "Petteri Kosonen -- Application Specialist + AI Researcher",
+export const metadata: Metadata = {
   description:
     "Building tools that make AI safer. LLM fine-tuning, prompt security, and trustworthy automation.",
 };

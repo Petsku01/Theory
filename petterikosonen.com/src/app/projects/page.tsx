@@ -5,7 +5,7 @@ import { projects } from "@/lib/data";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Projects - Petteri Kosonen",
+  title: "Projects",
   description: "Open source security tools, scripts, and experiments by Petteri Kosonen.",
 };
 

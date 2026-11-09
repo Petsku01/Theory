@@ -6,7 +6,7 @@ import { OrbitControls } from "@react-three/drei";
 import { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import * as THREE from "three";
 import { clusterPositions } from "@/lib/cortex-data";
-import { CLUSTER_COLORS } from "@/components/neural-cortex/utils";
+import { KNOT_COLORS, type KnotId } from "@/components/neural-cortex/knotGauss";
 import { CameraController } from "@/components/neural-cortex/CameraController";
 import { GlyphLayer } from "@/components/neural-cortex/GlyphLayer";
 import { MyceliumField } from "@/components/neural-cortex/MyceliumField";
@@ -21,10 +21,9 @@ function easeInOutCubic(t: number) {
 
 // ── SYMBIOOSIS: Cursor = navigation, no traditional navbar ──
 // Particles respond to cursor position via raycaster.
-// NO ClusterMarkers — the organism IS the particles.
 // Invisible click-target spheres handle cluster selection. Nothing is named on the field.
 
-const CLUSTER_KEYS = ["core", "projects", "skills", "experience"] as const;
+const CLUSTER_KEYS = ["core", "projects", "skills", "experience"] as const satisfies readonly KnotId[];
 
 // ── Invisible click-target sphere for one cluster ──
 function ClickTarget({
@@ -93,7 +92,6 @@ export function CortexScene({
   activeCluster: string | null;
   onClusterSelect: (cluster: string | null) => void;
   shakeTimestamp: number;
-  particleCount?: number;
   isMobile?: boolean;
   reducedMotion?: boolean;
   interactive?: boolean;
@@ -169,7 +167,7 @@ export function CortexScene({
   const clickTargets = useMemo(() => {
     return CLUSTER_KEYS.map((key) => {
       const pos = clusterPositions[key] ?? [0, 0, 0];
-      const color = CLUSTER_COLORS[key] ?? "#00f0ff";
+      const color = KNOT_COLORS[key];
       return { key, position: pos as [number, number, number], color };
     });
   }, []);

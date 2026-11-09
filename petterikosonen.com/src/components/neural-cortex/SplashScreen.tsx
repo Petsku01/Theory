@@ -68,7 +68,7 @@ export function SplashScreen({
           </motion.p>
 
           {/* Title */}
-          <motion.h1
+          <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
@@ -76,7 +76,7 @@ export function SplashScreen({
             style={{ textShadow: "0 0 40px rgba(0,240,255,0.3)" }}
           >
             NEURAL CORTEX
-          </motion.h1>
+          </motion.p>
 
           {/* Subtitle */}
           <motion.p

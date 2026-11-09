@@ -328,7 +328,6 @@ export const clusterPositions: Record<string, [number, number, number]> = {
   projects: [8.2, 2.5, -4.4],
   skills: [3.1, -2, 9.3],
   experience: [-9.0, 3, -6.8],
-  research: [5, -1.5, 5],
 };
 
 // ── SYMBIOOSIS: Cluster pulse frequencies and species weights ──
@@ -343,7 +342,6 @@ export const clusterSymbiosis: Record<
   projects:   { pulseFreq: 1.5, speciesWeights: [0.20, 0.50, 0.30] },
   skills:     { pulseFreq: 1.8, speciesWeights: [0.30, 0.40, 0.30] },
   experience: { pulseFreq: 1.2, speciesWeights: [0.25, 0.35, 0.40] },
-  research:   { pulseFreq: 1.6, speciesWeights: [0.35, 0.30, 0.35] },
 };
 
 // Species constants for JS-side reference
