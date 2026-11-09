@@ -14,7 +14,7 @@ export function ClusterQuickNav() {
   return (
     <nav
       aria-label="Clusters"
-      className="pointer-events-auto fixed right-4 top-1/2 z-30 hidden -translate-y-1/2 md:block"
+      className="pointer-events-auto fixed right-4 top-1/2 z-50 hidden -translate-y-1/2 md:block"
     >
       <ul
         className="flex flex-col gap-1 rounded-md px-2.5 py-2 backdrop-blur-[6px]"

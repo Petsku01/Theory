@@ -10,6 +10,7 @@ import {
   isCortexWasmReady,
   getCortexWasm,
 } from "@/components/neural-cortex/utils";
+import { CLUSTER_FLY_DIST, clusterFlyCameraOffset } from "@/components/neural-cortex/knotGauss";
 
 // ── Camera controller with WASM lerp + shake, JS fallback ──
 // WASM computes desired camera position + target. OrbitControls handles user input.
@@ -30,7 +31,7 @@ export function CameraController({
   const shakeDirection = useRef<THREE.Vector3>(new THREE.Vector3());
   const isUserControlled = useRef(false);
   const isLerping = useRef(false);
-  const cameraOffset = useRef(new THREE.Vector3(0, 2, 4));
+  const cameraOffset = useRef(new THREE.Vector3(0, 2, CLUSTER_FLY_DIST));
   const desiredPos = useRef(new THREE.Vector3());
 
   // WASM state
@@ -137,7 +138,6 @@ export function CameraController({
     if (!controls) return;
 
     if (suspendLerpRef?.current) {
-      controls.update();
       return;
     }
 
@@ -184,8 +184,13 @@ export function CameraController({
       return;
     }
 
-    // JS fallback: lerp toward target
+    // JS fallback: lerp toward target along the cluster radial (same as flyTo)
     if (target && isLerping.current) {
+      const [ox, oy, oz] = clusterFlyCameraOffset(
+        [target.x, target.y, target.z],
+        CLUSTER_FLY_DIST,
+      );
+      cameraOffset.current.set(ox, oy, oz);
       desiredPos.current.copy(target).add(cameraOffset.current);
       controls.object.position.lerp(desiredPos.current, delta * 1.2);
       controls.target.lerp(target, delta * 1.5);

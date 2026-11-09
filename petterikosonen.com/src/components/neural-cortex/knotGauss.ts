@@ -25,13 +25,29 @@ type KnotShape = {
   kMul: number;
 };
 
-/** GLSL knotSample uses atan(n.z, n.x) + asin(n.y) — match ClickTarget cartesian. */
-function knotAzElFromPos(pos: [number, number, number]): { azDeg: number; el: number } {
+/**
+ * Single az/el conversion for TS uniforms + GLSL knotSample.
+ * Axes: GLSL `atan(n.z, n.x)` == JS `Math.atan2(z, x)` (from +X toward +Z).
+ * Proof: (x=6,z=0)→0°; (x=0,z=6)→90°. Not Three.Spherical.theta (atan2(x,z)).
+ */
+export function knotAzElFromPos(pos: [number, number, number]): { azDeg: number; el: number } {
   const [x, y, z] = pos;
   const len = Math.hypot(x, y, z) || 1;
   let azDeg = (Math.atan2(z, x) * 180) / Math.PI;
   if (azDeg < 0) azDeg += 360;
   return { azDeg, el: Math.asin(y / len) };
+}
+
+/** Inward radial camera offset so cartesian pos and sky-knot share the view ray. */
+export const CLUSTER_FLY_DIST = 9;
+
+export function clusterFlyCameraOffset(
+  pos: [number, number, number],
+  dist = CLUSTER_FLY_DIST,
+): [number, number, number] {
+  const [x, y, z] = pos;
+  const len = Math.hypot(x, y, z) || 1;
+  return [(-x / len) * dist, (-y / len) * dist, (-z / len) * dist];
 }
 
 export const KNOT_COLORS = {
@@ -114,6 +130,7 @@ function knotGaussBody(): string {
 export const KNOT_GAUSS_GLSL = /* glsl */ `
 vec4 knotSample(vec3 worldPos, float t) {
   vec3 n = normalize(worldPos);
+  // Same axes as knotAzElFromPos: atan(z, x) from +X toward +Z.
   float az = atan(n.z, n.x);
   float el = asin(clamp(n.y, -1.0, 1.0));
   vec3 knotCol = vec3(0.0);

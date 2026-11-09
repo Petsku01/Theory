@@ -6,18 +6,31 @@ import { OrbitControls } from "@react-three/drei";
 import { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import * as THREE from "three";
 import { clusterPositions } from "@/lib/cortex-data";
-import { KNOT_COLORS, type KnotId } from "@/components/neural-cortex/knotGauss";
+import {
+  CLUSTER_FLY_DIST,
+  clusterFlyCameraOffset,
+  KNOT_COLORS,
+  type KnotId,
+} from "@/components/neural-cortex/knotGauss";
 import { CameraController } from "@/components/neural-cortex/CameraController";
 import { GlyphLayer } from "@/components/neural-cortex/GlyphLayer";
 import { MyceliumField } from "@/components/neural-cortex/MyceliumField";
 import { useCortexInteraction } from "@/components/neural-cortex/CortexInteractionContext";
 
 const FLY_MS = 1200;
-const FLY_DIST = 8;
 
 function easeInOutCubic(t: number) {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
+
+type FlyState = {
+  startTarget: THREE.Vector3;
+  endTarget: THREE.Vector3;
+  startOffset: THREE.Vector3;
+  endOffset: THREE.Vector3;
+  endCam: THREE.Vector3;
+  t0: number;
+};
 
 // ── SYMBIOOSIS: Cursor = navigation, no traditional navbar ──
 // Particles respond to cursor position via raycaster.
@@ -98,9 +111,11 @@ export function CortexScene({
 }) {
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const groupRef = useRef<THREE.Group>(null);
-  const flyRafRef = useRef(0);
+  const flyRef = useRef<FlyState | null>(null);
+  const flyOff = useRef(new THREE.Vector3());
   const suspendLerpRef = useRef(false);
-  const { camera, gl } = useThree();
+  const camera = useThree((s) => s.camera);
+  const gl = useThree((s) => s.gl);
   const { registerFlyTo } = useCortexInteraction();
 
   // Cluster center for camera target
@@ -111,49 +126,53 @@ export function CortexScene({
     return new THREE.Vector3(pos[0], pos[1], pos[2]);
   }, [activeCluster]);
 
-  // flyTo(key): rAF tween camera.position + OrbitControls target → ClickTarget (~1.2s ease).
-  // pointerdown on canvas interrupts. CameraController lerp suspended for the flight.
+  // flyTo(key): useFrame tween of camera + OrbitControls target to clusterPositions[key].
+  // Camera sits CLUSTER_FLY_DIST inward on the same radial so the sky-knot is centered.
+  // drei OrbitControls.update is gated by enabled=false; CameraController lerp by suspendLerpRef.
+  // pointerdown on canvas interrupts. suspendLerp stays engaged after landing (WASM must not undo).
   useEffect(() => {
     const stopFly = () => {
-      if (flyRafRef.current) cancelAnimationFrame(flyRafRef.current);
-      flyRafRef.current = 0;
+      flyRef.current = null;
       suspendLerpRef.current = false;
+      const c = controlsRef.current;
+      if (c) {
+        c.enabled = true;
+        c.enableDamping = true;
+      }
       gl.domElement.removeEventListener("pointerdown", stopFly);
     };
 
     const flyTo = (key: string) => {
       const pos = clusterPositions[key];
       const controls = controlsRef.current;
-      if (!pos || !controls) return;
+      if (!pos) return;
+      if (!controls) {
+        requestAnimationFrame(() => flyTo(key));
+        return;
+      }
 
       stopFly();
       suspendLerpRef.current = true;
+      controls.autoRotate = false;
+      controls.enabled = false;
+      controls.enableDamping = false;
 
-      const startCam = camera.position.clone();
       const startTarget = controls.target.clone();
       const endTarget = new THREE.Vector3(pos[0], pos[1], pos[2]);
-      const offset = startCam.clone().sub(startTarget);
-      if (offset.lengthSq() < 1e-6) offset.set(0, 2, 8);
-      offset.setLength(FLY_DIST);
-      const endCam = endTarget.clone().add(offset);
+      const [ox, oy, oz] = clusterFlyCameraOffset(pos, CLUSTER_FLY_DIST);
+      const endOffset = new THREE.Vector3(ox, oy, oz);
+      const startOffset = camera.position.clone().sub(startTarget);
+      if (startOffset.lengthSq() < 1e-6) startOffset.set(0, 2, CLUSTER_FLY_DIST);
 
-      const t0 = performance.now();
-      const tick = (now: number) => {
-        const u = Math.min(1, (now - t0) / FLY_MS);
-        const e = easeInOutCubic(u);
-        camera.position.lerpVectors(startCam, endCam, e);
-        controls.target.lerpVectors(startTarget, endTarget, e);
-        controls.update();
-        if (u < 1) {
-          flyRafRef.current = requestAnimationFrame(tick);
-        } else {
-          flyRafRef.current = 0;
-          gl.domElement.removeEventListener("pointerdown", stopFly);
-        }
+      flyRef.current = {
+        startTarget,
+        endTarget,
+        startOffset,
+        endOffset,
+        endCam: endTarget.clone().add(endOffset),
+        t0: performance.now(),
       };
-
       gl.domElement.addEventListener("pointerdown", stopFly);
-      flyRafRef.current = requestAnimationFrame(tick);
     };
 
     registerFlyTo(flyTo);
@@ -163,7 +182,7 @@ export function CortexScene({
     };
   }, [camera, gl, registerFlyTo]);
 
-  // Build click-target data
+  // ClickTargets read clusterPositions only (same source as flyTo + knot az/el).
   const clickTargets = useMemo(() => {
     return CLUSTER_KEYS.map((key) => {
       const pos = clusterPositions[key] ?? [0, 0, 0];
@@ -172,12 +191,30 @@ export function CortexScene({
     });
   }, []);
 
-  // Breathing cycle for the whole group
+  // Breathing cycle + flyTo tick (same R3F frame, after drei priority -1 skip when enabled=false).
   useFrame((state) => {
+    const fly = flyRef.current;
+    const controls = controlsRef.current;
+    if (fly && controls) {
+      const u = Math.min(1, (performance.now() - fly.t0) / FLY_MS);
+      const e = easeInOutCubic(u);
+      controls.target.lerpVectors(fly.startTarget, fly.endTarget, e);
+      flyOff.current.copy(fly.startOffset).lerp(fly.endOffset, e);
+      camera.position.copy(controls.target).add(flyOff.current);
+      camera.lookAt(controls.target);
+      if (u >= 1) {
+        camera.position.copy(fly.endCam);
+        camera.lookAt(fly.endTarget);
+        controls.target.copy(fly.endTarget);
+        controls.enableDamping = true;
+        controls.enabled = true;
+        flyRef.current = null;
+        // suspendLerpRef stays true so CameraController WASM/JS cannot undo the landing.
+      }
+    }
     if (reducedMotion) return;
     if (groupRef.current) {
-      const time = state.clock.elapsedTime;
-      const breath = 1.0 + Math.sin(time * 0.15) * 0.03;
+      const breath = 1.0 + Math.sin(state.clock.elapsedTime * 0.15) * 0.03;
       groupRef.current.scale.set(breath, breath, breath);
     }
   });
