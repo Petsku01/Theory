@@ -247,7 +247,7 @@ export function CortexScene({
         autoRotateSpeed={0.3}
       />
 
-      <GlyphLayer cellSize={isMobile ? 16 : 14} intensity={0.85} contrast={1.45} />
+      <GlyphLayer cellSize={isMobile ? 16 : 14} intensity={0.85} contrast={1.38} />
     </>
   );
 }

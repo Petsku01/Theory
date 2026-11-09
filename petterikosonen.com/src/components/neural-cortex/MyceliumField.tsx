@@ -75,23 +75,22 @@ void main() {
 
   float n = fbm(st + 2.3 * r);
   float ridges = 1.0 - abs(n * 2.0 - 1.0);
-  ridges = pow(ridges, 3.0);
+  ridges = pow(ridges, 2.55);
 
   float veins = fbm(st * 2.15 + r * 2.8 + t * 0.12);
-  veins = pow(max(0.0, veins * 1.25 - 0.38), 1.8);
+  veins = pow(max(0.0, veins * 1.22 - 0.40), 1.65);
 
-  float mist = fbm(st * 0.45 - t * 0.06) * 0.12;
-  float hypha = max(ridges * 0.65, veins) * 0.62;
+  float hypha = max(ridges * 0.92, veins);
+  hypha = pow(max(0.0, hypha - 0.16) / 0.84, 1.12);
 
   vec3 col = uBg;
-  float ribbon = pow(ridges, 2.05);
-  float ribbonMask = clamp(ribbon, 0.0, 1.0);
-  // Cyan add only off-ribbon; mix+add was washing #7C8CFF toward cyan.
-  col += uCyan * (hypha * 0.78 + mist) * (1.0 - ribbonMask);
-  col += uGreen * (veins * 0.22 + ridges * 0.06) * (1.0 - ribbonMask);
-  // Alpha-valley violet on top (luma 0.34–0.50 → visible ~60–80/255).
-  float vA = mix(0.34, 0.50, ribbonMask);
-  col = col * (1.0 - ribbonMask) + uViolet * vA * ribbonMask;
+  // Ribbon from hypha crests — ridge-only mask was empty, so violet had nowhere to live.
+  float ribbonMask = smoothstep(0.40, 0.68, hypha);
+  col += uCyan * hypha * 1.65 * (1.0 - ribbonMask);
+  col += uGreen * veins * 0.42 * (1.0 - ribbonMask);
+  // Alpha-valley violet on crests (L ≥ 60/255, hue in 250–290°).
+  float vA = mix(0.58, 0.84, ribbonMask);
+  col = mix(col, uViolet * vA, ribbonMask);
 
   gl_FragColor = vec4(col, 1.0);
 }
@@ -118,7 +117,7 @@ export function MyceliumField({
       uBg: { value: new THREE.Color("#05070A") },
       uCyan: { value: new THREE.Color("#22D3EE") },
       uGreen: { value: new THREE.Color("#39FF88") },
-      uViolet: { value: new THREE.Color("#7C8CFF") },
+      uViolet: { value: new THREE.Color("#B47CFF") },
     }),
     // Stable object — density/flow are written each frame.
     // eslint-disable-next-line react-hooks/exhaustive-deps

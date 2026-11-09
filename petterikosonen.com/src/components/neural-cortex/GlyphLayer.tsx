@@ -18,10 +18,10 @@ export const GLYPH_LAYER_UNIFORMS = {
 const BG = new THREE.Color("#05070A");
 const CYAN = new THREE.Color("#22D3EE");
 const GREEN = new THREE.Color("#39FF88");
-const VIOLET = new THREE.Color("#7C8CFF");
+const VIOLET = new THREE.Color("#B47CFF");
 
-// Dark → dense. Luminance picks the index.
-const GLYPH_RAMP = " .:-=+*#%@";
+// Dark → dense. Six-step ramp; space omitted so dim cells still ink.
+const GLYPH_RAMP = ".:-=+#";
 const ATLAS_CELL = 64;
 
 const VERT = /* glsl */ `
@@ -56,10 +56,10 @@ float luma(vec3 c) {
 vec3 palette(float t, vec3 src) {
   float x = clamp(t, 0.0, 1.0);
   vec3 lo = mix(uCyan, uGreen, 0.32);
-  float crest = smoothstep(0.40, 0.82, x);
-  vec3 body = mix(uBg, lo, 0.34 + 0.16 * x);
-  // Alpha-valley violet on top (luma 0.34–0.50 → ~60–80/255); no cyan mix on crests.
-  float vA = mix(0.34, 0.50, crest);
+  float crest = smoothstep(0.55, 0.92, x);
+  vec3 body = mix(uBg, lo, 0.50 + 0.28 * x);
+  // Alpha-valley violet on # crests (L ≥ 60); no cyan wash.
+  float vA = mix(0.48, 0.70, crest);
   return mix(body, uViolet * vA, crest);
 }
 
@@ -73,8 +73,11 @@ void main() {
 
   float lum = luma(src.rgb);
   lum = clamp(pow(lum, max(uContrast, 0.2)), 0.0, 1.0);
+  // Stretch in-range luma onto 6 steps so crests reach # (top ≥ 0.35).
+  float stretched = clamp((lum - 0.055) / 0.28, 0.0, 1.0);
 
-  float idx = floor(min(lum, 0.9999) * uCharsetCount);
+  float idx = floor(min(stretched, 0.9999) * uCharsetCount);
+  float qLum = (idx + 0.5) / uCharsetCount;
   vec2 local = fract(fragPx / cell);
   // 1-row atlas, square cells: map the full cell onto the full atlas cell.
   // Half-texel inset on U avoids neighbour bleed; V uses nearly the full row
@@ -83,9 +86,9 @@ void main() {
   vec2 atlasUv = vec2((idx + gLocal.x) / uCharsetCount, gLocal.y);
   float glyph = dot(texture2D(tAtlas, atlasUv).rgb, vec3(0.299, 0.587, 0.114));
 
-  vec3 pal = palette(lum, src.rgb);
+  vec3 pal = palette(qLum, src.rgb);
   // Floor + ink gate only on glyph ink — do not crush whole-field luma.
-  float ink = glyph * smoothstep(0.03, 0.13, max(0.0, lum - 0.04));
+  float ink = glyph * smoothstep(0.04, 0.09, lum);
   vec3 asciiCol = mix(uBg, pal, ink);
 
   vec3 outCol = mix(src.rgb, asciiCol, clamp(uIntensity, 0.0, 1.0));
@@ -153,7 +156,7 @@ export type GlyphLayerProps = {
 export function GlyphLayer({
   intensity = 0.85,
   cellSize = 14,
-  contrast = 1.45,
+  contrast = 1.38,
 }: GlyphLayerProps) {
   const { gl, scene, camera } = useThree();
   const intensityRef = useRef(intensity);
@@ -186,7 +189,7 @@ export function GlyphLayer({
       uCellSize: { value: 14 },
       uCharsetCount: { value: GLYPH_RAMP.length },
       uIntensity: { value: 0.85 },
-      uContrast: { value: 1.45 },
+      uContrast: { value: 1.38 },
       uBg: { value: BG.clone() },
       uCyan: { value: CYAN.clone() },
       uGreen: { value: GREEN.clone() },
