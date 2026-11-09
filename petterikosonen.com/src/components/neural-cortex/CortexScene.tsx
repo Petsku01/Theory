@@ -1,14 +1,13 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useFrame, useThree } from "@react-three/fiber";
+import { useFrame } from "@react-three/fiber";
 import { OrbitControls, Html } from "@react-three/drei";
 import { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import * as THREE from "three";
 import { clusterPositions } from "@/lib/cortex-data";
 import { CLUSTER_COLORS } from "@/components/neural-cortex/utils";
 import { CameraController } from "@/components/neural-cortex/CameraController";
-import { FlowFieldParticles } from "@/components/neural-cortex/FlowFieldParticles";
 import { GlyphLayer } from "@/components/neural-cortex/GlyphLayer";
 import { MyceliumField } from "@/components/neural-cortex/MyceliumField";
 
@@ -126,7 +125,6 @@ export function CortexScene({
   activeCluster,
   onClusterSelect,
   shakeTimestamp,
-  particleCount = 5000,
   isMobile = false,
   reducedMotion = false,
 }: {
@@ -139,15 +137,6 @@ export function CortexScene({
 }) {
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const groupRef = useRef<THREE.Group>(null);
-  const { raycaster, camera, pointer } = useThree();
-
-  // Cursor 3D position — the user's "juuret" in the organism
-  const cursorWorldRef = useRef<THREE.Vector3>(new THREE.Vector3());
-  const pointerPlaneRef = useRef(new THREE.Plane(new THREE.Vector3(0, 0, 1), 0));
-  const pointerHitRef = useRef(new THREE.Vector3());
-
-  // Compute hover target from cursor position
-  const hoverTarget = !reducedMotion && !isMobile ? cursorWorldRef.current : null;
 
   // Cluster center for camera target
   const targetPosition = useMemo(() => {
@@ -166,23 +155,6 @@ export function CortexScene({
       return { key, position: pos as [number, number, number], color, label };
     });
   }, []);
-
-  // Track cursor position in 3D via raycaster — this IS the navigation
-  useEffect(() => {
-    if (reducedMotion || isMobile) return;
-    const handlePointerMove = (e: PointerEvent) => {
-      pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
-      pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
-      // Raycast from camera through pointer into scene
-      raycaster.setFromCamera(pointer, camera);
-      // Project onto z=0 plane for a 3D hover target
-      if (raycaster.ray.intersectPlane(pointerPlaneRef.current, pointerHitRef.current)) {
-        cursorWorldRef.current.copy(pointerHitRef.current);
-      }
-    };
-    window.addEventListener("pointermove", handlePointerMove, { passive: true });
-    return () => window.removeEventListener("pointermove", handlePointerMove);
-  }, [raycaster, camera, pointer, reducedMotion, isMobile]);
 
   // Breathing cycle for the whole group
   useFrame((state) => {
@@ -210,13 +182,6 @@ export function CortexScene({
       <pointLight position={[-10, -5, -10]} intensity={0.3} color="#22d3ee" />
 
       <group ref={groupRef}>
-        <FlowFieldParticles
-          count={particleCount}
-          activeCluster={activeCluster}
-          hoverTarget={hoverTarget}
-          reducedMotion={reducedMotion}
-        />
-
         {/* Invisible click-targets + Html labels (no visible mesh spheres) */}
         {clickTargets.map((t) => (
           <ClickTarget

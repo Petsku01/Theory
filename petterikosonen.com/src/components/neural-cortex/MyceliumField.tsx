@@ -75,7 +75,11 @@ float fbm(vec2 p) {
 void main() {
   vec3 p = vWorldPos * 0.038 * max(uDensity, 0.15);
   float t = uTime * 0.045 * uFlow;
-  vec2 st = vec2(p.x + p.z * 0.35, p.y * 0.85 + p.z * 0.2);
+  // Y-freq 0.85→1.62 (~1.9× shorter hypha along world-Y) + axis mix so ridges aren't meridian-locked.
+  vec2 st = vec2(
+    p.x + p.z * 0.35 + p.y * 0.28,
+    p.y * 1.62 + p.z * 0.22 - p.x * 0.18
+  );
 
   vec2 q = vec2(
     fbm(st + vec2(t, -t * 0.4)),
@@ -111,22 +115,6 @@ void main() {
   col += uCyan * hyphaRaw * 1.65 * (1.0 - ribbonMask);
   col += uGreen * veins * 0.42 * (1.0 - ribbonMask);
   col += uViolet * ribbonMask * 0.85;
-
-  // Growth knots: vertical field bands at ~28/118/208/298 deg, not geometry.
-  // Luminance from the field itself; slow undulation rides uTime/flow (t).
-  float az = atan(vWorldPos.z, vWorldPos.x);
-  float knot = 0.0;
-  float dAz;
-  dAz = atan(sin(az - (0.488692 + 0.055 * sin(t * 2.4 + 0.4))), cos(az - (0.488692 + 0.055 * sin(t * 2.4 + 0.4))));
-  knot += exp(-dAz * dAz * 28.0);
-  dAz = atan(sin(az - (2.059489 + 0.055 * sin(t * 2.1 + 1.7))), cos(az - (2.059489 + 0.055 * sin(t * 2.1 + 1.7))));
-  knot += exp(-dAz * dAz * 28.0);
-  dAz = atan(sin(az - (3.630285 + 0.055 * sin(t * 2.6 + 2.9))), cos(az - (3.630285 + 0.055 * sin(t * 2.6 + 2.9))));
-  knot += exp(-dAz * dAz * 28.0);
-  dAz = atan(sin(az - (5.201081 + 0.055 * sin(t * 2.2 + 4.1))), cos(az - (5.201081 + 0.055 * sin(t * 2.2 + 4.1))));
-  knot += exp(-dAz * dAz * 28.0);
-  knot = min(knot, 1.0);
-  col *= (1.0 + knot * mix(0.10, 0.18, 0.5 + 0.5 * sin(t * 1.6)));
 
   gl_FragColor = vec4(col, 1.0);
 }

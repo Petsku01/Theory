@@ -70,7 +70,8 @@ impl ParticleSystem {
             data[base + 8]  = DEFAULT_R;
             data[base + 9]  = DEFAULT_G;
             data[base + 10] = DEFAULT_B;
-            // base + 11 is padding / reserved
+            // base + 11: pillar-mode flag (0 = draw, 1 = skip in TS)
+            data[base + 11] = 0.0;
             // base + 12 is species: set to HUMAN by default, overridden by init_species_from_clusters
             data[base + 12] = SPECIES_HUMAN;
         }
@@ -469,6 +470,7 @@ impl ParticleSystem {
                 final_px = px + (cluster_x + osc_x - px) * ball_lerp;
                 final_pz = pz + (cluster_z + osc_z - pz) * ball_lerp;
                 final_py = cluster_y + osc_y + (py - cluster_y) * 0.7;
+                data[base + 11] = 0.0;
 
             } else if dist_xz < 4.0 {
                 // ═══════════════════════════════════════════════════════════
@@ -519,6 +521,7 @@ impl ParticleSystem {
                 let y_noise = cny * y_noise_strength;
 
                 final_py = cluster_y + y_base * pillar_y_range + y_noise;
+                data[base + 11] = 1.0;
 
             } else {
                 // ═══════════════════════════════════════════════════════════
@@ -529,6 +532,7 @@ impl ParticleSystem {
                 final_px = px + (cluster_x - px) * return_lerp;
                 final_pz = pz + (cluster_z - pz) * return_lerp;
                 final_py = py + (cluster_y - py) * return_lerp;
+                data[base + 11] = 0.0;
             }
 
             // ── 5. Hover influence: mild X,Z pull toward cursor ──

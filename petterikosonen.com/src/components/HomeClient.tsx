@@ -2,7 +2,6 @@
 
 import NeuralCortex from "@/components/neural-cortex/NeuralCortex";
 import ErrorBoundary from "@/components/ErrorBoundary";
-import TransmissionDeck from "@/components/TransmissionDeck";
 
 export default function HomeClient() {
   return (
@@ -18,7 +17,6 @@ export default function HomeClient() {
     >
       <NeuralCortex />
       <div className="h-[82dvh] min-h-[28rem]" aria-hidden="true" />
-      <TransmissionDeck />
     </ErrorBoundary>
   );
 }

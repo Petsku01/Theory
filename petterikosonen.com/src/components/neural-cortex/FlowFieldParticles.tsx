@@ -24,10 +24,6 @@ const CLUSTER_KEYS = ["core", "projects", "skills", "experience", "research"] as
 // [pos_x, pos_y, pos_z, color_r, color_g, color_b, strength, pulse_freq, pulse_amp, boost, species_human, species_machine, species_nature]
 const ATTRACTOR_STRIDE = 13;
 
-// WASM pillar belt (dist_xz to nearest attractor). Skip these in the GPU copy.
-const PILLAR_ZONE_MIN_SQ = 1.2 * 1.2;
-const PILLAR_ZONE_MAX_SQ = 4.2 * 4.2;
-
 export interface FlowFieldParticlesProps {
   count?: number;
   activeCluster: string | null;
@@ -212,30 +208,18 @@ export function FlowFieldParticles({
         wasmDataRef.current = wasmData;
       }
 
-      // Compact copy: skip pillar-belt particles (no per-frame alloc).
+      // Compact copy: skip pillar-flagged particles (pad field base+11 === 1.0).
       const pos = posAttr.array as Float32Array;
       const col = colorAttr.array as Float32Array;
-      const nAttr = CLUSTER_KEYS.length;
       let written = 0;
 
       for (let i = 0; i < len; i++) {
         const src = i * stride;
-        const px = wasmData[src];
-        const pz = wasmData[src + 2];
-        let minDistSq = Infinity;
-        for (let a = 0; a < nAttr; a++) {
-          const o = a * ATTRACTOR_STRIDE;
-          const dx = px - attractorData[o];
-          const dz = pz - attractorData[o + 2];
-          const dSq = dx * dx + dz * dz;
-          if (dSq < minDistSq) minDistSq = dSq;
-        }
-        if (minDistSq >= PILLAR_ZONE_MIN_SQ && minDistSq <= PILLAR_ZONE_MAX_SQ) continue;
-
+        if (wasmData[src + 11] === 1.0) continue;
         const dst = written * 3;
-        pos[dst] = px;
+        pos[dst] = wasmData[src];
         pos[dst + 1] = wasmData[src + 1];
-        pos[dst + 2] = pz;
+        pos[dst + 2] = wasmData[src + 2];
         col[dst] = wasmData[src + 8];
         col[dst + 1] = wasmData[src + 9];
         col[dst + 2] = wasmData[src + 10];
