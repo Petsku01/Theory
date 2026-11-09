@@ -1,0 +1,6 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "installCommand": "pnpm --dir petterikosonen.com install",
+  "buildCommand": "pnpm --dir petterikosonen.com build && node petterikosonen.com/scripts/extract-csp-hashes.mjs"
+}

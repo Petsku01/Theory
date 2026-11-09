@@ -1,20 +1,42 @@
 #!/usr/bin/env node
 /**
- * Extract inline <script> / <style> bodies from the Next SSG output and write
- * sha256 CSP hashes to next.config.csp.json. Idempotent: same build → same file.
+ * Per-route CSP hashes from Next SSG HTML.
  *
- * Usage: node scripts/extract-csp-hashes.mjs   (also hooked as postbuild)
+ * Reads .next/server/app/{index,blog,...}.html (also nested index.html /
+ * labs/llm.html). Writes next.config.csp.json:
+ *
+ *   { "routes": { "/": { "scriptHashes": [...], "styleHashes": [...] }, ... } }
+ *
+ * Then patches .next/routes-manifest.json so THIS build's hashes are served
+ * (Next bakes headers() at compile time; turbopack flight hashes change).
+ *
+ * Paths are __dirname-relative (optional argv[2] site root). Cwd may be the
+ * git root or the site directory. Idempotent: same HTML → same JSON.
+ *
+ * Usage: node scripts/extract-csp-hashes.mjs [siteRoot]
  */
 import { createHash } from "node:crypto";
-import { readdir, readFile, writeFile, mkdir } from "node:fs/promises";
+import { access, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
+const ROOT = resolve(process.argv[2] || join(SCRIPT_DIR, ".."));
 const OUT = join(ROOT, "next.config.csp.json");
-const SCAN_DIRS = [
-  join(ROOT, ".next/server/app"),
-  join(ROOT, ".next/static"),
+const APP_DIR = join(ROOT, ".next/server/app");
+const MANIFEST = join(ROOT, ".next/routes-manifest.json");
+
+const REQUIRED_ROUTES = [
+  "/",
+  "/about",
+  "/blog",
+  "/projects",
+  "/research",
+  "/contact",
+  "/kuu",
+  "/labs",
+  "/labs/llm",
+  "/labs/security",
 ];
 
 const SCRIPT_RE = /<script\b([^>]*)>([\s\S]*?)<\/script>/gi;
@@ -26,24 +48,26 @@ function sha256(content) {
   return `'sha256-${createHash("sha256").update(content, "utf8").digest("base64")}'`;
 }
 
-async function* walk(dir) {
-  let entries;
-  try {
-    entries = await readdir(dir, { withFileTypes: true });
-  } catch {
-    return;
-  }
-  for (const entry of entries) {
-    const path = join(dir, entry.name);
-    if (entry.isDirectory()) {
-      yield* walk(path);
-    } else if (entry.isFile()) {
-      yield path;
-    }
-  }
+function htmlCandidates(route) {
+  const rel = route === "/" ? "index" : route.replace(/^\//, "");
+  return [join(APP_DIR, `${rel}.html`), join(APP_DIR, rel, "index.html")];
 }
 
-function extract(html, scriptSet, styleSet) {
+async function firstExisting(paths) {
+  for (const path of paths) {
+    try {
+      await access(path);
+      return path;
+    } catch {
+      /* try next */
+    }
+  }
+  return null;
+}
+
+function extract(html) {
+  const scriptSet = new Set();
+  const styleSet = new Set();
   SCRIPT_RE.lastIndex = 0;
   for (const match of html.matchAll(SCRIPT_RE)) {
     const attrs = match[1] ?? "";
@@ -64,71 +88,89 @@ function extract(html, scriptSet, styleSet) {
     if (body.length === 0) continue;
     styleSet.add(sha256(body));
   }
+  return {
+    scriptHashes: [...scriptSet].sort(),
+    styleHashes: [...styleSet].sort(),
+  };
 }
 
-const scriptSet = new Set();
-const styleSet = new Set();
+function buildCsp({ scriptHashes = [], styleHashes = [] }) {
+  const scriptSrc = ["'self'", "'wasm-unsafe-eval'", ...scriptHashes].join(" ");
+  // Styles are low-risk: keep hashes + unsafe-hashes + unsafe-inline so React
+  // inline style="" never blocks render. Scripts stay hash-strict (no unsafe-inline).
+  const styleSrc = ["'self'", "'unsafe-hashes'", "'unsafe-inline'", ...styleHashes].join(" ");
+  return [
+    "default-src 'self'",
+    `script-src ${scriptSrc}`,
+    `style-src ${styleSrc}`,
+    "img-src 'self' data: blob:",
+    "connect-src 'self'",
+    "worker-src 'self' blob:",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    "upgrade-insecure-requests",
+  ].join("; ");
+}
+
+function normalizeSource(source) {
+  if (!source || source === "/") return "/";
+  return source.replace(/\/+$/, "") || "/";
+}
+
+const routes = {};
 const scanned = [];
+const missing = [];
 
-for (const dir of SCAN_DIRS) {
-  for await (const path of walk(dir)) {
-    const lower = path.toLowerCase();
-    if (!lower.endsWith(".html") && !lower.endsWith(".htm")) continue;
-    const html = await readFile(path, "utf8");
-    extract(html, scriptSet, styleSet);
-    scanned.push(relative(ROOT, path));
+for (const route of REQUIRED_ROUTES) {
+  const path = await firstExisting(htmlCandidates(route));
+  if (!path) {
+    missing.push(route);
+    routes[route] = { scriptHashes: [], styleHashes: [] };
+    continue;
   }
+  const html = await readFile(path, "utf8");
+  routes[route] = extract(html);
+  scanned.push(`${route} ← ${relative(ROOT, path)}`);
 }
 
-const scriptHashes = [...scriptSet].sort();
-const styleHashes = [...styleSet].sort();
-const payload = {
-  scriptHashes,
-  styleHashes,
-  scriptCount: scriptHashes.length,
-  styleCount: styleHashes.length,
-  scannedFiles: scanned.sort(),
-};
+if (missing.length) {
+  throw new Error(
+    `CSP: missing SSG HTML for ${missing.join(", ")} under ${relative(ROOT, APP_DIR) || ".next/server/app"} (run next build first)`,
+  );
+}
 
-await mkdir(dirname(OUT), { recursive: true });
+const payload = { routes };
 const serialized = `${JSON.stringify(payload, null, 2)}\n`;
 await writeFile(OUT, serialized, "utf8");
 
-const csp = [
-  "default-src 'self'",
-  `script-src ${["'self'", "'wasm-unsafe-eval'", ...scriptHashes].join(" ")}`,
-  `style-src ${["'self'", "'unsafe-hashes'", ...styleHashes].join(" ")}`,
-  "img-src 'self' data: blob:",
-  "font-src 'self'",
-  "connect-src 'self'",
-  "worker-src 'self' blob:",
-  "frame-src 'self'",
-  "object-src 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "frame-ancestors 'none'",
-  "upgrade-insecure-requests",
-].join("; ");
-
-// Next bakes headers() into routes-manifest at build time; turbopack
-// flight hashes change every compile, so patch the manifest to THIS build.
-const manifestPath = join(ROOT, ".next/routes-manifest.json");
 try {
-  const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  const manifest = JSON.parse(await readFile(MANIFEST, "utf8"));
   let patched = 0;
-  for (const route of manifest.headers ?? []) {
-    for (const header of route.headers ?? []) {
+  for (const entry of manifest.headers ?? []) {
+    const src = normalizeSource(entry.source);
+    const hashes = routes[src];
+    if (!hashes) continue;
+    const csp = buildCsp(hashes);
+    let found = false;
+    for (const header of entry.headers ?? []) {
       if (header.key === "Content-Security-Policy") {
         header.value = csp;
-        patched += 1;
+        found = true;
       }
     }
+    if (!found) {
+      entry.headers = entry.headers ?? [];
+      entry.headers.push({ key: "Content-Security-Policy", value: csp });
+    }
+    patched += 1;
   }
   if (patched === 0) {
-    console.warn("CSP: no Content-Security-Policy entry in routes-manifest.json");
+    console.warn("CSP: no per-route Content-Security-Policy entries in routes-manifest.json");
   } else {
-    await writeFile(manifestPath, `${JSON.stringify(manifest)}\n`, "utf8");
-    console.log(`CSP patched routes-manifest.json (${patched} header${patched === 1 ? "" : "s"})`);
+    await writeFile(MANIFEST, `${JSON.stringify(manifest)}\n`, "utf8");
+    console.log(`CSP patched routes-manifest.json (${patched} route${patched === 1 ? "" : "s"})`);
   }
 } catch (err) {
   if (err && err.code === "ENOENT") {
@@ -138,6 +180,11 @@ try {
   }
 }
 
+const summary = REQUIRED_ROUTES.map((route) => {
+  const r = routes[route];
+  return `${route}:${r.scriptHashes.length}s/${r.styleHashes.length}c`;
+}).join(" ");
 console.log(
-  `CSP hashes: ${scriptHashes.length} script, ${styleHashes.length} style from ${scanned.length} html → ${relative(ROOT, OUT)}`,
+  `CSP hashes per-route (${REQUIRED_ROUTES.length}) ${summary} → ${relative(ROOT, OUT)}`,
 );
+for (const line of scanned) console.log(`  ${line}`);
