@@ -42,7 +42,7 @@ export function SplashScreen({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0, scale: 1.05, filter: "blur(12px)" }}
         transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
-        className="fixed inset-0 z-50 flex cursor-pointer flex-col items-center justify-center bg-[#05070A]"
+        className="pointer-events-auto fixed inset-0 z-50 flex cursor-pointer flex-col items-center justify-center bg-[#05070A]"
         onClick={enter}
       >
         {/* Subtle grid pattern */}

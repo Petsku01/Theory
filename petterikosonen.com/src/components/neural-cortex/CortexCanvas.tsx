@@ -3,7 +3,6 @@
 import React, { Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
 import { CortexScene } from "@/components/neural-cortex/CortexScene";
-import { CortexLoader } from "@/components/neural-cortex/Overlays";
 
 export default function CortexCanvas({
   activeCluster,
@@ -11,15 +10,19 @@ export default function CortexCanvas({
   shakeTimestamp,
   particleCount,
   isMobile,
+  interactive = true,
+  reducedMotion = false,
 }: {
   activeCluster: string | null;
   onClusterSelect: (cluster: string | null) => void;
   shakeTimestamp: number;
   particleCount: number;
   isMobile: boolean;
+  interactive?: boolean;
+  reducedMotion?: boolean;
 }) {
   return (
-    <Suspense fallback={<CortexLoader />}>
+    <Suspense fallback={null}>
       <Canvas
         flat
         dpr={1}
@@ -29,10 +32,11 @@ export default function CortexCanvas({
           alpha: false,
           powerPreference: "high-performance",
         }}
+        style={{ pointerEvents: interactive ? "auto" : "none" }}
         onCreated={({ gl }) => {
           gl.setClearColor("#05070A", 1);
         }}
-        onPointerMissed={() => onClusterSelect(null)}
+        onPointerMissed={interactive ? () => onClusterSelect(null) : undefined}
       >
         <fog attach="fog" args={["#05070A", 30, 80]} />
         <CortexScene
@@ -41,6 +45,8 @@ export default function CortexCanvas({
           shakeTimestamp={shakeTimestamp}
           particleCount={particleCount}
           isMobile={isMobile}
+          reducedMotion={reducedMotion}
+          interactive={interactive}
         />
       </Canvas>
     </Suspense>

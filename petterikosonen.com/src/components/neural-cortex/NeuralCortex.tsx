@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
-import dynamic from "next/dynamic";
+import React, { useEffect, useState } from "react";
 
-import { Scanlines, Vignette, CortexLoader } from "@/components/neural-cortex/Overlays";
+import { Scanlines, Vignette } from "@/components/neural-cortex/Overlays";
 import { AccessibleNav } from "@/components/neural-cortex/AccessibleNav";
 
 import { SplashScreen } from "@/components/neural-cortex/SplashScreen";
@@ -12,11 +11,7 @@ import { CLUSTER_COLORS, getUnifiedWasmStatus } from "@/components/neural-cortex
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { nodes } from "@/lib/cortex-data";
 import { ClusterInfoPanel } from "@/components/neural-cortex/ClusterInfoPanel";
-
-const CortexCanvas = dynamic(
-  () => import("@/components/neural-cortex/CortexCanvas"),
-  { ssr: false, loading: () => <CortexLoader /> }
-);
+import { useCortexInteraction } from "@/components/neural-cortex/CortexInteractionContext";
 
 const CLUSTER_KEYS = ["core", "projects", "skills", "experience", "research"] as const;
 const CLUSTER_LABELS: Record<string, string> = {
@@ -51,7 +46,7 @@ function StaticCortexFallback({
   return (
     <>
       <TitleOverlay hasInteracted={activeCluster !== null} />
-      <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-8 px-6 pt-36">
+      <div className="pointer-events-auto absolute inset-0 z-10 flex flex-col items-center justify-center gap-8 px-6 pt-36">
         <nav aria-label="Clusters" className="flex flex-wrap justify-center gap-3">
           {CLUSTER_KEYS.map((key) => {
             const active = activeCluster === key;
@@ -74,11 +69,13 @@ function StaticCortexFallback({
           })}
         </nav>
       </div>
-      <ClusterInfoPanel
-        activeCluster={activeCluster}
-        isMobile={isMobile}
-        reducedMotion
-      />
+      <div className="pointer-events-auto">
+        <ClusterInfoPanel
+          activeCluster={activeCluster}
+          isMobile={isMobile}
+          reducedMotion
+        />
+      </div>
       <AccessibleNav
         onSelect={(id) => {
           const node = nodes.find((n) => n.id === id);
@@ -89,42 +86,20 @@ function StaticCortexFallback({
   );
 }
 
-// ── Exported wrapper ──
+// ── Home overlays only — canvas lives in root layout ──
 export default function NeuralCortex() {
   const [entered, setEntered] = useState(false);
-  const [shakeTimestamp, setShakeTimestamp] = useState(0);
-  const [activeCluster, setActiveCluster] = useState<string | null>(null);
-  const [isMobile, setIsMobile] = useState(false);
-
   const reducedMotion = usePrefersReducedMotion();
-
-  // Detect mobile via matchMedia
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const mq = window.matchMedia("(max-width: 768px)");
-    setIsMobile(mq.matches);
-    const onChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
-  }, []);
-
-  const particleCount = isMobile ? 2000 : 5000;
-
-  const handleClusterSelect = useCallback((cluster: string | null) => {
-    setActiveCluster(cluster);
-    if (cluster !== null) {
-      setShakeTimestamp((prev) => prev + 1);
-    }
-  }, []);
+  const { activeCluster, selectCluster, isMobile } = useCortexInteraction();
 
   return (
-    <div className="fixed inset-0 z-[5] overflow-hidden bg-[#05070A]">
+    <div className="pointer-events-none fixed inset-0 z-[5] overflow-hidden">
       <GlobalStyles />
 
       {reducedMotion ? (
         <StaticCortexFallback
           activeCluster={activeCluster}
-          onClusterSelect={handleClusterSelect}
+          onClusterSelect={selectCluster}
           isMobile={isMobile}
         />
       ) : (
@@ -133,20 +108,12 @@ export default function NeuralCortex() {
 
           {entered && (
             <>
-              <CortexCanvas
-                activeCluster={activeCluster}
-                onClusterSelect={handleClusterSelect}
-                shakeTimestamp={shakeTimestamp}
-                particleCount={particleCount}
-                isMobile={isMobile}
-              />
-
               <Scanlines />
               <Vignette />
 
               {activeCluster && (
                 <button
-                  onClick={() => handleClusterSelect(null)}
+                  onClick={() => selectCluster(null)}
                   className="pointer-events-auto absolute left-6 top-20 z-30 rounded-lg border border-slate-700/60 bg-[#0a0a0f]/90 px-3 py-1.5 font-mono text-xs text-slate-300 backdrop-blur-sm transition-colors hover:border-cyan-500/50 hover:text-cyan-400"
                 >
                   Reset View
@@ -159,16 +126,18 @@ export default function NeuralCortex() {
                 </span>
               </div>
 
-              <ClusterInfoPanel
-                activeCluster={activeCluster}
-                isMobile={isMobile}
-                reducedMotion={reducedMotion}
-              />
+              <div className="pointer-events-auto">
+                <ClusterInfoPanel
+                  activeCluster={activeCluster}
+                  isMobile={isMobile}
+                  reducedMotion={reducedMotion}
+                />
+              </div>
 
               <AccessibleNav
                 onSelect={(id) => {
                   const node = nodes.find((n) => n.id === id);
-                  if (node) handleClusterSelect(node.cluster);
+                  if (node) selectCluster(node.cluster);
                 }}
               />
 

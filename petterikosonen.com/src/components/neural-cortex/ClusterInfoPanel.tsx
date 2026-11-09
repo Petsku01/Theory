@@ -79,8 +79,8 @@ export function ClusterInfoPanel({
           transition={panelVariants.transition}
           className={
             isMobile
-              ? "fixed inset-x-0 bottom-0 z-40 select-none"
-              : "fixed right-6 top-1/2 z-40 -translate-y-1/2 select-none"
+              ? "pointer-events-auto fixed inset-x-0 bottom-0 z-40 select-none"
+              : "pointer-events-auto fixed right-6 top-1/2 z-40 -translate-y-1/2 select-none"
           }
         >
           <div

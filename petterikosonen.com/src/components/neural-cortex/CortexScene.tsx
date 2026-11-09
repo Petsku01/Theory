@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import { OrbitControls, Html } from "@react-three/drei";
+import { OrbitControls } from "@react-three/drei";
 import { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import * as THREE from "three";
 import { clusterPositions } from "@/lib/cortex-data";
@@ -14,37 +14,22 @@ import { MyceliumField } from "@/components/neural-cortex/MyceliumField";
 // ── SYMBIOOSIS: Cursor = navigation, no traditional navbar ──
 // Particles respond to cursor position via raycaster.
 // NO ClusterMarkers — the organism IS the particles.
-// Invisible click-target spheres handle cluster selection.
+// Invisible click-target spheres handle cluster selection. Nothing is named on the field.
 
 const CLUSTER_KEYS = ["core", "projects", "skills", "experience", "research"] as const;
 
-const CLUSTER_LABELS: Record<string, string> = {
-  core: "Core",
-  projects: "Projects",
-  skills: "Skills",
-  experience: "Experience",
-  research: "Research",
-};
-
 // ── Invisible click-target sphere for one cluster ──
 function ClickTarget({
-  clusterKey,
   position,
   color,
-  label,
   isActive,
   onClick,
-  isMobile = false,
 }: {
-  clusterKey: string;
   position: [number, number, number];
   color: string;
-  label: string;
   isActive: boolean;
   onClick: () => void;
-  isMobile?: boolean;
 }) {
-  const [hovered, setHovered] = useState(false);
   const colorObj = useMemo(() => new THREE.Color(color), [color]);
 
   return (
@@ -58,51 +43,15 @@ function ClickTarget({
         }}
         onPointerOver={(e) => {
           e.stopPropagation();
-          setHovered(true);
           document.body.style.cursor = "pointer";
         }}
         onPointerOut={() => {
-          setHovered(false);
           document.body.style.cursor = "default";
         }}
       >
         <sphereGeometry args={[2.5, 16, 16]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
-
-      {/* Html label — always visible, brighter on hover/active */}
-      <Html
-        position={[0, 1.8, 0]}
-        center
-        {...(isMobile ? {} : { distanceFactor: 10 })}
-        zIndexRange={[10, 0]}
-        wrapperClass="cortex-html-label"
-        style={{
-          pointerEvents: "none",
-          userSelect: "none",
-          maxWidth: "90vw",
-        }}
-      >
-        <div
-          style={{
-            fontFamily: "monospace",
-            fontSize: "11px",
-            fontWeight: isActive ? "bold" : "normal",
-            color: isActive ? color : hovered ? color : "rgba(203, 213, 225, 0.72)",
-            textShadow: `0 0 8px ${color}80`,
-            whiteSpace: isMobile ? "normal" : "nowrap",
-            overflowWrap: "break-word",
-            wordWrap: "break-word",
-            maxWidth: "90vw",
-            letterSpacing: "0.1em",
-            textTransform: "uppercase",
-            transition: "all 0.2s ease",
-            opacity: isActive ? 1 : hovered ? 0.82 : 0.38,
-          }}
-        >
-          {label}
-        </div>
-      </Html>
 
       {/* Subtle glow ring when active (no mesh sphere, just a faint ring) */}
       {isActive && (
@@ -127,6 +76,7 @@ export function CortexScene({
   shakeTimestamp,
   isMobile = false,
   reducedMotion = false,
+  interactive = true,
 }: {
   activeCluster: string | null;
   onClusterSelect: (cluster: string | null) => void;
@@ -134,6 +84,7 @@ export function CortexScene({
   particleCount?: number;
   isMobile?: boolean;
   reducedMotion?: boolean;
+  interactive?: boolean;
 }) {
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const groupRef = useRef<THREE.Group>(null);
@@ -151,8 +102,7 @@ export function CortexScene({
     return CLUSTER_KEYS.map((key) => {
       const pos = clusterPositions[key] ?? [0, 0, 0];
       const color = CLUSTER_COLORS[key] ?? "#00f0ff";
-      const label = CLUSTER_LABELS[key] ?? key;
-      return { key, position: pos as [number, number, number], color, label };
+      return { key, position: pos as [number, number, number], color };
     });
   }, []);
 
@@ -181,27 +131,26 @@ export function CortexScene({
       <pointLight position={[10, 10, 10]} intensity={0.4} color="#00f0ff" />
       <pointLight position={[-10, -5, -10]} intensity={0.3} color="#22d3ee" />
 
-      <group ref={groupRef}>
-        {/* Invisible click-targets + Html labels (no visible mesh spheres) */}
-        {clickTargets.map((t) => (
-          <ClickTarget
-            key={t.key}
-            clusterKey={t.key}
-            position={t.position}
-            color={t.color}
-            label={t.label}
-            isActive={activeCluster === t.key}
-            isMobile={isMobile}
-            onClick={() => {
-              if (activeCluster === t.key) {
-                onClusterSelect(null);
-              } else {
-                onClusterSelect(t.key);
-              }
-            }}
-          />
-        ))}
-      </group>
+      {interactive && (
+        <group ref={groupRef}>
+          {/* Invisible click-targets — spheres only */}
+          {clickTargets.map((t) => (
+            <ClickTarget
+              key={t.key}
+              position={t.position}
+              color={t.color}
+              isActive={activeCluster === t.key}
+              onClick={() => {
+                if (activeCluster === t.key) {
+                  onClusterSelect(null);
+                } else {
+                  onClusterSelect(t.key);
+                }
+              }}
+            />
+          ))}
+        </group>
+      )}
 
       <CameraController
         target={targetPosition}
@@ -214,7 +163,9 @@ export function CortexScene({
         dampingFactor={0.08}
         minDistance={3}
         maxDistance={25}
-        enablePan
+        enablePan={interactive}
+        enableRotate={interactive}
+        enableZoom={interactive}
         autoRotate={!activeCluster && !reducedMotion}
         autoRotateSpeed={0.3}
       />

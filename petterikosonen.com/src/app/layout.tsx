@@ -1,12 +1,14 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Manrope, Space_Grotesk } from "next/font/google";
 import "./globals.css";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import Analytics from "@/components/Analytics";
-import ErrorBoundary from "@/components/ErrorBoundary";
 import AmbientBackground from "@/components/AmbientBackground";
 import ClientEffects from "@/components/ClientEffects";
+import ContentShell from "@/components/ContentShell";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import { CortexInteractionProvider } from "@/components/neural-cortex/CortexInteractionContext";
+import MyceliumBackground from "@/components/neural-cortex/MyceliumBackground";
 
 const ibmPlexMono = IBM_Plex_Mono({
   subsets: ["latin"],
@@ -78,27 +80,24 @@ export default function RootLayout({
     <html lang="en" className={`${manrope.variable} ${ibmPlexMono.variable} ${spaceGrotesk.variable}`}>
       <head />
       <body className="relative min-h-screen overflow-x-hidden">
-        {/* Background layers */}
-        <AmbientBackground />
-        <ClientEffects />
-        <Analytics />
+        <CortexInteractionProvider>
+          {/* z: Ambient -z-20 · Mycelium z-0 · content z-[45] · navbar sticky z-40 · splash z-50 */}
+          <AmbientBackground />
+          <MyceliumBackground />
+          <ClientEffects />
+          <Analytics />
 
-        <a
-          href="#main-content"
-          className="focus-outline sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 z-50 rounded-lg bg-accent-cyan px-4 py-2 text-sm font-bold text-text-inverse"
-        >
-          Skip to content
-        </a>
+          <a
+            href="#main-content"
+            className="focus-outline sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 z-50 rounded-lg bg-accent-cyan px-4 py-2 text-sm font-bold text-text-inverse"
+          >
+            Skip to content
+          </a>
 
-        <div className="relative z-[45] flex min-h-screen flex-col">
-          <div className="container-shell py-4">
-            <Navbar />
-            <main id="main-content" role="main" className="mt-8 flex-1 pb-12">
-              <ErrorBoundary>{children}</ErrorBoundary>
-            </main>
-          </div>
-          <Footer />
-        </div>
+          <ContentShell navbar={<Navbar />} footer={<Footer />}>
+            {children}
+          </ContentShell>
+        </CortexInteractionProvider>
       </body>
     </html>
   );

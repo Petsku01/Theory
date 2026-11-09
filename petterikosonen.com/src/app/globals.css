@@ -223,13 +223,6 @@ p, li {
   .nav-contact-desktop {
     display: none !important;
   }
-
-  .cortex-html-label {
-    max-width: 90vw !important;
-    white-space: normal;
-    overflow-wrap: break-word;
-    word-wrap: break-word;
-  }
 }
 
 /* Hero fallback nav: sr-only until focused, then skip-link treatment + cyan ring. */
