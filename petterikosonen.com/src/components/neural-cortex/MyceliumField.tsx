@@ -3,6 +3,16 @@
 import React, { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+import {
+  KNOT_FLOW_DEFAULT,
+  KNOT_GAUSS_GLSL,
+  KNOT_LUMA_LIFT,
+  KNOT_MIX,
+  KNOT_RADIUS_DEFAULT,
+  KNOT_TIME_SCALE,
+  makeKnotAzEl,
+  makeKnotRgb,
+} from "@/components/neural-cortex/knotGauss";
 
 /** Uniforms R2b may drive per-frame on the field material. */
 export const MYCELIUM_FIELD_UNIFORMS = {
@@ -31,6 +41,8 @@ uniform vec3 uBg;
 uniform vec3 uCyan;
 uniform vec3 uGreen;
 uniform vec3 uViolet;
+uniform vec3 uKnots[4];
+uniform vec3 uKnotColor[4];
 
 varying vec3 vWorldPos;
 
@@ -72,9 +84,11 @@ float fbm(vec2 p) {
   return v;
 }
 
+${KNOT_GAUSS_GLSL}
+
 void main() {
   vec3 p = vWorldPos * 0.038 * max(uDensity, 0.15);
-  float t = uTime * 0.045 * uFlow;
+  float t = uTime * ${KNOT_TIME_SCALE.toFixed(3)} * uFlow;
   // Y-freq 0.85→1.62 (~1.9× shorter hypha along world-Y) + axis mix so ridges aren't meridian-locked.
   vec2 st = vec2(
     p.x + p.z * 0.35 + p.y * 0.28,
@@ -116,6 +130,10 @@ void main() {
   col += uGreen * veins * 0.42 * (1.0 - ribbonMask);
   col += uViolet * ribbonMask * 0.85;
 
+  vec4 ks = knotSample(vWorldPos, t);
+  col = mix(col, ks.rgb, ks.a * ${KNOT_MIX.toFixed(2)});
+  col *= (1.0 + ks.a * ${KNOT_LUMA_LIFT.toFixed(2)});
+
   gl_FragColor = vec4(col, 1.0);
 }
 `;
@@ -129,8 +147,8 @@ export type MyceliumFieldProps = {
 
 export function MyceliumField({
   density = 1.45,
-  flow = 1.35,
-  radius = 48,
+  flow = KNOT_FLOW_DEFAULT,
+  radius = KNOT_RADIUS_DEFAULT,
   mobile = false,
 }: MyceliumFieldProps) {
   const matRef = useRef<THREE.ShaderMaterial>(null);
@@ -154,6 +172,12 @@ export function MyceliumField({
       uCyan: { value: new THREE.Color("#22D3EE") },
       uGreen: { value: new THREE.Color("#39FF88") },
       uViolet: { value: new THREE.Color("#B47CFF") },
+      uKnots: {
+        value: makeKnotAzEl().map((v) => new THREE.Vector3(v.x, v.y, v.z)),
+      },
+      uKnotColor: {
+        value: makeKnotRgb().map((rgb) => new THREE.Color().fromArray(rgb)),
+      },
     }),
     // Stable object — density/flow/lod are written each frame.
     // eslint-disable-next-line react-hooks/exhaustive-deps

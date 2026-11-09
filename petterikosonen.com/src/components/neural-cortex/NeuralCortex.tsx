@@ -11,6 +11,7 @@ import { CLUSTER_COLORS, getUnifiedWasmStatus } from "@/components/neural-cortex
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { nodes } from "@/lib/cortex-data";
 import { ClusterInfoPanel } from "@/components/neural-cortex/ClusterInfoPanel";
+import { ClusterQuickNav } from "@/components/neural-cortex/ClusterQuickNav";
 import { useCortexInteraction } from "@/components/neural-cortex/CortexInteractionContext";
 
 const CLUSTER_KEYS = ["core", "projects", "skills", "experience", "research"] as const;
@@ -69,6 +70,7 @@ function StaticCortexFallback({
           })}
         </nav>
       </div>
+      <ClusterQuickNav />
       <div className="pointer-events-auto">
         <ClusterInfoPanel
           activeCluster={activeCluster}
@@ -125,6 +127,8 @@ export default function NeuralCortex() {
                   move cursor to explore · click areas to explore
                 </span>
               </div>
+
+              <ClusterQuickNav />
 
               <div className="pointer-events-auto">
                 <ClusterInfoPanel

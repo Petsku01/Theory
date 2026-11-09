@@ -3,6 +3,18 @@
 import React, { useEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
+import {
+  KNOT_FLOW_DEFAULT,
+  KNOT_GAUSS_GLSL,
+  KNOT_HIT_GLSL,
+  KNOT_LUMA_LIFT,
+  KNOT_MASK_THRESHOLD,
+  KNOT_MIX,
+  KNOT_RADIUS_DEFAULT,
+  KNOT_TIME_SCALE,
+  makeKnotAzEl,
+  makeKnotRgb,
+} from "@/components/neural-cortex/knotGauss";
 
 // GPU ASCII pass (three.js custom ShaderPass model): scene → WebGLRenderTarget,
 // then one fullscreen GLSL pass samples luminance → glyph atlas.
@@ -65,8 +77,18 @@ uniform vec3 uBg;
 uniform vec3 uCyan;
 uniform vec3 uGreen;
 uniform vec3 uViolet;
+uniform float uTime;
+uniform float uFlow;
+uniform float uRadius;
+uniform vec3 uCameraPos;
+uniform mat4 uInvViewProj;
+uniform vec3 uKnots[4];
+uniform vec3 uKnotColor[4];
 
 varying vec2 vUv;
+
+${KNOT_HIT_GLSL}
+${KNOT_GAUSS_GLSL}
 
 float luma(vec3 c) {
   return dot(c, vec3(0.299, 0.587, 0.114));
@@ -119,6 +141,12 @@ void main() {
   vec3 pal = palette(qLum);
   float ink = glyph * smoothstep(0.0, 0.06, nL);
   vec3 asciiCol = mix(uBg, pal, ink);
+
+  vec4 ks = knotSample(knotHit(sceneUv), uTime * ${KNOT_TIME_SCALE.toFixed(3)} * uFlow);
+  if (ks.a > ${KNOT_MASK_THRESHOLD.toFixed(2)}) {
+    asciiCol = mix(asciiCol, ks.rgb, ${KNOT_MIX.toFixed(2)});
+    asciiCol *= (1.0 + ks.a * ${KNOT_LUMA_LIFT.toFixed(2)});
+  }
 
   vec3 outCol = mix(src.rgb, asciiCol, clamp(uIntensity, 0.0, 1.0));
   gl_FragColor = vec4(outCol, 1.0);
@@ -241,6 +269,17 @@ export function GlyphLayer({
       uCyan: { value: CYAN.clone() },
       uGreen: { value: GREEN.clone() },
       uViolet: { value: VIOLET.clone() },
+      uTime: { value: 0 },
+      uFlow: { value: KNOT_FLOW_DEFAULT },
+      uRadius: { value: KNOT_RADIUS_DEFAULT },
+      uCameraPos: { value: new THREE.Vector3() },
+      uInvViewProj: { value: new THREE.Matrix4() },
+      uKnots: {
+        value: makeKnotAzEl().map((v) => new THREE.Vector3(v.x, v.y, v.z)),
+      },
+      uKnotColor: {
+        value: makeKnotRgb().map((rgb) => new THREE.Color().fromArray(rgb)),
+      },
     };
 
     const material = new THREE.ShaderMaterial({
@@ -306,7 +345,7 @@ export function GlyphLayer({
   }, [resources]);
 
   // priority > 0: R3F skips default scene render. We own: 1 scene→RT, 1 blit quad.
-  useFrame(() => {
+  useFrame(({ clock }) => {
     if (!resources.atlas) return;
 
     const dpr = gl.getPixelRatio();
@@ -323,6 +362,14 @@ export function GlyphLayer({
     resources.uniforms.uIntensity.value = intensityRef.current;
     resources.uniforms.uContrast.value = contrastRef.current;
     resources.uniforms.tScene.value = resources.rt.texture;
+    resources.uniforms.uTime.value = clock.elapsedTime;
+    resources.uniforms.uFlow.value = KNOT_FLOW_DEFAULT;
+    resources.uniforms.uRadius.value = KNOT_RADIUS_DEFAULT;
+    resources.uniforms.uCameraPos.value.copy(camera.position);
+    resources.uniforms.uInvViewProj.value.multiplyMatrices(
+      camera.matrixWorld,
+      camera.projectionMatrixInverse,
+    );
 
     const prevTarget = gl.getRenderTarget();
     const prevAutoClear = gl.autoClear;

@@ -16,7 +16,7 @@ import { MyceliumField } from "@/components/neural-cortex/MyceliumField";
 // NO ClusterMarkers — the organism IS the particles.
 // Invisible click-target spheres handle cluster selection. Nothing is named on the field.
 
-const CLUSTER_KEYS = ["core", "projects", "skills", "experience", "research"] as const;
+const CLUSTER_KEYS = ["core", "projects", "skills", "experience"] as const;
 
 // ── Invisible click-target sphere for one cluster ──
 function ClickTarget({
