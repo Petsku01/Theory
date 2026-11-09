@@ -2,8 +2,15 @@
 /**
  * Per-route CSP hashes from Next SSG HTML.
  *
- * Reads .next/server/app/{index,blog,...}.html (also nested index.html /
- * labs/llm.html). Writes next.config.csp.json:
+ * Reads prerendered HTML for each route from BOTH known Next 16 layouts:
+ *   (a) .next/server/app/{index,blog,...}.html (also nested index.html /
+ *       labs/llm.html), and
+ *   (b) Vercel adapter builds (NEXT_ADAPTER_PATH) where useScopedBuildArtifacts
+ *       moves prerendered HTML to .next/server/route-cache/APP_PAGE/<sha>/$/
+ *       instead of .next/server/app/ — every prerendered .html under .next is
+ *       indexed by route-relative key so any layout change keeps working.
+ *
+ * Writes next.config.csp.json:
  *
  *   { "routes": { "/": { "scriptHashes": [...], "styleHashes": [...] }, ... } }
  *
@@ -16,7 +23,7 @@
  * Usage: node scripts/extract-csp-hashes.mjs [siteRoot]
  */
 import { createHash } from "node:crypto";
-import { access, readFile, writeFile } from "node:fs/promises";
+import { access, readdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -48,9 +55,36 @@ function sha256(content) {
   return `'sha256-${createHash("sha256").update(content, "utf8").digest("base64")}'`;
 }
 
-function htmlCandidates(route) {
-  const rel = route === "/" ? "index" : route.replace(/^\//, "");
-  return [join(APP_DIR, `${rel}.html`), join(APP_DIR, rel, "index.html")];
+// Next 16 adapter builds (Vercel sets NEXT_ADAPTER_PATH) move prerendered HTML
+// to .next/server/route-cache/APP_PAGE/<sha>/$/<route>.html instead of
+// .next/server/app/<route>.html. Index every prerendered .html under .next by
+// route-relative keys so both layouts — and future layout changes — resolve.
+async function collectHtmlIndex() {
+  const base = join(ROOT, ".next");
+  const index = new Map();
+  const add = (key, path) => {
+    if (!index.has(key)) index.set(key, []);
+    index.get(key).push(path);
+  };
+  let files = [];
+  try {
+    files = await readdir(base, { recursive: true });
+  } catch {
+    /* no .next at all — index stays empty, routes resolve as missing */
+  }
+  for (const f of files) {
+    if (!f.endsWith(".html")) continue;
+    const abs = join(base, f);
+    add(f, abs); // generic full-relative key
+    if (f.startsWith("server/app/")) {
+      add(f.slice("server/app/".length), abs); // classic app layout
+    }
+    const dollarParts = f.split("/$/");
+    if (dollarParts.length > 1) {
+      add(dollarParts[dollarParts.length - 1], abs); // adapter route-cache
+    }
+  }
+  return index;
 }
 
 async function firstExisting(paths) {
@@ -123,8 +157,14 @@ const routes = {};
 const scanned = [];
 const missing = [];
 
+const htmlIndex = await collectHtmlIndex();
+
 for (const route of REQUIRED_ROUTES) {
-  const path = await firstExisting(htmlCandidates(route));
+  const rel = route === "/" ? "index" : route.replace(/^\//, "");
+  const path = await firstExisting([
+    ...(htmlIndex.get(`${rel}.html`) ?? []),
+    ...(htmlIndex.get(`${rel}/index.html`) ?? []),
+  ]);
   if (!path) {
     missing.push(route);
     routes[route] = { scriptHashes: [], styleHashes: [] };
@@ -137,7 +177,7 @@ for (const route of REQUIRED_ROUTES) {
 
 if (missing.length) {
   throw new Error(
-    `CSP: missing SSG HTML for ${missing.join(", ")} under ${relative(ROOT, APP_DIR) || ".next/server/app"} (run next build first)`,
+    `CSP: no prerendered HTML for ${missing.join(", ")} under .next/server/{app,route-cache} (run next build first)`,
   );
 }
 
