@@ -42,6 +42,8 @@ uniform float uCellSize;
 uniform float uCharsetCount;
 uniform float uIntensity;
 uniform float uContrast;
+uniform float uP60;
+uniform float uP97;
 uniform vec3 uBg;
 uniform vec3 uCyan;
 uniform vec3 uGreen;
@@ -53,14 +55,26 @@ float luma(vec3 c) {
   return dot(c, vec3(0.299, 0.587, 0.114));
 }
 
-vec3 palette(float t, vec3 src) {
+float lutQ(float idx) {
+  float q = 0.04;
+  q = mix(q, 0.12, step(0.5, idx));
+  q = mix(q, 0.26, step(1.5, idx));
+  q = mix(q, 0.47, step(2.5, idx));
+  q = mix(q, 0.72, step(3.5, idx));
+  q = mix(q, 1.00, step(4.5, idx));
+  return q;
+}
+
+vec3 palette(float t) {
   float x = clamp(t, 0.0, 1.0);
   vec3 lo = mix(uCyan, uGreen, 0.32);
-  float crest = smoothstep(0.55, 0.92, x);
-  vec3 body = mix(uBg, lo, 0.50 + 0.28 * x);
-  // Alpha-valley violet on # crests (L ≥ 60); no cyan wash.
-  float vA = mix(0.48, 0.70, crest);
-  return mix(body, uViolet * vA, crest);
+  float crest = smoothstep(0.47, 0.85, x);
+  vec3 hueCol = mix(lo, uViolet, crest);
+  float hl = max(luma(hueCol), 1e-4);
+  float lift = clamp((x - hl) / max(1.0 - hl, 1e-4), 0.0, 0.55);
+  vec3 lit = mix(hueCol, vec3(1.0), lift);
+  float ll = max(luma(lit), 1e-4);
+  return lit * (x / ll);
 }
 
 void main() {
@@ -73,11 +87,10 @@ void main() {
 
   float lum = luma(src.rgb);
   lum = clamp(pow(lum, max(uContrast, 0.2)), 0.0, 1.0);
-  // Stretch in-range luma onto 6 steps so crests reach # (top ≥ 0.35).
-  float stretched = clamp((lum - 0.055) / 0.28, 0.0, 1.0);
+  float nL = clamp((lum - uP60) / max(uP97 - uP60, 0.02), 0.0, 1.0);
 
-  float idx = floor(min(stretched, 0.9999) * uCharsetCount);
-  float qLum = (idx + 0.5) / uCharsetCount;
+  float idx = floor(min(nL, 0.9999) * uCharsetCount);
+  float qLum = lutQ(idx);
   vec2 local = fract(fragPx / cell);
   // 1-row atlas, square cells: map the full cell onto the full atlas cell.
   // Half-texel inset on U avoids neighbour bleed; V uses nearly the full row
@@ -86,9 +99,8 @@ void main() {
   vec2 atlasUv = vec2((idx + gLocal.x) / uCharsetCount, gLocal.y);
   float glyph = dot(texture2D(tAtlas, atlasUv).rgb, vec3(0.299, 0.587, 0.114));
 
-  vec3 pal = palette(qLum, src.rgb);
-  // Floor + ink gate only on glyph ink — do not crush whole-field luma.
-  float ink = glyph * smoothstep(0.04, 0.09, lum);
+  vec3 pal = palette(qLum);
+  float ink = glyph * smoothstep(0.0, 0.06, nL);
   vec3 asciiCol = mix(uBg, pal, ink);
 
   vec3 outCol = mix(src.rgb, asciiCol, clamp(uIntensity, 0.0, 1.0));
@@ -167,6 +179,10 @@ export function GlyphLayer({
   contrastRef.current = contrast;
 
   const scratch = useMemo(() => new THREE.Vector2(), []);
+  const histAtRef = useRef(0);
+  const histBufRef = useRef<Uint8Array | null>(null);
+  const HIST_W = 96;
+  const HIST_H = 54;
 
   const resources = useMemo(() => {
     const atlas =
@@ -190,6 +206,8 @@ export function GlyphLayer({
       uCharsetCount: { value: GLYPH_RAMP.length },
       uIntensity: { value: 0.85 },
       uContrast: { value: 1.38 },
+      uP60: { value: 0.05 },
+      uP97: { value: 0.35 },
       uBg: { value: BG.clone() },
       uCyan: { value: CYAN.clone() },
       uGreen: { value: GREEN.clone() },
@@ -250,6 +268,45 @@ export function GlyphLayer({
     gl.setClearColor(BG, 1);
     gl.clear();
     gl.render(scene, camera);
+
+    const now =
+      typeof performance !== "undefined" ? performance.now() : Date.now();
+    if (now - histAtRef.current >= 500) {
+      histAtRef.current = now;
+      const hw = Math.min(HIST_W, w);
+      const hh = Math.min(HIST_H, h);
+      const need = hw * hh * 4;
+      if (!histBufRef.current || histBufRef.current.length !== need) {
+        histBufRef.current = new Uint8Array(need);
+      }
+      const ox = Math.max(0, Math.floor((w - hw) / 2));
+      const oy = Math.max(0, Math.floor((h - hh) / 2));
+      gl.readRenderTargetPixels(resources.rt, ox, oy, hw, hh, histBufRef.current);
+      const buf = histBufRef.current;
+      const bins = new Uint32Array(256);
+      let count = 0;
+      for (let i = 0; i < buf.length; i += 4) {
+        const L =
+          0.299 * buf[i]! + 0.587 * buf[i + 1]! + 0.114 * buf[i + 2]!;
+        bins[Math.min(255, L | 0)]++;
+        count++;
+      }
+      const pick = (p: number) => {
+        const target = p * count;
+        let acc = 0;
+        for (let b = 0; b < 256; b++) {
+          acc += bins[b]!;
+          if (acc >= target) return b / 255;
+        }
+        return 1;
+      };
+      let p60 = pick(0.6);
+      let p97 = pick(0.97);
+      if (p97 - p60 < 0.02) p97 = Math.min(1, p60 + 0.02);
+      const u = resources.uniforms;
+      u.uP60.value += (p60 - u.uP60.value) * 0.45;
+      u.uP97.value += (p97 - u.uP97.value) * 0.45;
+    }
 
     gl.setRenderTarget(null);
     gl.render(resources.passScene, resources.passCamera);

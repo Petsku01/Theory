@@ -80,17 +80,20 @@ void main() {
   float veins = fbm(st * 2.15 + r * 2.8 + t * 0.12);
   veins = pow(max(0.0, veins * 1.22 - 0.40), 1.65);
 
-  float hypha = max(ridges * 0.92, veins);
-  hypha = pow(max(0.0, hypha - 0.16) / 0.84, 1.12);
+  float hyphaRaw = max(ridges * 0.92, veins);
+  // Local max-normalization of this field (3-tap), independent of scene luma.
+  float nA = fbm(st + 2.3 * r + vec2(0.22, 0.08));
+  float nB = fbm(st + 2.3 * r + vec2(-0.14, 0.19));
+  float rA = pow(1.0 - abs(nA * 2.0 - 1.0), 2.55);
+  float rB = pow(1.0 - abs(nB * 2.0 - 1.0), 2.55);
+  float localMax = max(hyphaRaw, max(rA, rB));
+  float hyphaNorm = hyphaRaw / max(localMax, 1e-4);
 
   vec3 col = uBg;
-  // Ribbon from hypha crests — ridge-only mask was empty, so violet had nowhere to live.
-  float ribbonMask = smoothstep(0.40, 0.68, hypha);
-  col += uCyan * hypha * 1.65 * (1.0 - ribbonMask);
+  float ribbonMask = smoothstep(0.55, 0.85, hyphaNorm);
+  col += uCyan * hyphaRaw * 1.65 * (1.0 - ribbonMask);
   col += uGreen * veins * 0.42 * (1.0 - ribbonMask);
-  // Alpha-valley violet on crests (L ≥ 60/255, hue in 250–290°).
-  float vA = mix(0.58, 0.84, ribbonMask);
-  col = mix(col, uViolet * vA, ribbonMask);
+  col += uViolet * ribbonMask * 0.85;
 
   gl_FragColor = vec4(col, 1.0);
 }
